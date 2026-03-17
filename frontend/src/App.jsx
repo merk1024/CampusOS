@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 import CoursesPage from './CoursesPage';
+import AttendancePage from './AttendancePage';
 import { api } from './api';
 
 // ══════════════════════════════════════════════════════════
@@ -239,14 +240,10 @@ function Header({ user, onLogout, onToggleSidebar }) {
 
   return (
     <header className="header">
-      <div className="header-left">
-        <button className="menu-btn" onClick={onToggleSidebar}>
-          <span>☰</span>
-        </button>
         <div className="logo">
           <span className="logo-icon">🎓</span>
           <span className="logo-text">Alatoo LMS</span>
-        </div>
+        
       </div>
 
       <div className="header-center">
@@ -318,6 +315,7 @@ function Sidebar({ activePage, setActivePage, isOpen, onClose }) {
     { id: 'schedule', icon: '📅', label: 'Schedule' },
     { id: 'grades', icon: '📊', label: 'Grades' },
     { id: 'assignments', icon: '📝', label: 'Assignments' },
+    { id: 'attendance', icon: '📋', label: 'Attendance' },
     { id: 'messages', icon: '💬', label: 'Messages' }
   ];
 
@@ -546,6 +544,7 @@ export default function App() {
       case 'schedule': return <Schedule />;
       case 'grades': return <Grades />;
       case 'assignments': return <Assignments />;
+      case 'attendance': return <AttendancePage user={user} />;
       case 'messages': return <Messages />;
       case 'profile': return <Profile user={user} />;
       default: return <Dashboard user={user} />;
