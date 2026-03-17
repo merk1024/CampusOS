@@ -1,28 +1,47 @@
-const { Pool } = require('pg');
-require('dotenv').config();
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'alatoo_lms',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
+// Create database path
+const dbPath = path.join(__dirname, '..', 'database.db');
 
-// Test connection
-pool.on('connect', () => {
+// Create database connection
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('❌ Error opening database:', err.message);
+    process.exit(1);
+  }
   console.log('✅ Database connected successfully');
 });
 
-pool.on('error', (err) => {
-  console.error('❌ Unexpected database error:', err);
-  process.exit(-1);
-});
+// Enable foreign keys
+db.run('PRAGMA foreign_keys = ON');
 
-module.exports = {
-  query: (text, params) => pool.query(text, params),
-  pool
+// Promisify for async/await
+const dbAsync = {
+  run: (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+      db.run(sql, params, function(err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID, changes: this.changes });
+      });
+    });
+  },
+  get: (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+      db.get(sql, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+  },
+  all: (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+      db.all(sql, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  }
 };
+
+module.exports = dbAsync;

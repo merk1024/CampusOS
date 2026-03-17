@@ -1,9 +1,17 @@
 # Dependencies
 node_modules/
-package-lock.json
+
+# Build & cache
+build/
+coverage/
+.cache/
+.parcel-cache/
+.eslintcache
+.turbo/
+.next/
 
 # Environment variables
-.env
+.env*
 
 # Logs
 *.log
@@ -25,3 +33,6 @@ uploads/*
 
 # Database
 *.sql.backup
+
+# Remove lock if not npm
+# package-lock.json

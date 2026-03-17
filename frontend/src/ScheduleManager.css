@@ -12,7 +12,7 @@
   --surface:  #ffffff;
   --surface2: #f8f9fc;
   --border:   #e2e6ef;
-  --text:     #163c75;
+  --text:     #0f1623;
   --muted:    #6b7280;
   --accent:   #1a56db;
   --accent2:  #1e429f;
@@ -37,8 +37,8 @@ body { background: var(--bg); color: var(--text); }
 
 /* ── HEADER ────────────────────────────── */
 .sm-header {
-  background: #fff;
-  color: #000000;
+  background: var(--text);
+  color: #fff;
   padding: 1.25rem 2rem;
   display: flex;
   justify-content: space-between;
@@ -46,7 +46,7 @@ body { background: var(--bg); color: var(--text); }
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 2px 20px rgba(190, 187, 187, 0.2);
+  box-shadow: 0 2px 20px rgba(0,0,0,.2);
 }
 
 .sm-title {
@@ -68,7 +68,7 @@ body { background: var(--bg); color: var(--text); }
 
 .sm-title p {
   font-size: 0.78rem;
-  color: rgba(0, 0, 0, 0.5);
+  color: rgba(255,255,255,.5);
   font-family: 'IBM Plex Mono', monospace;
   margin-top: 2px;
 }
@@ -83,7 +83,7 @@ body { background: var(--bg); color: var(--text); }
   align-items: center;
   gap: 6px;
   font-size: 0.82rem;
-  color: rgba(0, 0, 0, 0.7);
+  color: rgba(255,255,255,.7);
 }
 
 .leg-dot {
@@ -747,4 +747,507 @@ body { background: var(--bg); color: var(--text); }
   .sm-grid { grid-template-columns: 90px repeat(var(--days, 6), minmax(130px, 1fr)); }
   .sg-time-label { font-size: 0.65rem; }
   .sg-time-range { font-size: 0.58rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SCHEDULE MANAGER - COMPREHENSIVE RESPONSIVE DESIGN
+   All devices from 4K monitors to iPhone SE
+═══════════════════════════════════════════════════════════ */
+
+/* ── LARGE DESKTOP (1600px+) ────────────────────────────── */
+@media (min-width: 1600px) {
+  .sm-wrap { max-width: 1600px; padding: 2.5rem 3rem 4rem; }
+  .sm-grid { font-size: 0.9rem; }
+  .sg-day-name { font-size: 0.9rem; }
+}
+
+/* ── DESKTOP (1200px - 1400px) ──────────────────────────── */
+@media (max-width: 1400px) {
+  .sm-wrap { max-width: 1200px; }
+  .sm-grid { grid-template-columns: 110px repeat(var(--days, 6), minmax(150px, 1fr)); }
+}
+
+@media (max-width: 1200px) {
+  .sm-wrap { padding: 2rem; }
+  .sm-header { padding: 1rem 1.75rem; }
+  .sm-grid { grid-template-columns: 100px repeat(var(--days, 6), minmax(140px, 1fr)); }
+  .elective-palette { padding: 0.625rem 1.75rem; }
+}
+
+/* ── TABLET LANDSCAPE (1024px) ──────────────────────────── */
+@media (max-width: 1024px) {
+  .sm-wrap { padding: 1.5rem; }
+  
+  /* Header */
+  .sm-header { 
+    padding: 1rem 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .sm-title h1 { font-size: 1.15rem; }
+  .sm-title p { font-size: 0.72rem; }
+  .sm-legend { gap: 1rem; }
+  .leg-item { font-size: 0.75rem; }
+  
+  /* Controls */
+  .sm-controls { padding: 0 1.5rem; }
+  .sm-groups { 
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .sm-groups::-webkit-scrollbar { display: none; }
+  .sm-group-tab { padding: 0.5rem 1rem; font-size: 0.78rem; }
+  
+  .sm-day-filter { 
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sm-day-btn { padding: 0.25rem 0.8rem; font-size: 0.75rem; }
+  
+  /* Elective palette */
+  .elective-palette { padding: 0.625rem 1.5rem; }
+  .ep-label { font-size: 0.7rem; }
+  .ep-list { gap: 0.5rem; }
+  .ep-card { min-width: 220px; padding: 0.375rem 0.75rem; }
+  .ep-name { font-size: 0.78rem; max-width: 150px; }
+  .ep-meta { font-size: 0.68rem; }
+  
+  /* Grid */
+  .sm-grid-wrapper { padding: 1.25rem 1.5rem; }
+  .sm-grid { 
+    grid-template-columns: 100px repeat(var(--days, 6), minmax(130px, 1fr));
+    font-size: 0.8rem;
+  }
+  
+  .sg-corner { padding: 0.625rem 0.5rem; }
+  .sg-corner-group { font-size: 0.72rem; }
+  .sg-corner-sub { font-size: 0.6rem; }
+  
+  .sg-day-header { padding: 0.625rem 0.5rem; }
+  .sg-day-name { font-size: 0.78rem; }
+  
+  .sg-time { padding: 0.5rem 0.375rem; min-height: 65px; }
+  .sg-time-label { font-size: 0.68rem; }
+  .sg-time-range { font-size: 0.6rem; }
+  
+  .sg-cell { min-height: 65px; padding: 4px; }
+  
+  /* Chip */
+  .chip { padding: 5px 7px; min-height: 55px; }
+  .chip-badge { font-size: 0.85rem; }
+  .chip-subject { font-size: 0.72rem; }
+  .chip-meta span { font-size: 0.64rem; }
+  .chip-room { padding: 1px 3px; font-size: 0.64rem; }
+  .chip-btn { width: 20px; height: 20px; font-size: 0.65rem; }
+  
+  /* Room legend */
+  .room-legend { margin: 0 1.5rem 1rem; padding: 0.625rem 1rem; }
+  .rl-item { font-size: 0.68rem; padding: 2px 8px; }
+}
+
+/* ── TABLET PORTRAIT (768px) ────────────────────────────── */
+@media (max-width: 768px) {
+  .sm-wrap { padding: 1rem; }
+  
+  /* Header */
+  .sm-header { 
+    padding: 0.875rem 1.25rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.875rem;
+  }
+  .sm-logo { font-size: 1.75rem; }
+  .sm-title h1 { font-size: 1.05rem; }
+  .sm-title p { font-size: 0.68rem; }
+  .sm-legend { 
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  
+  /* Controls */
+  .sm-controls { 
+    padding: 0 1.25rem;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+  
+  .sm-groups { width: 100%; }
+  .sm-group-tab { flex: 1; min-width: fit-content; }
+  
+  .sm-day-filter { width: 100%; justify-content: flex-start; }
+  
+  /* Elective palette */
+  .elective-palette { padding: 0.625rem 1.25rem; }
+  .ep-list { 
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .ep-card { 
+    min-width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Grid - horizontal scroll */
+  .sm-grid-wrapper { 
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .sm-grid { 
+    min-width: 700px;
+    grid-template-columns: 90px repeat(var(--days, 6), minmax(120px, 1fr));
+    font-size: 0.75rem;
+  }
+  
+  .sg-corner { padding: 0.5rem 0.375rem; }
+  .sg-corner-group { font-size: 0.68rem; }
+  .sg-corner-sub { font-size: 0.58rem; }
+  
+  .sg-day-header { padding: 0.5rem 0.375rem; }
+  .sg-day-name { font-size: 0.72rem; }
+  
+  .sg-time { padding: 0.45rem 0.325rem; min-height: 60px; }
+  .sg-time-label { font-size: 0.64rem; }
+  .sg-time-range { font-size: 0.58rem; }
+  
+  .sg-cell { min-height: 60px; padding: 3px; }
+  .sg-add-hint { min-height: 54px; font-size: 1.2rem; }
+  
+  /* Chip */
+  .chip { padding: 4px 6px; min-height: 52px; gap: 5px; }
+  .chip-badge { font-size: 0.8rem; }
+  .chip-subject { font-size: 0.68rem; margin-bottom: 2px; }
+  .chip-meta span { font-size: 0.6rem; }
+  .chip-room { padding: 1px 3px; }
+  
+  /* Form modal */
+  .sf-backdrop { padding: 0.875rem; }
+  .sf-modal { max-width: 100%; border-radius: 16px; }
+  .sf-header { padding: 1rem 1.25rem 0.875rem; }
+  .sf-header h3 { font-size: 0.98rem; }
+  .sf-close { width: 30px; height: 30px; }
+  
+  .sf-body { padding: 1rem 1.25rem; gap: 0.875rem; }
+  .sf-field label { font-size: 0.72rem; }
+  .sf-field input, .sf-field select { padding: 0.5rem 0.75rem; font-size: 0.85rem; }
+  
+  .sf-radio-group { flex-direction: column; }
+  .sf-radio { padding: 0.45rem; font-size: 0.78rem; }
+  
+  .sf-elective-list { max-height: 200px; }
+  .sf-elective-item { padding: 0.5rem 0.75rem; }
+  .sf-elective-name { font-size: 0.78rem; }
+  .sf-elective-meta { font-size: 0.68rem; }
+  
+  .sf-footer { padding: 0.875rem 1.25rem; flex-direction: column-reverse; }
+  .sf-btn-cancel, .sf-btn-save { width: 100%; }
+  
+  /* Room legend */
+  .room-legend { margin: 0 1.25rem 0.875rem; }
+  .rl-grid { gap: 5px; }
+  .rl-item { font-size: 0.66rem; padding: 2px 7px; }
+  
+  /* Toast */
+  .sm-toast { 
+    bottom: 1rem;
+    right: 1rem;
+    left: 1rem;
+    font-size: 0.82rem;
+    padding: 0.625rem 1rem;
+  }
+}
+
+/* ── MOBILE LARGE (640px) ───────────────────────────────── */
+@media (max-width: 640px) {
+  .sm-wrap { padding: 0.875rem; }
+  
+  /* Header */
+  .sm-header { padding: 0.75rem 1rem; }
+  .sm-logo { font-size: 1.5rem; }
+  .sm-title h1 { font-size: 0.98rem; }
+  .sm-title p { font-size: 0.64rem; }
+  
+  /* Hide legend on small screens */
+  .sm-legend { display: none; }
+  
+  /* Controls */
+  .sm-controls { padding: 0 1rem; }
+  .sm-group-tab { padding: 0.45rem 0.875rem; font-size: 0.72rem; }
+  .sm-day-btn { padding: 0.25rem 0.7rem; font-size: 0.7rem; }
+  
+  /* Elective palette - collapsed by default */
+  .elective-palette { padding: 0.5rem 1rem; }
+  .ep-label { font-size: 0.68rem; margin-bottom: 0.5rem; }
+  .ep-card { padding: 0.375rem 0.625rem; }
+  .ep-dot { width: 8px; height: 8px; }
+  .ep-name { font-size: 0.72rem; }
+  .ep-meta { font-size: 0.64rem; }
+  
+  /* Grid */
+  .sm-grid-wrapper { padding: 0.875rem 1rem; }
+  .sm-grid { 
+    min-width: 650px;
+    grid-template-columns: 80px repeat(var(--days, 6), minmax(110px, 1fr));
+    font-size: 0.7rem;
+  }
+  
+  .sg-corner { padding: 0.45rem 0.325rem; }
+  .sg-corner-group { font-size: 0.64rem; }
+  .sg-corner-sub { font-size: 0.56rem; }
+  
+  .sg-day-header { padding: 0.45rem 0.325rem; }
+  .sg-day-name { font-size: 0.68rem; }
+  
+  .sg-time { padding: 0.4rem 0.3rem; min-height: 55px; }
+  .sg-time-label { font-size: 0.6rem; }
+  .sg-time-range { font-size: 0.56rem; }
+  
+  .sg-cell { min-height: 55px; }
+  .chip { padding: 3px 5px; min-height: 48px; }
+  .chip-badge { font-size: 0.75rem; }
+  .chip-subject { font-size: 0.64rem; }
+  .chip-meta span { font-size: 0.58rem; }
+  .chip-btn { width: 18px; height: 18px; font-size: 0.6rem; }
+  
+  /* Form */
+  .sf-modal { max-height: 95vh; }
+  .sf-header { padding: 0.875rem 1rem 0.75rem; }
+  .sf-body { padding: 0.875rem 1rem; }
+  .sf-footer { padding: 0.75rem 1rem; }
+  
+  /* Room legend */
+  .room-legend { margin: 0 1rem 0.75rem; padding: 0.5rem 0.875rem; }
+  .rl-item { font-size: 0.64rem; padding: 2px 6px; }
+}
+
+/* ── MOBILE MEDIUM (480px) ──────────────────────────────── */
+@media (max-width: 480px) {
+  .sm-wrap { padding: 0.75rem; }
+  
+  /* Header */
+  .sm-header { padding: 0.625rem 0.875rem; }
+  .sm-logo { font-size: 1.35rem; }
+  .sm-title h1 { font-size: 0.9rem; }
+  .sm-title p { font-size: 0.6rem; }
+  
+  /* Controls */
+  .sm-controls { padding: 0 0.875rem; }
+  .sm-group-tab { padding: 0.4rem 0.75rem; font-size: 0.68rem; }
+  .sm-day-btn { padding: 0.2rem 0.6rem; font-size: 0.66rem; }
+  
+  /* Elective palette - make it collapsible */
+  .elective-palette { padding: 0.45rem 0.875rem; }
+  .ep-label { 
+    cursor: pointer;
+    user-select: none;
+  }
+  .ep-label::after {
+    content: ' ▼';
+    font-size: 0.6rem;
+    opacity: 0.5;
+  }
+  
+  /* Grid */
+  .sm-grid-wrapper { padding: 0.75rem 0.875rem; }
+  .sm-grid { 
+    min-width: 600px;
+    grid-template-columns: 75px repeat(var(--days, 6), minmax(100px, 1fr));
+    font-size: 0.66rem;
+  }
+  
+  .sg-corner { padding: 0.4rem 0.3rem; }
+  .sg-corner-group { font-size: 0.6rem; }
+  .sg-corner-sub { font-size: 0.52rem; }
+  
+  .sg-day-header { padding: 0.4rem 0.3rem; }
+  .sg-day-name { font-size: 0.64rem; }
+  
+  .sg-time { padding: 0.35rem 0.275rem; min-height: 52px; }
+  .sg-time-label { font-size: 0.58rem; }
+  .sg-time-range { font-size: 0.52rem; }
+  
+  .sg-cell { min-height: 52px; padding: 2px; }
+  .sg-add-hint { min-height: 48px; font-size: 1.1rem; }
+  
+  .chip { padding: 3px 4px; min-height: 46px; gap: 4px; }
+  .chip-badge { font-size: 0.72rem; }
+  .chip-subject { font-size: 0.6rem; }
+  .chip-meta { flex-direction: column; gap: 1px; }
+  .chip-meta span { font-size: 0.56rem; }
+  .chip-room { font-size: 0.56rem; }
+  
+  /* Form */
+  .sf-modal { border-radius: 14px 14px 0 0; }
+  .sf-header h3 { font-size: 0.9rem; }
+  .sf-body { gap: 0.75rem; }
+  .sf-field input, .sf-field select { padding: 0.45rem 0.625rem; font-size: 0.8rem; }
+  
+  /* Room legend */
+  .room-legend { margin: 0 0.875rem 0.625rem; }
+  .rl-grid { gap: 4px; }
+  .rl-item { font-size: 0.62rem; }
+  
+  /* Toast */
+  .sm-toast { font-size: 0.78rem; padding: 0.5rem 0.875rem; }
+}
+
+/* ── MOBILE SMALL (375px) - iPhone SE ───────────────────── */
+@media (max-width: 375px) {
+  .sm-wrap { padding: 0.625rem; }
+  
+  /* Header */
+  .sm-header { padding: 0.5rem 0.75rem; }
+  .sm-logo { font-size: 1.25rem; }
+  .sm-title h1 { font-size: 0.85rem; }
+  .sm-title p { font-size: 0.58rem; }
+  
+  /* Controls */
+  .sm-controls { padding: 0 0.75rem; gap: 0.5rem; }
+  .sm-groups { padding: 0.5rem 0 0; }
+  .sm-group-tab { padding: 0.35rem 0.625rem; font-size: 0.64rem; }
+  .sm-day-filter { padding: 0.5rem 0; }
+  .sm-day-btn { padding: 0.2rem 0.5rem; font-size: 0.62rem; }
+  
+  /* Elective palette - hide by default */
+  .elective-palette { display: none; }
+  
+  /* Grid */
+  .sm-grid-wrapper { padding: 0.625rem 0.75rem; }
+  .sm-grid { 
+    min-width: 550px;
+    grid-template-columns: 70px repeat(var(--days, 6), minmax(90px, 1fr));
+    font-size: 0.62rem;
+  }
+  
+  .sg-corner { padding: 0.35rem 0.25rem; }
+  .sg-corner-group { font-size: 0.58rem; }
+  .sg-corner-sub { font-size: 0.5rem; }
+  
+  .sg-day-header { padding: 0.35rem 0.25rem; }
+  .sg-day-name { font-size: 0.6rem; }
+  
+  .sg-time { padding: 0.3rem 0.25rem; min-height: 50px; }
+  .sg-time-label { font-size: 0.56rem; }
+  .sg-time-range { font-size: 0.5rem; }
+  
+  .sg-cell { min-height: 50px; }
+  .chip { padding: 2px 3px; min-height: 44px; }
+  .chip-badge { font-size: 0.68rem; }
+  .chip-subject { font-size: 0.58rem; }
+  .chip-meta span { font-size: 0.54rem; }
+  
+  /* Form */
+  .sf-header { padding: 0.75rem 0.875rem 0.625rem; }
+  .sf-body { padding: 0.75rem 0.875rem; }
+  .sf-footer { padding: 0.625rem 0.875rem; }
+  
+  /* Room legend */
+  .room-legend { margin: 0 0.75rem 0.5rem; padding: 0.45rem 0.75rem; }
+  .rl-grid { gap: 3px; }
+  .rl-item { font-size: 0.6rem; padding: 1px 5px; }
+}
+
+/* ── LANDSCAPE ORIENTATION ──────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+  .sm-grid { grid-template-columns: 100px repeat(var(--days, 6), minmax(140px, 1fr)); }
+  .elective-palette { 
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  .ep-list { flex-direction: row; }
+}
+
+@media (max-width: 767px) and (orientation: landscape) {
+  .sm-header { padding: 0.5rem 1rem; }
+  .sm-controls { padding: 0 1rem; }
+  .sm-grid-wrapper { padding: 0.75rem 1rem; }
+  .sm-grid { 
+    grid-template-columns: 90px repeat(var(--days, 6), minmax(110px, 1fr));
+    font-size: 0.7rem;
+  }
+  .sg-cell { min-height: 55px; }
+}
+
+/* ── PRINT STYLES ───────────────────────────────────────── */
+@media print {
+  .sm-header,
+  .sm-controls,
+  .elective-palette,
+  .room-legend,
+  .chip-actions,
+  .sf-backdrop,
+  .sm-toast {
+    display: none !important;
+  }
+  
+  .sm-wrap { padding: 0; }
+  .sm-grid-wrapper { padding: 0; overflow: visible; }
+  .sm-grid { 
+    min-width: 100%;
+    page-break-inside: avoid;
+  }
+  
+  * {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+  
+  .chip { border: 1px solid #333 !important; }
+}
+
+/* ── ACCESSIBILITY ──────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-contrast: high) {
+  .sm-grid { border-width: 2px; }
+  .chip { border-width: 2px; }
+  .sg-day-header, .sg-time { font-weight: 600; }
+}
+
+/* ── TOUCH OPTIMIZATIONS ────────────────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase touch targets */
+  .sm-group-tab,
+  .sm-day-btn,
+  .chip-btn,
+  .sf-radio,
+  .sf-elective-item {
+    min-height: 44px;
+  }
+  
+  /* Remove hover effects */
+  .chip:hover,
+  .sg-cell-empty:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  
+  /* Add tap feedback */
+  .chip:active,
+  .sm-group-tab:active,
+  .sm-day-btn:active {
+    opacity: 0.7;
+  }
+  
+  /* Larger drag area */
+  .chip { cursor: default; }
+}
+
+/* ── ULTRA-WIDE MONITORS (2000px+) ──────────────────────── */
+@media (min-width: 2000px) {
+  .sm-wrap { max-width: 1800px; padding: 3rem 4rem 5rem; }
+  .sm-header { padding: 1.5rem 2rem; }
+  .sm-grid { grid-template-columns: 140px repeat(var(--days, 6), minmax(180px, 1fr)); }
+  .elective-palette { padding: 1rem 2rem; }
 }

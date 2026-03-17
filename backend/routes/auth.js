@@ -26,22 +26,16 @@ router.post('/register',
       const { email, password, name, role, studentId, groupName, phone } = req.body;
 
       // Check if user exists
-      const existingUser = await db.query(
-        'SELECT id FROM users WHERE email = $1',
-        [email]
-      );
+      const existingUser = await db.get('SELECT id FROM users WHERE email = ?', [email]);
 
-      if (existingUser.rows.length > 0) {
+      if (existingUser) {
         return res.status(400).json({ error: 'User already exists' });
       }
 
       // Check if student_id exists (for students)
       if (role === 'student' && studentId) {
-        const existingStudentId = await db.query(
-          'SELECT id FROM users WHERE student_id = $1',
-          [studentId]
-        );
-        if (existingStudentId.rows.length > 0) {
+        const existingStudentId = await db.get('SELECT id FROM users WHERE student_id = ?', [studentId]);
+        if (existingStudentId) {
           return res.status(400).json({ error: 'Student ID already exists' });
         }
       }
@@ -51,14 +45,14 @@ router.post('/register',
       const hashedPassword = await bcrypt.hash(password, salt);
 
       // Insert user
-      const result = await db.query(
-        `INSERT INTO users (email, password, name, role, student_id, group_name, phone) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7) 
-         RETURNING id, email, name, role, student_id, group_name`,
+      await db.run(
+        `INSERT INTO users (email, password, name, role, student_id, group_name, phone)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [email, hashedPassword, name, role, studentId || null, groupName || null, phone || null]
       );
 
-      const user = result.rows[0];
+      // Get the inserted user
+      const user = await db.get('SELECT id, email, name, role, student_id, group_name FROM users WHERE email = ?', [email]);
 
       // Generate JWT
       const token = jwt.sign(
@@ -104,16 +98,14 @@ router.post('/login',
       const { login, password } = req.body;
 
       // Find user by email or student_id
-      const result = await db.query(
-        'SELECT * FROM users WHERE email = $1 OR student_id = $1',
-        [login]
+      const user = await db.get(
+        'SELECT * FROM users WHERE email = ? OR student_id = ?',
+        [login, login]
       );
 
-      if (result.rows.length === 0) {
+      if (!user) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
-
-      const user = result.rows[0];
 
       // Check if user is active
       if (!user.is_active) {

@@ -40,6 +40,7 @@ app.use('/uploads', express.static('uploads'));
 // API Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/courses', require('./routes/courses'));
 app.use('/api/exams', require('./routes/exams'));
 app.use('/api/schedule', require('./routes/schedule'));
 app.use('/api/grades', require('./routes/grades'));

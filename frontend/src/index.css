@@ -66,3 +66,14 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden; /* Скрывает полосу прокрутки, если элемент выходит за ширину */
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh; /* Убедитесь, что приложение занимает всю высоту */
+}

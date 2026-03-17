@@ -13,16 +13,16 @@ const auth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Get user from database
-    const result = await db.query(
-      'SELECT id, email, name, role, student_id, group_name FROM users WHERE id = $1 AND is_active = true',
+    const user = await db.get(
+      'SELECT id, email, name, role, student_id, group_name FROM users WHERE id = ? AND is_active = 1',
       [decoded.id]
     );
 
-    if (result.rows.length === 0) {
+    if (!user) {
       return res.status(401).json({ error: 'User not found or inactive' });
     }
 
-    req.user = result.rows[0];
+    req.user = user;
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);

@@ -6,10 +6,10 @@ const db = require('../config/database');
 // Get all users (admin only)
 router.get('/', auth, isAdmin, async (req, res) => {
   try {
-    const result = await db.query(
+    const users = await db.all(
       'SELECT id, email, name, role, student_id, group_name, phone, is_active, created_at FROM users ORDER BY created_at DESC'
     );
-    res.json({ users: result.rows });
+    res.json({ users });
   } catch (error) {
     console.error('Get users error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -19,16 +19,16 @@ router.get('/', auth, isAdmin, async (req, res) => {
 // Get user profile
 router.get('/:id', auth, async (req, res) => {
   try {
-    const result = await db.query(
-      'SELECT id, email, name, role, student_id, group_name, phone, avatar FROM users WHERE id = $1',
+    const user = await db.get(
+      'SELECT id, email, name, role, student_id, group_name, phone, avatar FROM users WHERE id = ?',
       [req.params.id]
     );
-    
-    if (result.rows.length === 0) {
+
+    if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
-    res.json({ user: result.rows[0] });
+
+    res.json({ user });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -44,15 +44,41 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     const { name, phone, avatar } = req.body;
-    
-    const result = await db.query(
-      'UPDATE users SET name = $1, phone = $2, avatar = $3 WHERE id = $4 RETURNING id, name, phone, avatar',
+
+    await db.run(
+      'UPDATE users SET name = ?, phone = ?, avatar = ? WHERE id = ?',
       [name, phone, avatar, req.params.id]
     );
-    
-    res.json({ message: 'Profile updated', user: result.rows[0] });
+
+    const user = await db.get(
+      'SELECT id, name, phone, avatar FROM users WHERE id = ?',
+      [req.params.id]
+    );
+
+    res.json({ message: 'Profile updated', user });
   } catch (error) {
     console.error('Update user error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get current user profile
+router.get('/profile/me', auth, async (req, res) => {
+  try {
+    res.json({
+      user: {
+        id: req.user.id,
+        email: req.user.email,
+        name: req.user.name,
+        role: req.user.role,
+        studentId: req.user.student_id,
+        groupName: req.user.group_name,
+        phone: req.user.phone,
+        avatar: req.user.avatar
+      }
+    });
+  } catch (error) {
+    console.error('Get profile error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
