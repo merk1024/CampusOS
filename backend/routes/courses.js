@@ -130,4 +130,57 @@ router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
   }
 });
 
+// Enroll in course
+router.post('/:id/enroll', auth, async (req, res) => {
+  try {
+    // Check if already enrolled
+    const existing = await db.get(
+      'SELECT id FROM course_enrollments WHERE course_id = ? AND student_id = ?',
+      [req.params.id, req.user.id]
+    );
+
+    if (existing) {
+      return res.status(400).json({ error: 'Already enrolled' });
+    }
+
+    const result = await db.run(
+      'INSERT INTO course_enrollments (course_id, student_id) VALUES (?, ?) RETURNING *',
+      [req.params.id, req.user.id]
+    );
+
+    res.json({ message: 'Enrolled successfully', enrollment: { id: result.lastID } });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Unenroll from course
+router.delete('/:id/enroll', auth, async (req, res) => {
+  try {
+    await db.run(
+      'DELETE FROM course_enrollments WHERE course_id = ? AND student_id = ?',
+      [req.params.id, req.user.id]
+    );
+
+    res.json({ message: 'Unenrolled successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get enrolled courses for student
+router.get('/enrolled', auth, async (req, res) => {
+  try {
+    const result = await db.all(`
+      SELECT c.* FROM courses c
+      JOIN course_enrollments e ON c.id = e.course_id
+      WHERE e.student_id = ?
+    `, [req.user.id]);
+
+    res.json({ courses: result });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;

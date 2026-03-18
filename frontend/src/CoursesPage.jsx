@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import './CoursesPage.css';
+import { api } from './api';
 
 // ══════════════════════════════════════════════════════════
 //  STORAGE (100% Local - No Backend Needed)
@@ -15,9 +16,19 @@ const store = {
   }
 };
 
-// ══════════════════════════════════════════════════════════
-//  DEMO DATA
-// ══════════════════════════════════════════════════════════
+// Helper function to add UI properties to courses from API
+const enhanceCourse = (course) => {
+  const colors = ['#8b5cf6', '#7c3aed', '#059669', '#dc2626', '#d97706', '#0369a1', '#be185d', '#f59e0b'];
+  const icons = ['💻', '📐', '🔗', '🌐', '🔒', '🐍', '📱', '🚀'];
+  
+  const hash = course.code.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+  
+  return {
+    ...course,
+    color: colors[hash % colors.length],
+    icon: icons[hash % icons.length]
+  };
+};
 const DEMO_COURSES = [
   {
     id: 1, code: 'CS101', name: 'Programming Language 2',
@@ -173,7 +184,7 @@ function Card({ course, enrolled, progress, isStudent, onOpen, onEnroll, onUnenr
       </div>
       <div className="cv-card-footer">
         <div className="cv-card-meta">
-          <span>👩‍🏫 {course.teacher}</span>
+          <span>👩‍🏫 {course.teacher_name || course.teacher}</span>
           <span>📚 {course.credits} cr</span>
         </div>
         {isStudent && (
@@ -391,13 +402,61 @@ export default function CoursesPage({ user }) {
   const uid = user?.id || 'guest';
 
   useEffect(() => {
-    db.init();
-    setCourses(db.courses.all());
-    setEnrolled(db.enrollments.get(uid));
-  }, [uid]);
+    const loadCourses = async () => {
+      try {
+        const response = await api.getCourses();
+        const enhancedCourses = (response.courses || []).map(enhanceCourse);
+        setCourses(enhancedCourses);
+      } catch (err) {
+        console.error('Failed to load courses from API, using demo data:', err);
+        db.init();
+        setCourses(db.courses.all());
+      }
+    };
 
-  const enroll = (cid) => { db.enrollments.add(uid, cid); setEnrolled(db.enrollments.get(uid)); show('Enrolled ✓'); };
-  const unenroll = (cid) => { db.enrollments.remove(uid, cid); setEnrolled(db.enrollments.get(uid)); show('Unenrolled'); };
+    const loadEnrolledCourses = async () => {
+      if (isStudent) {
+        try {
+          const response = await api.getEnrolledCourses();
+          setEnrolled(response.courses?.map(c => c.id) || []);
+        } catch (err) {
+          console.error('Failed to load enrolled courses:', err);
+          setEnrolled(db.enrollments.get(uid));
+        }
+      }
+    };
+
+    loadCourses();
+    loadEnrolledCourses();
+  }, [uid, isStudent]);
+
+  const enroll = async (cid) => {
+    try {
+      await api.enrollInCourse(cid);
+      if (isStudent) {
+        const response = await api.getEnrolledCourses();
+        setEnrolled(response.courses?.map(c => c.id) || []);
+      }
+      show('Enrolled ✓');
+    } catch (err) {
+      console.error('Failed to enroll:', err);
+      show('Failed to enroll', 'error');
+    }
+  };
+
+  const unenroll = async (cid) => {
+    try {
+      await api.unenrollFromCourse(cid);
+      if (isStudent) {
+        const response = await api.getEnrolledCourses();
+        setEnrolled(response.courses?.map(c => c.id) || []);
+      }
+      show('Unenrolled');
+    } catch (err) {
+      console.error('Failed to unenroll:', err);
+      show('Failed to unenroll', 'error');
+    }
+  };
 
   const detail = courses.find(c => c.id === detailId);
   const filtered = (view==='mine' ? courses.filter(c=>enrolled.includes(c.id)) : courses)

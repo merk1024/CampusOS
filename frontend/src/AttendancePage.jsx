@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import './AttendancePage.css';
-import './AttendancePage.css';
+import { api } from './api';
 
 // ══════════════════════════════════════════════════════════
-//  MOCK DATA (пока нет backend)
+//  MOCK DATA (Заглушки для тестов)
 // ══════════════════════════════════════════════════════════
 const MOCK_CLASSES = [
   { id: 1, course: 'Programming Language 2', date: '2026-03-17', time: '10:00-11:30', room: 'A101' },
@@ -20,23 +20,14 @@ const MOCK_STUDENTS = [
 ];
 
 const MOCK_ATTENDANCE = {
-  '1_1': 'present', // classId_studentId: status
-  '1_2': 'absent',
-  '1_3': 'present',
-  '1_4': 'late',
-  '1_5': 'present',
-  '2_1': 'present',
-  '2_2': 'present',
-  '2_3': 'absent',
-  '2_4': 'present',
-  '2_5': 'late',
+  '1_1': 'present', '1_2': 'absent', '1_3': 'present', '1_4': 'late', '1_5': 'present',
 };
 
 // ══════════════════════════════════════════════════════════
 //  COMPONENTS
 // ══════════════════════════════════════════════════════════
 
-// Teacher View: Mark Attendance
+// Вид преподавателя
 function TeacherAttendance({ user }) {
   const [selectedClass, setSelectedClass] = useState(null);
   const [attendance, setAttendance] = useState({ ...MOCK_ATTENDANCE });
@@ -47,15 +38,6 @@ function TeacherAttendance({ user }) {
   };
 
   const getStatus = (classId, studentId) => attendance[`${classId}_${studentId}`] || 'unknown';
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'present': return '#10b981';
-      case 'absent': return '#ef4444';
-      case 'late': return '#f59e0b';
-      default: return '#6b7280';
-    }
-  };
 
   return (
     <div className="att-teacher">
@@ -72,17 +54,13 @@ function TeacherAttendance({ user }) {
               <h3>{cls.course}</h3>
               <p>{cls.date} • {cls.time} • Room {cls.room}</p>
             </div>
-            <div className="att-class-stats">
-              <span>Present: {MOCK_STUDENTS.filter(s => getStatus(cls.id, s.id) === 'present').length}</span>
-              <span>Absent: {MOCK_STUDENTS.filter(s => getStatus(cls.id, s.id) === 'absent').length}</span>
-            </div>
           </div>
         ))}
       </div>
 
       {selectedClass && (
         <div className="att-marking">
-          <h3>Mark Attendance for {MOCK_CLASSES.find(c => c.id === selectedClass)?.course}</h3>
+          <h3>Marking: {MOCK_CLASSES.find(c => c.id === selectedClass)?.course}</h3>
           <div className="att-students">
             {MOCK_STUDENTS.map(student => {
               const status = getStatus(selectedClass, student.id);
@@ -94,23 +72,17 @@ function TeacherAttendance({ user }) {
                   </div>
                   <div className="att-status">
                     <span className="att-status-badge" style={{ background: getStatusColor(status) }}>
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                      {status.toUpperCase()}
                     </span>
                   </div>
                   <div className="att-buttons">
-                    <button onClick={() => markAttendance(selectedClass, student.id, 'present')}
-                      className={status === 'present' ? 'active' : ''}>Present</button>
-                    <button onClick={() => markAttendance(selectedClass, student.id, 'absent')}
-                      className={status === 'absent' ? 'active' : ''}>Absent</button>
-                    <button onClick={() => markAttendance(selectedClass, student.id, 'late')}
-                      className={status === 'late' ? 'active' : ''}>Late</button>
+                    <button onClick={() => markAttendance(selectedClass, student.id, 'present')} className={status === 'present' ? 'active' : ''}>P</button>
+                    <button onClick={() => markAttendance(selectedClass, student.id, 'absent')} className={status === 'absent' ? 'active' : ''}>A</button>
+                    <button onClick={() => markAttendance(selectedClass, student.id, 'late')} className={status === 'late' ? 'active' : ''}>L</button>
                   </div>
                 </div>
               );
             })}
-          </div>
-          <div className="att-actions">
-            <button className="att-save-btn">Save Attendance</button>
           </div>
         </div>
       )}
@@ -118,85 +90,69 @@ function TeacherAttendance({ user }) {
   );
 }
 
-// Student View: View Attendance
+// Вид студента
 function StudentAttendance({ user }) {
+  const [attendance, setAttendance] = useState([]);
   const [stats, setStats] = useState({ total: 0, present: 0, absent: 0, late: 0, percentage: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // Calculate stats for current student (mock user.id = 1)
-    const studentId = 1; // Mock
-    let present = 0, absent = 0, late = 0, total = 0;
-
-    Object.keys(MOCK_ATTENDANCE).forEach(key => {
-      const [classId, studId] = key.split('_').map(Number);
-      if (studId === studentId) {
-        total++;
-        const status = MOCK_ATTENDANCE[key];
-        if (status === 'present') present++;
-        else if (status === 'absent') absent++;
-        else if (status === 'late') late++;
+    const loadAttendance = async () => {
+      try {
+        setLoading(true);
+        // Пытаемся получить данные с бэкенда
+        const response = await api.getStudentAttendance(user.studentId);
+        const data = response.attendance || [];
+        updateStats(data);
+      } catch (err) {
+        // Если NetworkError (сервер лежит) — грузим моки, чтобы страница не ломалась
+        console.warn("Backend unavailable, loading offline mode.");
+        const fallbackData = [
+            { schedule_id: 'PRG101', date: '2026-03-17', status: 'present' },
+            { schedule_id: 'CALC2', date: '2026-03-17', status: 'late' }
+        ];
+        updateStats(fallbackData);
+      } finally {
+        setLoading(false);
       }
-    });
+    };
 
-    const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
-    setStats({ total, present, absent, late, percentage });
-  }, []);
+    const updateStats = (data) => {
+      setAttendance(data);
+      const total = data.length;
+      const present = data.filter(a => a.status === 'present').length;
+      const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+      setStats({ total, present, absent: data.filter(a => a.status === 'absent').length, late: data.filter(a => a.status === 'late').length, percentage });
+    };
+
+    if (user?.studentId) loadAttendance();
+  }, [user]);
+
+  if (loading) return <div className="loading-spinner">Loading...</div>;
 
   return (
     <div className="att-student">
       <div className="att-header">
-        <h2>📊 My Attendance</h2>
-        <p>Track your attendance across all courses</p>
+        <h2>📊 My Attendance ({stats.percentage}%)</h2>
       </div>
-
-      <div className="att-stats">
-        <div className="att-stat-card">
-          <div className="att-stat-value">{stats.percentage}%</div>
-          <div className="att-stat-label">Overall Attendance</div>
-        </div>
-        <div className="att-stat-card">
-          <div className="att-stat-value">{stats.present}</div>
-          <div className="att-stat-label">Present</div>
-        </div>
-        <div className="att-stat-card">
-          <div className="att-stat-value">{stats.absent}</div>
-          <div className="att-stat-label">Absent</div>
-        </div>
-        <div className="att-stat-card">
-          <div className="att-stat-value">{stats.late}</div>
-          <div className="att-stat-label">Late</div>
-        </div>
-      </div>
-
-      <div className="att-history">
-        <h3>Recent Attendance</h3>
-        <div className="att-history-list">
-          {MOCK_CLASSES.slice(0, 5).map(cls => {
-            const status = MOCK_ATTENDANCE[`${cls.id}_1`] || 'unknown'; // Mock student id 1
-            return (
-              <div key={cls.id} className="att-history-item">
-                <div className="att-history-info">
-                  <div className="att-history-course">{cls.course}</div>
-                  <div className="att-history-date">{cls.date} • {cls.time}</div>
-                </div>
-                <div className="att-history-status" style={{ color: getStatusColor(status) }}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      <div className="att-history-list">
+        {attendance.map((att, i) => (
+          <div key={i} className="att-history-item">
+            <span>{att.date} - {att.schedule_id}</span>
+            <span style={{ color: getStatusColor(att.status) }}>{att.status}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════
-//  MAIN COMPONENT
+//  MAIN & HELPERS
 // ══════════════════════════════════════════════════════════
 export default function AttendancePage({ user }) {
   const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
-
   return (
     <div className="attendance-page">
       {isTeacher ? <TeacherAttendance user={user} /> : <StudentAttendance user={user} />}
@@ -204,7 +160,6 @@ export default function AttendancePage({ user }) {
   );
 }
 
-// Helper function
 function getStatusColor(status) {
   switch (status) {
     case 'present': return '#10b981';

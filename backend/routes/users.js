@@ -3,24 +3,42 @@ const router = express.Router();
 const { auth, isAdmin } = require('../middleware/auth');
 const db = require('../config/database');
 
-// Get all users (admin only)
-router.get('/', auth, isAdmin, async (req, res) => {
+// Create user (admin only)
+router.post('/', auth, isAdmin, async (req, res) => {
   try {
-    const users = await db.all(
-      'SELECT id, email, name, role, student_id, group_name, phone, is_active, created_at FROM users ORDER BY created_at DESC'
+    const { email, password, name, role, student_id, group_name, phone, date_of_birth, faculty, major, year_of_study, address, emergency_contact } = req.body;
+
+    // Hash password
+    const bcrypt = require('bcryptjs');
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const result = await db.run(
+      'INSERT INTO users (email, password, name, role, student_id, group_name, phone, date_of_birth, faculty, major, year_of_study, address, emergency_contact) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [email, hashedPassword, name, role, student_id, group_name, phone, date_of_birth, faculty, major, year_of_study, address, emergency_contact]
     );
-    res.json({ users });
+
+    const user = await db.get(
+      'SELECT id, email, name, role, student_id, group_name, phone, date_of_birth, faculty, major, year_of_study, address, emergency_contact FROM users WHERE id = ?',
+      [result.lastID]
+    );
+
+    res.status(201).json({ message: 'User created successfully', user });
   } catch (error) {
-    console.error('Get users error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Create user error:', error);
+    if (error.message.includes('UNIQUE constraint failed')) {
+      res.status(400).json({ error: 'Email or student ID already exists' });
+    } else {
+      res.status(500).json({ error: 'Server error' });
+    }
   }
 });
 
-// Get user profile
+// Get user profile (extended)
 router.get('/:id', auth, async (req, res) => {
   try {
     const user = await db.get(
-      'SELECT id, email, name, role, student_id, group_name, phone, avatar FROM users WHERE id = ?',
+      'SELECT id, email, name, role, student_id, group_name, phone, avatar, date_of_birth, faculty, major, year_of_study, address, emergency_contact FROM users WHERE id = ?',
       [req.params.id]
     );
 
@@ -35,7 +53,7 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// Update user profile
+// Update user profile (extended)
 router.put('/:id', auth, async (req, res) => {
   try {
     // Users can only update their own profile (unless admin)
@@ -43,15 +61,15 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const { name, phone, avatar } = req.body;
+    const { name, phone, avatar, date_of_birth, faculty, major, year_of_study, address, emergency_contact } = req.body;
 
     await db.run(
-      'UPDATE users SET name = ?, phone = ?, avatar = ? WHERE id = ?',
-      [name, phone, avatar, req.params.id]
+      'UPDATE users SET name = ?, phone = ?, avatar = ?, date_of_birth = ?, faculty = ?, major = ?, year_of_study = ?, address = ?, emergency_contact = ? WHERE id = ?',
+      [name, phone, avatar, date_of_birth, faculty, major, year_of_study, address, emergency_contact, req.params.id]
     );
 
     const user = await db.get(
-      'SELECT id, name, phone, avatar FROM users WHERE id = ?',
+      'SELECT id, name, phone, avatar, date_of_birth, faculty, major, year_of_study, address, emergency_contact FROM users WHERE id = ?',
       [req.params.id]
     );
 
@@ -65,18 +83,12 @@ router.put('/:id', auth, async (req, res) => {
 // Get current user profile
 router.get('/profile/me', auth, async (req, res) => {
   try {
-    res.json({
-      user: {
-        id: req.user.id,
-        email: req.user.email,
-        name: req.user.name,
-        role: req.user.role,
-        studentId: req.user.student_id,
-        groupName: req.user.group_name,
-        phone: req.user.phone,
-        avatar: req.user.avatar
-      }
-    });
+    const user = await db.get(
+      'SELECT id, email, name, role, student_id, group_name, phone, avatar, date_of_birth, faculty, major, year_of_study, address, emergency_contact FROM users WHERE id = ?',
+      [req.user.id]
+    );
+
+    res.json({ user });
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({ error: 'Server error' });

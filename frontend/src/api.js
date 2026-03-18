@@ -1,136 +1,186 @@
-// API functions for authentication and data fetching
-const API_BASE_URL = 'http://localhost:5001/api';
+// Автоматически выбираем URL: если мы на Render — берем его адрес, если нет — localhost
+const API_BASE_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:5001/api' 
+  : 'https://web-table-exam.onrender.com/api';
+
+// Вспомогательная функция для заголовков (чтобы не писать одно и то же)
+const getHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+};
 
 export const api = {
-  // Authentication
+  // --- AUTHENTICATION ---
   async login(email, password) {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ login: email, password }),
     });
-
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || 'Login failed');
     }
-
     return response.json();
   },
 
   async logout() {
-    const token = localStorage.getItem('token');
     const response = await fetch(`${API_BASE_URL}/auth/logout`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: getHeaders(),
     });
-
-    if (!response.ok) {
-      throw new Error('Logout failed');
-    }
-
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    return response.json();
+    return response.ok ? response.json() : null;
   },
 
-  // Users
+  // --- USERS & PROFILE ---
   async getProfile() {
-    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/users/profile/me`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch profile');
+    return response.json();
+  },
+
+  async updateProfile(profileData) {
     const response = await fetch(`${API_BASE_URL}/users/profile/me`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(profileData),
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch profile');
-    }
-
+    if (!response.ok) throw new Error('Failed to update profile');
     return response.json();
   },
 
-  // Courses
+  async getUsers() {
+    const response = await fetch(`${API_BASE_URL}/users`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch users');
+    return response.json();
+  },
+
+  async createUser(userData) {
+    const response = await fetch(`${API_BASE_URL}/users`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(userData),
+    });
+    if (!response.ok) throw new Error('Failed to create user');
+    return response.json();
+  },
+
+  async getUserById(id) {
+    const response = await fetch(`${API_BASE_URL}/users/${id}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch user');
+    return response.json();
+  },
+
+  async updateUser(id, userData) {
+    const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(userData),
+    });
+    if (!response.ok) throw new Error('Failed to update user');
+    return response.json();
+  },
+
+  // --- COURSES & ENROLLMENT ---
   async getCourses() {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/courses`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch courses');
-    }
-
+    const response = await fetch(`${API_BASE_URL}/courses`, { headers: getHeaders() });
     return response.json();
   },
 
-  // Exams
+  async getEnrolledCourses() {
+    const response = await fetch(`${API_BASE_URL}/courses/enrolled`, { headers: getHeaders() });
+    return response.json();
+  },
+
+  async enrollInCourse(courseId) {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/enroll`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return response.json();
+  },
+
+  async unenrollFromCourse(courseId) {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/enroll`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return response.json();
+  },
+
+  // --- ACADEMIC DATA ---
   async getExams() {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/exams`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch exams');
-    }
-
+    const response = await fetch(`${API_BASE_URL}/exams`, { headers: getHeaders() });
     return response.json();
   },
 
-  // Grades
   async getGrades() {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/grades`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch grades');
-    }
-
+    const response = await fetch(`${API_BASE_URL}/grades`, { headers: getHeaders() });
     return response.json();
   },
 
-  // Schedule
   async getSchedule() {
-    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/schedule`, { headers: getHeaders() });
+    return response.json();
+  },
+
+  async createScheduleEntry(scheduleData) {
     const response = await fetch(`${API_BASE_URL}/schedule`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(scheduleData),
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch schedule');
-    }
-
+    if (!response.ok) throw new Error('Failed to create schedule entry');
     return response.json();
   },
 
-  // Announcements
+  async updateScheduleEntry(id, scheduleData) {
+    const response = await fetch(`${API_BASE_URL}/schedule/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(scheduleData),
+    });
+    if (!response.ok) throw new Error('Failed to update schedule entry');
+    return response.json();
+  },
+
+  async deleteScheduleEntry(id) {
+    const response = await fetch(`${API_BASE_URL}/schedule/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete schedule entry');
+    return response.json();
+  },
+
   async getAnnouncements() {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/announcements`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch announcements');
-    }
-
+    const response = await fetch(`${API_BASE_URL}/announcements`, { headers: getHeaders() });
     return response.json();
   },
-};
+
+  async getAssignments() {
+    const response = await fetch(`${API_BASE_URL}/assignments`, { headers: getHeaders() });
+    return response.json();
+  },
+
+  // --- ATTENDANCE ---
+  async getStudentAttendance(studentId) {
+    const response = await fetch(`${API_BASE_URL}/attendance/student/${studentId}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch attendance');
+    return response.json();
+  },
+
+  async markAttendance(scheduleId, studentId, date, status) {
+    const response = await fetch(`${API_BASE_URL}/attendance`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ scheduleId, studentId, date, status }),
+    });
+    return response.json();
+  },
+};  

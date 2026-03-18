@@ -54,4 +54,42 @@ const isStudent = (req, res, next) => {
   next();
 };
 
-module.exports = { auth, isAdmin, isTeacherOrAdmin, isStudent };
+// Check if user can modify schedule entry (admin or teacher of the subject)
+const canModifySchedule = async (req, res, next) => {
+  try {
+    if (req.user.role === 'admin') {
+      return next();
+    }
+
+    if (req.user.role === 'teacher') {
+      // For new entries, check if teacher is creating for their subject
+      if (req.method === 'POST') {
+        const { subject } = req.body;
+        // Check if teacher teaches this subject
+        const course = await db.get(
+          'SELECT id FROM courses WHERE name = ? AND teacher_id = ?',
+          [subject, req.user.id]
+        );
+        if (course) {
+          return next();
+        }
+      } else {
+        // For updates/deletes, check if teacher teaches the subject in the schedule
+        const scheduleEntry = await db.get(
+          'SELECT s.subject FROM schedule s JOIN courses c ON s.subject = c.name WHERE s.id = ? AND c.teacher_id = ?',
+          [req.params.id, req.user.id]
+        );
+        if (scheduleEntry) {
+          return next();
+        }
+      }
+    }
+
+    return res.status(403).json({ error: 'Access denied: You can only modify your own subjects' });
+  } catch (error) {
+    console.error('Schedule permission check error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+module.exports = { auth, isAdmin, isTeacherOrAdmin, isStudent, canModifySchedule };
