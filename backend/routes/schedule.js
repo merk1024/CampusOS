@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { auth, isTeacherOrAdmin, canModifySchedule } = require('../middleware/auth');
+const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const db = require('../config/database');
 
 // Get schedule
@@ -23,13 +23,13 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Create schedule entry
-router.post('/', auth, canModifySchedule, async (req, res) => {
+router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
   try {
-    const { day, timeSlot, groupName, subject, teacher, room } = req.body;
+    const { day, timeSlot, time_slot, groupName, group_name, subject, teacher, room } = req.body;
 
     const result = await db.run(
       'INSERT INTO schedule (day, time_slot, group_name, subject, teacher, room) VALUES (?, ?, ?, ?, ?, ?)',
-      [day, timeSlot, groupName, subject, teacher, room]
+      [day, time_slot || timeSlot, group_name || groupName, subject, teacher, room]
     );
 
     const inserted = await db.get('SELECT * FROM schedule WHERE id = ?', [result.id]);
@@ -41,13 +41,13 @@ router.post('/', auth, canModifySchedule, async (req, res) => {
 });
 
 // Update schedule entry
-router.put('/:id', auth, canModifySchedule, async (req, res) => {
+router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
   try {
-    const { day, timeSlot, groupName, subject, teacher, room } = req.body;
+    const { day, timeSlot, time_slot, groupName, group_name, subject, teacher, room } = req.body;
 
     const result = await db.run(
       'UPDATE schedule SET day = ?, time_slot = ?, group_name = ?, subject = ?, teacher = ?, room = ? WHERE id = ?',
-      [day, timeSlot, groupName, subject, teacher, room, req.params.id]
+      [day, time_slot || timeSlot, group_name || groupName, subject, teacher, room, req.params.id]
     );
 
     if (result.changes === 0) {
@@ -63,7 +63,7 @@ router.put('/:id', auth, canModifySchedule, async (req, res) => {
 });
 
 // Delete schedule entry
-router.delete('/:id', auth, canModifySchedule, async (req, res) => {
+router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
   try {
     const result = await db.run('DELETE FROM schedule WHERE id = ?', [req.params.id]);
 

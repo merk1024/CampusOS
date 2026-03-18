@@ -6,38 +6,52 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const app = express();
+const db = require('./config/database');
 
-// Security middleware
+const app = express();
+const allowedOriginPatterns = [
+  /^http:\/\/localhost(?::\d+)?$/i,
+  /^http:\/\/127\.0\.0\.1(?::\d+)?$/i,
+  /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(?::\d+)?$/i,
+  /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d+)?$/i,
+  /^http:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}(?::\d+)?$/i
+];
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) return true;
+  return allowedOriginPatterns.some((pattern) => pattern.test(origin));
+};
+
 app.use(helmet());
 app.use(compression());
 
-// CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
   credentials: true
 }));
 
-// Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100
 });
 app.use('/api/', limiter);
 
-// Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Static files for uploads
 app.use('/uploads', express.static('uploads'));
 
-// API Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/courses', require('./routes/courses'));
@@ -48,25 +62,22 @@ app.use('/api/assignments', require('./routes/assignments'));
 app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/announcements', require('./routes/announcements'));
 
-// Health check
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
 });
 
-// Root endpoint
 app.get('/', (req, res) => {
-  res.json({ 
-    message: '🎓 Alatoo University LMS API',
+  res.json({
+    message: 'Alatoo University LMS API',
     version: '1.0.0',
     documentation: '/api/docs'
   });
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.statusCode || 500).json({
@@ -77,23 +88,27 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
 app.use((req, res) => {
-  res.status(404).json({ 
-    error: 'Route not found' 
+  res.status(404).json({
+    error: 'Route not found'
   });
 });
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`
-  ╔═══════════════════════════════════════╗
-  ║  🎓 Alatoo University LMS API         ║
-  ║  Server running on port ${PORT}         ║
-  ║  Environment: ${process.env.NODE_ENV || 'development'}              ║
-  ╚═══════════════════════════════════════╝
-  `);
-});
+async function startServer() {
+  try {
+    await db.migrate();
+
+    app.listen(PORT, () => {
+      console.log(`LMS API running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 module.exports = app;

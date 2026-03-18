@@ -1,8 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
 import { api } from '../api';
 
-// Profile
-function Profile({ user }) {
+function formatDate(value) {
+  if (!value) return 'Not available';
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: '2-digit'
+  }).toUpperCase();
+}
+
+function Profile() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -28,6 +43,7 @@ function Profile({ user }) {
     try {
       const response = await api.updateProfile(formData);
       setProfile(response.user);
+      setFormData(response.user);
       setEditing(false);
     } catch (err) {
       console.error('Failed to update profile:', err);
@@ -44,7 +60,7 @@ function Profile({ user }) {
     return (
       <div className="page">
         <div className="page-header">
-          <h1>👤 Profile</h1>
+          <h1>Profile</h1>
           <p>Loading profile...</p>
         </div>
         <div className="loading-spinner"></div>
@@ -56,183 +72,131 @@ function Profile({ user }) {
     return (
       <div className="page">
         <div className="page-header">
-          <h1>👤 Profile</h1>
+          <h1>Profile</h1>
           <p>Failed to load profile</p>
         </div>
       </div>
     );
   }
 
+  const demoDefaults = profile.role === 'student'
+    ? {
+        father_name: 'Iliiaz',
+        program_class: 'Киберкоопсуздук жана этикалык хакердик - Бкл.-EN - 3',
+        advisor: 'Нурайым Кулетова',
+        study_status: 'Studying',
+        balance_info: 'No debt [ 1.33 USD advance payment ]',
+        grant_type: 'Not available',
+        last_login_ip: '192.168.11.35',
+        registration_date: '2024-08-15'
+      }
+    : {};
+
+  const getField = (fieldName, fallback = 'Not available') => (
+    profile[fieldName] ?? demoDefaults[fieldName] ?? fallback
+  );
+
+  const rows = [
+    { label: 'Student №', value: getField('student_id') },
+    { label: 'Name, surname', value: getField('name'), field: 'name' },
+    { label: 'Father', value: getField('father_name'), field: 'father_name' },
+    { label: 'Birth date', value: formatDate(getField('date_of_birth', null)), field: 'date_of_birth', type: 'date' },
+    { label: 'Program / Class', value: getField('program_class', profile.major || 'Not available'), field: 'program_class' },
+    { label: 'Advisor', value: getField('advisor'), field: 'advisor' },
+    { label: 'Status', value: getField('study_status'), field: 'study_status' },
+    { label: 'Balance [ 2025 - 2026 ]', value: getField('balance_info'), field: 'balance_info' },
+    { label: 'Grant type', value: getField('grant_type'), field: 'grant_type' },
+    { label: 'Email', value: getField('email') },
+    { label: 'Phone', value: getField('phone'), field: 'phone' },
+    { label: 'Last login date', value: formatDate(getField('last_login_at', null)) },
+    { label: 'Last login ip', value: getField('last_login_ip') },
+    { label: 'Registration date', value: formatDate(getField('registration_date', null)), field: 'registration_date', type: 'date' }
+  ];
+
   return (
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>👤 Profile</h1>
-          <p>Manage your personal information</p>
+          <h1>Student Portal Profile</h1>
+          <p>University-style academic card</p>
         </div>
         {!editing && (
           <button className="btn-primary" onClick={() => setEditing(true)}>
-            ✏️ Edit Profile
+            Edit Profile
           </button>
         )}
       </div>
 
-      <div className="profile-content">
-        <div className="profile-card">
-          <div className="profile-avatar-large">{profile.avatar}</div>
-          <h2>{profile.name}</h2>
-          <p className="profile-email">{profile.email}</p>
-          <p className="profile-role">{profile.role}</p>
+      <div className="portal-profile">
+        <div className="portal-summary-card">
+          <div className="profile-avatar-large">
+            {profile.avatar || profile.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}
+          </div>
+          <div className="portal-summary-copy">
+            <span className="portal-kicker">Home page</span>
+            <h2>{profile.name}</h2>
+            <p>{getField('program_class', profile.major || profile.role)}</p>
+          </div>
         </div>
 
-        <div className="profile-details">
-          <div className="detail-section">
-            <h3>📋 Basic Information</h3>
-            <div className="detail-grid">
-              <div className="detail-item">
-                <label>Full Name</label>
-                {editing ? (
+        <div className="portal-records">
+          {rows.map((row) => (
+            <div key={row.label} className="portal-row">
+              <div className="portal-label">{row.label}</div>
+              <div className="portal-separator">:</div>
+              <div className="portal-value">
+                {editing && row.field ? (
                   <input
-                    type="text"
-                    value={formData.name || ''}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    type={row.type || 'text'}
+                    value={formData[row.field] || ''}
+                    onChange={(event) => setFormData({ ...formData, [row.field]: event.target.value })}
                   />
                 ) : (
-                  <span>{profile.name}</span>
+                  <span>{row.value}</span>
                 )}
               </div>
+            </div>
+          ))}
 
-              <div className="detail-item">
-                <label>Email</label>
-                <span>{profile.email}</span>
-              </div>
-
-              {profile.student_id && (
-                <div className="detail-item">
-                  <label>Student ID</label>
-                  <span>{profile.student_id}</span>
-                </div>
+          <div className="portal-row portal-row-block">
+            <div className="portal-label">Address</div>
+            <div className="portal-separator">:</div>
+            <div className="portal-value">
+              {editing ? (
+                <textarea
+                  value={formData.address || ''}
+                  onChange={(event) => setFormData({ ...formData, address: event.target.value })}
+                  rows="3"
+                />
+              ) : (
+                <span>{getField('address')}</span>
               )}
+            </div>
+          </div>
 
-              {profile.group_name && (
-                <div className="detail-item">
-                  <label>Group</label>
-                  <span>{profile.group_name}</span>
-                </div>
+          <div className="portal-row portal-row-block">
+            <div className="portal-label">Emergency contact</div>
+            <div className="portal-separator">:</div>
+            <div className="portal-value">
+              {editing ? (
+                <input
+                  type="text"
+                  value={formData.emergency_contact || ''}
+                  onChange={(event) => setFormData({ ...formData, emergency_contact: event.target.value })}
+                />
+              ) : (
+                <span>{getField('emergency_contact')}</span>
               )}
-
-              <div className="detail-item">
-                <label>Date of Birth</label>
-                {editing ? (
-                  <input
-                    type="date"
-                    value={formData.date_of_birth || ''}
-                    onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
-                  />
-                ) : (
-                  <span>{profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString() : 'Not set'}</span>
-                )}
-              </div>
-
-              <div className="detail-item">
-                <label>Phone</label>
-                {editing ? (
-                  <input
-                    type="tel"
-                    value={formData.phone || ''}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  />
-                ) : (
-                  <span>{profile.phone || 'Not set'}</span>
-                )}
-              </div>
             </div>
           </div>
-
-          <div className="detail-section">
-            <h3>🎓 Academic Information</h3>
-            <div className="detail-grid">
-              <div className="detail-item">
-                <label>Faculty</label>
-                {editing ? (
-                  <input
-                    type="text"
-                    value={formData.faculty || ''}
-                    onChange={(e) => setFormData({...formData, faculty: e.target.value})}
-                  />
-                ) : (
-                  <span>{profile.faculty || 'Not set'}</span>
-                )}
-              </div>
-
-              <div className="detail-item">
-                <label>Major/Specialty</label>
-                {editing ? (
-                  <input
-                    type="text"
-                    value={formData.major || ''}
-                    onChange={(e) => setFormData({...formData, major: e.target.value})}
-                  />
-                ) : (
-                  <span>{profile.major || 'Not set'}</span>
-                )}
-              </div>
-
-              <div className="detail-item">
-                <label>Year of Study</label>
-                {editing ? (
-                  <input
-                    type="number"
-                    min="1"
-                    max="4"
-                    value={formData.year_of_study || ''}
-                    onChange={(e) => setFormData({...formData, year_of_study: e.target.value})}
-                  />
-                ) : (
-                  <span>{profile.year_of_study ? `${profile.year_of_study} year` : 'Not set'}</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="detail-section">
-            <h3>🏠 Contact Information</h3>
-            <div className="detail-grid">
-              <div className="detail-item full-width">
-                <label>Address</label>
-                {editing ? (
-                  <textarea
-                    value={formData.address || ''}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    rows="3"
-                  />
-                ) : (
-                  <span>{profile.address || 'Not set'}</span>
-                )}
-              </div>
-
-              <div className="detail-item full-width">
-                <label>Emergency Contact</label>
-                {editing ? (
-                  <input
-                    type="text"
-                    value={formData.emergency_contact || ''}
-                    onChange={(e) => setFormData({...formData, emergency_contact: e.target.value})}
-                  />
-                ) : (
-                  <span>{profile.emergency_contact || 'Not set'}</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {editing && (
-            <div className="profile-actions">
-              <button className="btn-secondary" onClick={handleCancel}>Cancel</button>
-              <button className="btn-primary" onClick={handleSave}>Save Changes</button>
-            </div>
-          )}
         </div>
+
+        {editing && (
+          <div className="portal-actions">
+            <button className="btn-secondary" onClick={handleCancel}>Cancel</button>
+            <button className="btn-primary" onClick={handleSave}>Save Changes</button>
+          </div>
+        )}
       </div>
     </div>
   );

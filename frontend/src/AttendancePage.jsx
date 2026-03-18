@@ -28,7 +28,7 @@ const MOCK_ATTENDANCE = {
 // ══════════════════════════════════════════════════════════
 
 // Вид преподавателя
-function TeacherAttendance({ user }) {
+function TeacherAttendance() {
   const [selectedClass, setSelectedClass] = useState(null);
   const [attendance, setAttendance] = useState({ ...MOCK_ATTENDANCE });
 
@@ -95,9 +95,16 @@ function StudentAttendance({ user }) {
   const [attendance, setAttendance] = useState([]);
   const [stats, setStats] = useState({ total: 0, present: 0, absent: 0, late: 0, percentage: 0 });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   useEffect(() => {
+    const updateStats = (data) => {
+      setAttendance(data);
+      const total = data.length;
+      const present = data.filter(a => a.status === 'present').length;
+      const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+      setStats({ total, present, absent: data.filter(a => a.status === 'absent').length, late: data.filter(a => a.status === 'late').length, percentage });
+    };
+
     const loadAttendance = async () => {
       try {
         setLoading(true);
@@ -105,7 +112,7 @@ function StudentAttendance({ user }) {
         const response = await api.getStudentAttendance(user.studentId);
         const data = response.attendance || [];
         updateStats(data);
-      } catch (err) {
+      } catch {
         // Если NetworkError (сервер лежит) — грузим моки, чтобы страница не ломалась
         console.warn("Backend unavailable, loading offline mode.");
         const fallbackData = [
@@ -116,14 +123,6 @@ function StudentAttendance({ user }) {
       } finally {
         setLoading(false);
       }
-    };
-
-    const updateStats = (data) => {
-      setAttendance(data);
-      const total = data.length;
-      const present = data.filter(a => a.status === 'present').length;
-      const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
-      setStats({ total, present, absent: data.filter(a => a.status === 'absent').length, late: data.filter(a => a.status === 'late').length, percentage });
     };
 
     if (user?.studentId) loadAttendance();

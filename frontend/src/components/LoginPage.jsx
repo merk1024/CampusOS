@@ -1,38 +1,40 @@
 import { useState } from 'react';
+
 import { api } from '../api';
 
-// Login Page
 function LoginPage({ onLogin }) {
-  const [email, setEmail] = useState('');
+  const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const response = await api.login(email, password);
+      const response = await api.login(login, password);
       const userData = {
         id: response.user.id,
         email: response.user.email,
         name: response.user.name,
         role: response.user.role,
-        studentId: response.user.student_id,
-        group: response.user.group_name,
-        avatar: response.user.avatar || response.user.name.split(' ').map(n => n[0]).join('').toUpperCase(),
+        studentId: response.user.student_id ?? response.user.studentId,
+        group: response.user.group_name ?? response.user.groupName,
+        avatar: response.user.avatar || response.user.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase(),
         token: response.token
       };
 
-      // Store token
       if (rememberMe) {
         localStorage.setItem('token', response.token);
+        sessionStorage.removeItem('token');
       } else {
         sessionStorage.setItem('token', response.token);
+        localStorage.removeItem('token');
       }
+
       onLogin(userData);
     } catch (err) {
       setError(err.message);
@@ -60,7 +62,7 @@ function LoginPage({ onLogin }) {
               <span>Track your progress</span>
             </div>
             <div className="feature">
-              <span className="feature-icon">📅</span>
+              <span className="feature-icon">🗓️</span>
               <span>Manage your schedule</span>
             </div>
             <div className="feature">
@@ -73,16 +75,16 @@ function LoginPage({ onLogin }) {
         <div className="login-right">
           <form className="login-form" onSubmit={handleSubmit}>
             <h2>Welcome Back</h2>
-            <p className="login-subtitle">Sign in to continue to your dashboard</p>
+            <p className="login-subtitle">Sign in with your email or student number</p>
 
             {error && <div className="error-message">{error}</div>}
 
             <div className="form-field">
-              <label>Email</label>
+              <label>Email or Student ID</label>
               <input
                 type="text"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                value={login}
+                onChange={(event) => setLogin(event.target.value)}
                 placeholder=" "
                 required
               />
@@ -93,7 +95,7 @@ function LoginPage({ onLogin }) {
               <input
                 type="password"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={(event) => setPassword(event.target.value)}
                 placeholder=" "
                 required
               />
@@ -104,11 +106,10 @@ function LoginPage({ onLogin }) {
                 <input
                   type="checkbox"
                   checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
+                  onChange={(event) => setRememberMe(event.target.checked)}
                 />
                 <span>Remember me</span>
               </label>
-              <a href="#" className="link">Forgot password?</a>
             </div>
 
             <button type="submit" className="btn-login" disabled={loading}>
@@ -116,10 +117,10 @@ function LoginPage({ onLogin }) {
             </button>
 
             <div className="demo-hint">
-              <p><strong>Demo Accounts:</strong></p>
-              <p>👨‍🎓 Student: student@alatoo.edu.kg / student</p>
-              <p>👩‍🏫 Teacher: teacher@alatoo.edu.kg / teacher</p>
-              <p>👤 Admin: admin@alatoo.edu.kg / admin</p>
+              <p><strong>Demo account:</strong></p>
+              <p>Email: erbol.abdusaitov1@alatoo.edu.kg</p>
+              <p>Student ID: 240141052</p>
+              <p>Password: student</p>
             </div>
           </form>
         </div>

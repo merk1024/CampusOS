@@ -1,186 +1,234 @@
-// Автоматически выбираем URL: если мы на Render — берем его адрес, если нет — localhost
-const API_BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:5001/api' 
+const DEFAULT_API_BASE_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:5002/api'
   : 'https://web-table-exam.onrender.com/api';
 
-// Вспомогательная функция для заголовков (чтобы не писать одно и то же)
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/$/, '');
+
+const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
+
+const parseJsonSafely = async (response) => {
+  const text = await response.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text };
+  }
+};
+
+const getErrorMessage = async (response, fallbackMessage) => {
+  const payload = await parseJsonSafely(response);
+  return payload?.error?.message || payload?.error || payload?.message || fallbackMessage;
+};
+
+const request = async (path, options = {}) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, options);
+
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Request failed'));
+    }
+
+    return parseJsonSafely(response);
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error('Cannot connect to the server. Check that backend is running on http://localhost:5002.');
+    }
+    throw error;
+  }
+};
+
 const getHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = getToken();
   return {
     'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
   };
 };
 
 export const api = {
-  // --- AUTHENTICATION ---
-  async login(email, password) {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+  async login(login, password) {
+    return request('/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ login: email, password }),
+      body: JSON.stringify({ login, password })
     });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Login failed');
-    }
-    return response.json();
   },
 
   async logout() {
-    const response = await fetch(`${API_BASE_URL}/auth/logout`, {
-      method: 'POST',
-      headers: getHeaders(),
-    });
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    return response.ok ? response.json() : null;
+    try {
+      return await request('/auth/logout', {
+        method: 'POST',
+        headers: getHeaders()
+      });
+    } finally {
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      localStorage.removeItem('lms_user');
+    }
   },
 
-  // --- USERS & PROFILE ---
   async getProfile() {
-    const response = await fetch(`${API_BASE_URL}/users/profile/me`, { headers: getHeaders() });
-    if (!response.ok) throw new Error('Failed to fetch profile');
-    return response.json();
+    return request('/users/profile/me', { headers: getHeaders() });
   },
 
   async updateProfile(profileData) {
-    const response = await fetch(`${API_BASE_URL}/users/profile/me`, {
+    return request('/users/profile/me', {
       method: 'PUT',
       headers: getHeaders(),
-      body: JSON.stringify(profileData),
+      body: JSON.stringify(profileData)
     });
-    if (!response.ok) throw new Error('Failed to update profile');
-    return response.json();
   },
 
   async getUsers() {
-    const response = await fetch(`${API_BASE_URL}/users`, { headers: getHeaders() });
-    if (!response.ok) throw new Error('Failed to fetch users');
-    return response.json();
+    return request('/users', { headers: getHeaders() });
   },
 
   async createUser(userData) {
-    const response = await fetch(`${API_BASE_URL}/users`, {
+    return request('/users', {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify(userData),
+      body: JSON.stringify(userData)
     });
-    if (!response.ok) throw new Error('Failed to create user');
-    return response.json();
   },
 
   async getUserById(id) {
-    const response = await fetch(`${API_BASE_URL}/users/${id}`, { headers: getHeaders() });
-    if (!response.ok) throw new Error('Failed to fetch user');
-    return response.json();
+    return request(`/users/${id}`, { headers: getHeaders() });
   },
 
   async updateUser(id, userData) {
-    const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+    return request(`/users/${id}`, {
       method: 'PUT',
       headers: getHeaders(),
-      body: JSON.stringify(userData),
+      body: JSON.stringify(userData)
     });
-    if (!response.ok) throw new Error('Failed to update user');
-    return response.json();
   },
 
-  // --- COURSES & ENROLLMENT ---
   async getCourses() {
-    const response = await fetch(`${API_BASE_URL}/courses`, { headers: getHeaders() });
-    return response.json();
+    return request('/courses', { headers: getHeaders() });
+  },
+
+  async getCourseById(id) {
+    return request(`/courses/${id}`, { headers: getHeaders() });
+  },
+
+  async createCourse(courseData) {
+    return request('/courses', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(courseData)
+    });
+  },
+
+  async updateCourse(id, courseData) {
+    return request(`/courses/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(courseData)
+    });
+  },
+
+  async deleteCourse(id) {
+    return request(`/courses/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
   },
 
   async getEnrolledCourses() {
-    const response = await fetch(`${API_BASE_URL}/courses/enrolled`, { headers: getHeaders() });
-    return response.json();
+    return request('/courses/enrolled', { headers: getHeaders() });
   },
 
   async enrollInCourse(courseId) {
-    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/enroll`, {
+    return request(`/courses/${courseId}/enroll`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: getHeaders()
     });
-    return response.json();
   },
 
   async unenrollFromCourse(courseId) {
-    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/enroll`, {
+    return request(`/courses/${courseId}/enroll`, {
       method: 'DELETE',
-      headers: getHeaders(),
+      headers: getHeaders()
     });
-    return response.json();
   },
 
-  // --- ACADEMIC DATA ---
   async getExams() {
-    const response = await fetch(`${API_BASE_URL}/exams`, { headers: getHeaders() });
-    return response.json();
+    return request('/exams', { headers: getHeaders() });
+  },
+
+  async createExam(examData) {
+    return request('/exams', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(examData)
+    });
+  },
+
+  async updateExam(id, examData) {
+    return request(`/exams/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(examData)
+    });
+  },
+
+  async deleteExam(id) {
+    return request(`/exams/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
   },
 
   async getGrades() {
-    const response = await fetch(`${API_BASE_URL}/grades`, { headers: getHeaders() });
-    return response.json();
+    return request('/grades', { headers: getHeaders() });
   },
 
   async getSchedule() {
-    const response = await fetch(`${API_BASE_URL}/schedule`, { headers: getHeaders() });
-    return response.json();
+    return request('/schedule', { headers: getHeaders() });
   },
 
   async createScheduleEntry(scheduleData) {
-    const response = await fetch(`${API_BASE_URL}/schedule`, {
+    return request('/schedule', {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify(scheduleData),
+      body: JSON.stringify(scheduleData)
     });
-    if (!response.ok) throw new Error('Failed to create schedule entry');
-    return response.json();
   },
 
   async updateScheduleEntry(id, scheduleData) {
-    const response = await fetch(`${API_BASE_URL}/schedule/${id}`, {
+    return request(`/schedule/${id}`, {
       method: 'PUT',
       headers: getHeaders(),
-      body: JSON.stringify(scheduleData),
+      body: JSON.stringify(scheduleData)
     });
-    if (!response.ok) throw new Error('Failed to update schedule entry');
-    return response.json();
   },
 
   async deleteScheduleEntry(id) {
-    const response = await fetch(`${API_BASE_URL}/schedule/${id}`, {
+    return request(`/schedule/${id}`, {
       method: 'DELETE',
-      headers: getHeaders(),
+      headers: getHeaders()
     });
-    if (!response.ok) throw new Error('Failed to delete schedule entry');
-    return response.json();
   },
 
   async getAnnouncements() {
-    const response = await fetch(`${API_BASE_URL}/announcements`, { headers: getHeaders() });
-    return response.json();
+    return request('/announcements', { headers: getHeaders() });
   },
 
   async getAssignments() {
-    const response = await fetch(`${API_BASE_URL}/assignments`, { headers: getHeaders() });
-    return response.json();
+    return request('/assignments', { headers: getHeaders() });
   },
 
-  // --- ATTENDANCE ---
   async getStudentAttendance(studentId) {
-    const response = await fetch(`${API_BASE_URL}/attendance/student/${studentId}`, { headers: getHeaders() });
-    if (!response.ok) throw new Error('Failed to fetch attendance');
-    return response.json();
+    return request(`/attendance/student/${studentId}`, { headers: getHeaders() });
   },
 
   async markAttendance(scheduleId, studentId, date, status) {
-    const response = await fetch(`${API_BASE_URL}/attendance`, {
+    return request('/attendance', {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ scheduleId, studentId, date, status }),
+      body: JSON.stringify({ scheduleId, studentId, date, status })
     });
-    return response.json();
-  },
-};  
+  }
+};

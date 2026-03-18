@@ -1132,3 +1132,90 @@ input{width:100%;min-width:100%}
 .hero-name{font-size:1.5rem}
 .content{padding:1.5rem 1.25rem}
 }
+
+.lms-course-form{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  box-shadow:var(--sh);
+  padding:1.5rem;
+  margin-bottom:2rem;
+}
+
+.lms-course-form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:1rem;
+}
+
+.lms-course-form-grid label{
+  display:flex;
+  flex-direction:column;
+  gap:.5rem;
+}
+
+.lms-course-form-grid span{
+  font-size:.8rem;
+  font-weight:700;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+
+.lms-course-form-grid input,
+.lms-course-form-grid textarea{
+  width:100%;
+  border:2px solid var(--border);
+  border-radius:12px;
+  padding:.875rem 1rem;
+  background:#fff;
+  color:var(--text);
+  font-size:.95rem;
+  outline:none;
+  transition:all .2s ease;
+}
+
+.lms-course-form-grid input:focus,
+.lms-course-form-grid textarea:focus{
+  border-color:#a78bfa;
+  box-shadow:0 0 0 4px var(--accent-bg);
+}
+
+.lms-course-form-grid textarea{
+  min-height:110px;
+  resize:vertical;
+}
+
+.lms-course-form-wide{
+  grid-column:1 / -1;
+}
+
+.lms-course-form-actions{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:1rem;
+  margin-top:1.25rem;
+  flex-wrap:wrap;
+}
+
+.lms-course-form-note{
+  color:var(--muted);
+  max-width:620px;
+  line-height:1.6;
+}
+
+.lms-empty-note{
+  margin-top:.75rem;
+  font-size:.95rem;
+}
+
+@media (max-width:768px){
+  .lms-course-form-grid{
+    grid-template-columns:1fr;
+  }
+
+  .lms-course-form-wide{
+    grid-column:auto;
+  }
+}

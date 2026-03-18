@@ -7,6 +7,15 @@
   margin-top: 2rem;
 }
 
+.management-form-intro {
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  background: #f8faff;
+  color: #5b6474;
+  border: 1px solid #e2e8f0;
+}
+
 .users-table table {
   width: 100%;
   border-collapse: collapse;
@@ -27,6 +36,13 @@
 
 .users-table tbody tr:hover {
   background: #f9fafb;
+}
+
+.users-empty-state {
+  padding: 1.2rem;
+  text-align: center;
+  color: #6b7280;
+  border-top: 1px solid #e5e7eb;
 }
 
 .role-badge {
@@ -207,4 +223,10 @@
   .users-table table {
     min-width: 600px;
   }
+}
+
+.form-group input:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
 }

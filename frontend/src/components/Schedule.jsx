@@ -8,7 +8,7 @@ function Schedule() {
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
   const [showEditForm, setShowEditForm] = useState(false);
-  const [editingSlot, setEditingSlot] = useState(null);
+  const [, setEditingSlot] = useState(null);
   const [formData, setFormData] = useState({
     day: '',
     time_slot: '',
@@ -38,6 +38,8 @@ function Schedule() {
   }, []);
 
   const canEdit = user && (user.role === 'admin' || user.role === 'teacher');
+  const totalEntries = schedule.length;
+  const groupsCount = new Set(schedule.map((item) => item.group_name).filter(Boolean)).size;
 
   const handleCellClick = (day, timeSlot) => {
     if (!canEdit) return;
@@ -155,6 +157,22 @@ function Schedule() {
         )}
       </div>
 
+      <div className="schedule-admin-bar">
+        <div className="schedule-admin-card">
+          <span className="management-summary-label">Lessons loaded</span>
+          <strong>{totalEntries}</strong>
+        </div>
+        <div className="schedule-admin-card">
+          <span className="management-summary-label">Groups</span>
+          <strong>{groupsCount}</strong>
+        </div>
+        <div className="schedule-admin-card schedule-admin-legend">
+          <span className="schedule-legend-item"><span className="schedule-dot occupied"></span> Existing class</span>
+          <span className="schedule-legend-item"><span className="schedule-dot empty"></span> Empty slot</span>
+          {canEdit && <span className="schedule-legend-item"><span className="schedule-dot editable"></span> Click to manage</span>}
+        </div>
+      </div>
+
       <div className="schedule-grid">
         <div className="schedule-header">
           <div className="time-column"></div>
@@ -199,6 +217,9 @@ function Schedule() {
             <div className="modal-header">
               <h3>{formData.id ? 'Edit Class' : 'Add Class'}</h3>
               <button className="modal-close" onClick={() => setShowEditForm(false)}>×</button>
+            </div>
+            <div className="schedule-modal-copy">
+              <p>Set the group, subject, teacher and room for this slot.</p>
             </div>
             <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
               <div className="form-grid">

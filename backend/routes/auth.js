@@ -1,15 +1,35 @@
 const express = require('express');
-const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
+
+const router = express.Router();
 const db = require('../config/database');
 const { auth } = require('../middleware/auth');
 
-// @route   POST /api/auth/register
-// @desc    Register a new user
-// @access  Public
-router.post('/register',
+const AUTH_USER_FIELDS = `
+  id,
+  email,
+  name,
+  role,
+  student_id,
+  group_name,
+  phone,
+  avatar,
+  father_name,
+  program_class,
+  advisor,
+  study_status,
+  balance_info,
+  grant_type,
+  date_of_birth,
+  registration_date,
+  last_login_at,
+  last_login_ip
+`;
+
+router.post(
+  '/register',
   [
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 6 }),
@@ -25,14 +45,11 @@ router.post('/register',
 
       const { email, password, name, role, studentId, groupName, phone } = req.body;
 
-      // Check if user exists
       const existingUser = await db.get('SELECT id FROM users WHERE email = ?', [email]);
-
       if (existingUser) {
         return res.status(400).json({ error: 'User already exists' });
       }
 
-      // Check if student_id exists (for students)
       if (role === 'student' && studentId) {
         const existingStudentId = await db.get('SELECT id FROM users WHERE student_id = ?', [studentId]);
         if (existingStudentId) {
@@ -40,21 +57,20 @@ router.post('/register',
         }
       }
 
-      // Hash password
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
 
-      // Insert user
       await db.run(
         `INSERT INTO users (email, password, name, role, student_id, group_name, phone)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [email, hashedPassword, name, role, studentId || null, groupName || null, phone || null]
       );
 
-      // Get the inserted user
-      const user = await db.get('SELECT id, email, name, role, student_id, group_name FROM users WHERE email = ?', [email]);
+      const user = await db.get(
+        `SELECT ${AUTH_USER_FIELDS} FROM users WHERE email = ?`,
+        [email]
+      );
 
-      // Generate JWT
       const token = jwt.sign(
         { id: user.id, role: user.role },
         process.env.JWT_SECRET,
@@ -64,14 +80,7 @@ router.post('/register',
       res.status(201).json({
         message: 'User registered successfully',
         token,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          studentId: user.student_id,
-          groupName: user.group_name
-        }
+        user
       });
     } catch (error) {
       console.error('Register error:', error);
@@ -80,10 +89,8 @@ router.post('/register',
   }
 );
 
-// @route   POST /api/auth/login
-// @desc    Login user
-// @access  Public
-router.post('/login',
+router.post(
+  '/login',
   [
     body('login').trim().notEmpty(),
     body('password').notEmpty()
@@ -97,7 +104,6 @@ router.post('/login',
 
       const { login, password } = req.body;
 
-      // Find user by email or student_id
       const user = await db.get(
         'SELECT * FROM users WHERE email = ? OR student_id = ?',
         [login, login]
@@ -107,20 +113,30 @@ router.post('/login',
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      // Check if user is active
       if (!user.is_active) {
         return res.status(403).json({ error: 'Account is disabled' });
       }
 
-      // Verify password
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      // Generate JWT
+      const now = new Date().toISOString();
+      const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || null;
+
+      await db.run(
+        'UPDATE users SET last_login_at = ?, last_login_ip = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [now, clientIp, user.id]
+      );
+
+      const freshUser = await db.get(
+        `SELECT ${AUTH_USER_FIELDS} FROM users WHERE id = ?`,
+        [user.id]
+      );
+
       const token = jwt.sign(
-        { id: user.id, role: user.role },
+        { id: freshUser.id, role: freshUser.role },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRE || '7d' }
       );
@@ -129,14 +145,9 @@ router.post('/login',
         message: 'Login successful',
         token,
         user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          studentId: user.student_id,
-          groupName: user.group_name,
-          phone: user.phone,
-          avatar: user.avatar
+          ...freshUser,
+          studentId: freshUser.student_id,
+          groupName: freshUser.group_name
         }
       });
     } catch (error) {
@@ -146,31 +157,30 @@ router.post('/login',
   }
 );
 
-// @route   GET /api/auth/me
-// @desc    Get current user
-// @access  Private
+router.post('/logout', auth, async (req, res) => {
+  res.json({ message: 'Logout successful' });
+});
+
 router.get('/me', auth, async (req, res) => {
   try {
-    const result = await db.query(
-      'SELECT id, email, name, role, student_id, group_name, phone, avatar FROM users WHERE id = $1',
+    const user = await db.get(
+      `SELECT ${AUTH_USER_FIELDS} FROM users WHERE id = ?`,
       [req.user.id]
     );
 
-    if (result.rows.length === 0) {
+    if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ user: result.rows[0] });
+    res.json({ user });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// @route   PUT /api/auth/password
-// @desc    Change password
-// @access  Private
-router.put('/password',
+router.put(
+  '/password',
   auth,
   [
     body('currentPassword').notEmpty(),
@@ -185,29 +195,25 @@ router.put('/password',
 
       const { currentPassword, newPassword } = req.body;
 
-      // Get current password
-      const result = await db.query(
-        'SELECT password FROM users WHERE id = $1',
+      const user = await db.get(
+        'SELECT password FROM users WHERE id = ?',
         [req.user.id]
       );
 
-      if (result.rows.length === 0) {
+      if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      // Verify current password
-      const isMatch = await bcrypt.compare(currentPassword, result.rows[0].password);
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
       if (!isMatch) {
         return res.status(401).json({ error: 'Current password is incorrect' });
       }
 
-      // Hash new password
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-      // Update password
-      await db.query(
-        'UPDATE users SET password = $1 WHERE id = $2',
+      await db.run(
+        'UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
         [hashedPassword, req.user.id]
       );
 

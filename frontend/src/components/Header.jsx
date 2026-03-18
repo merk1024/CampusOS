@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 // Header
-function Header({ user, onLogout, onToggleSidebar }) {
+function Header({ user, onLogout }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   return (

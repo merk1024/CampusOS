@@ -24,6 +24,21 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Get course by ID
+router.get('/enrolled', auth, async (req, res) => {
+  try {
+    const result = await db.all(`
+      SELECT c.* FROM courses c
+      JOIN course_enrollments e ON c.id = e.course_id
+      WHERE e.student_id = ?
+    `, [req.user.id]);
+
+    res.json({ courses: result });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get course by ID
 router.get('/:id', auth, async (req, res) => {
   try {
     const course = await db.get(`
@@ -144,7 +159,7 @@ router.post('/:id/enroll', auth, async (req, res) => {
     }
 
     const result = await db.run(
-      'INSERT INTO course_enrollments (course_id, student_id) VALUES (?, ?) RETURNING *',
+      'INSERT INTO course_enrollments (course_id, student_id) VALUES (?, ?)',
       [req.params.id, req.user.id]
     );
 
@@ -163,21 +178,6 @@ router.delete('/:id/enroll', auth, async (req, res) => {
     );
 
     res.json({ message: 'Unenrolled successfully' });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Get enrolled courses for student
-router.get('/enrolled', auth, async (req, res) => {
-  try {
-    const result = await db.all(`
-      SELECT c.* FROM courses c
-      JOIN course_enrollments e ON c.id = e.course_id
-      WHERE e.student_id = ?
-    `, [req.user.id]);
-
-    res.json({ courses: result });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }

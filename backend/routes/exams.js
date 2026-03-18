@@ -1,102 +1,92 @@
 const express = require('express');
+
 const router = express.Router();
 const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const db = require('../config/database');
 
-// @route   GET /api/exams
-// @desc    Get all exams (filtered by user role)
-// @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    let query;
-    let params;
+    let exams;
 
     if (req.user.role === 'student') {
-      // Students see only their exams
-      query = `
-        SELECT e.*, array_agg(es.student_id) as students
-        FROM exams e
-        LEFT JOIN exam_students es ON e.id = es.exam_id
-        WHERE es.student_id = $1
-        GROUP BY e.id
-        ORDER BY e.exam_date DESC
-      `;
-      params = [req.user.student_id];
+      exams = await db.all(
+        `SELECT e.*
+         FROM exams e
+         INNER JOIN exam_students es ON e.id = es.exam_id
+         WHERE es.student_id = ?
+         ORDER BY e.exam_date DESC, e.exam_time DESC`,
+        [req.user.student_id]
+      );
     } else {
-      // Teachers and admins see all exams
-      query = `
-        SELECT e.*, array_agg(es.student_id) as students
-        FROM exams e
-        LEFT JOIN exam_students es ON e.id = es.exam_id
-        GROUP BY e.id
-        ORDER BY e.exam_date DESC
-      `;
-      params = [];
+      exams = await db.all(
+        'SELECT * FROM exams ORDER BY exam_date DESC, exam_time DESC'
+      );
     }
 
-    const result = await db.query(query, params);
-    
-    // Get grades for each exam
-    const examsWithGrades = await Promise.all(result.rows.map(async (exam) => {
-      const gradesResult = await db.query(
-        'SELECT student_id, grade, graded_at, comments FROM grades WHERE exam_id = $1',
-        [exam.id]
-      );
-      
-      const grades = {};
-      gradesResult.rows.forEach(g => {
-        grades[g.student_id] = {
-          grade: g.grade,
-          date: g.graded_at,
-          comments: g.comments
-        };
-      });
-      
-      return { ...exam, grades };
-    }));
+    const examsWithStudents = await Promise.all(
+      exams.map(async (exam) => {
+        const students = await db.all(
+          'SELECT student_id FROM exam_students WHERE exam_id = ? ORDER BY student_id',
+          [exam.id]
+        );
 
-    res.json({ exams: examsWithGrades });
+        return {
+          ...exam,
+          students: students.map((student) => student.student_id)
+        };
+      })
+    );
+
+    res.json({ exams: examsWithStudents });
   } catch (error) {
     console.error('Get exams error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// @route   POST /api/exams
-// @desc    Create new exam
-// @access  Private (Teacher/Admin)
 router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
   try {
     const {
+      group_name,
       groupName,
       subject,
+      exam_date,
       examDate,
+      exam_time,
       examTime,
       room,
       type,
       semester,
-      students
+      students = []
     } = req.body;
 
-    // Insert exam
-    const examResult = await db.query(
+    const result = await db.run(
       `INSERT INTO exams (group_name, subject, exam_date, exam_time, room, teacher_name, type, semester, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING *`,
-      [groupName, subject, examDate, examTime, room, req.user.name, type || 'Экзамен', semester, req.user.id]
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        group_name || groupName,
+        subject,
+        exam_date || examDate,
+        exam_time || examTime,
+        room,
+        req.user.name,
+        type || 'Exam',
+        semester || null,
+        req.user.id
+      ]
     );
 
-    const exam = examResult.rows[0];
-
-    // Insert students
-    if (students && students.length > 0) {
-      const studentValues = students.map(studentId => `(${exam.id}, '${studentId}')`).join(',');
-      await db.query(`INSERT INTO exam_students (exam_id, student_id) VALUES ${studentValues}`);
+    for (const studentId of students) {
+      await db.run(
+        'INSERT OR IGNORE INTO exam_students (exam_id, student_id) VALUES (?, ?)',
+        [result.id, studentId]
+      );
     }
 
+    const exam = await db.get('SELECT * FROM exams WHERE id = ?', [result.id]);
     res.status(201).json({
       message: 'Exam created successfully',
-      exam: { ...exam, students: students || [] }
+      exam: { ...exam, students }
     });
   } catch (error) {
     console.error('Create exam error:', error);
@@ -104,36 +94,55 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
   }
 });
 
-// @route   PUT /api/exams/:id
-// @desc    Update exam
-// @access  Private (Teacher/Admin)
 router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
   try {
-    const { id } = req.params;
     const {
+      group_name,
       groupName,
       subject,
+      exam_date,
       examDate,
+      exam_time,
       examTime,
       room,
-      type
+      type,
+      semester,
+      students = []
     } = req.body;
 
-    const result = await db.query(
-      `UPDATE exams 
-       SET group_name = $1, subject = $2, exam_date = $3, exam_time = $4, room = $5, type = $6
-       WHERE id = $7
-       RETURNING *`,
-      [groupName, subject, examDate, examTime, room, type, id]
+    const result = await db.run(
+      `UPDATE exams
+       SET group_name = ?, subject = ?, exam_date = ?, exam_time = ?, room = ?, type = ?, semester = ?
+       WHERE id = ?`,
+      [
+        group_name || groupName,
+        subject,
+        exam_date || examDate,
+        exam_time || examTime,
+        room,
+        type || 'Exam',
+        semester || null,
+        req.params.id
+      ]
     );
 
-    if (result.rows.length === 0) {
+    if (result.changes === 0) {
       return res.status(404).json({ error: 'Exam not found' });
     }
 
+    await db.run('DELETE FROM exam_students WHERE exam_id = ?', [req.params.id]);
+
+    for (const studentId of students) {
+      await db.run(
+        'INSERT OR IGNORE INTO exam_students (exam_id, student_id) VALUES (?, ?)',
+        [req.params.id, studentId]
+      );
+    }
+
+    const exam = await db.get('SELECT * FROM exams WHERE id = ?', [req.params.id]);
     res.json({
       message: 'Exam updated successfully',
-      exam: result.rows[0]
+      exam: { ...exam, students }
     });
   } catch (error) {
     console.error('Update exam error:', error);
@@ -141,16 +150,12 @@ router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
   }
 });
 
-// @route   DELETE /api/exams/:id
-// @desc    Delete exam
-// @access  Private (Teacher/Admin)
 router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
   try {
-    const { id } = req.params;
+    await db.run('DELETE FROM exam_students WHERE exam_id = ?', [req.params.id]);
+    const result = await db.run('DELETE FROM exams WHERE id = ?', [req.params.id]);
 
-    const result = await db.query('DELETE FROM exams WHERE id = $1 RETURNING *', [id]);
-
-    if (result.rows.length === 0) {
+    if (result.changes === 0) {
       return res.status(404).json({ error: 'Exam not found' });
     }
 
