@@ -78,7 +78,7 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
 
     for (const studentId of students) {
       await db.run(
-        'INSERT OR IGNORE INTO exam_students (exam_id, student_id) VALUES (?, ?)',
+        'INSERT INTO exam_students (exam_id, student_id) VALUES (?, ?) ON CONFLICT (exam_id, student_id) DO NOTHING',
         [result.id, studentId]
       );
     }
@@ -134,7 +134,7 @@ router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
 
     for (const studentId of students) {
       await db.run(
-        'INSERT OR IGNORE INTO exam_students (exam_id, student_id) VALUES (?, ?)',
+        'INSERT INTO exam_students (exam_id, student_id) VALUES (?, ?) ON CONFLICT (exam_id, student_id) DO NOTHING',
         [req.params.id, studentId]
       );
     }

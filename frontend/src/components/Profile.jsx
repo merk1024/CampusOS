@@ -99,6 +99,8 @@ function Profile() {
   const rows = [
     { label: 'Student №', value: getField('student_id') },
     { label: 'Name, surname', value: getField('name'), field: 'name' },
+    { label: 'Group', value: getField('group_name'), field: 'group_name' },
+    { label: 'Subgroup', value: getField('subgroup_name') },
     { label: 'Father', value: getField('father_name'), field: 'father_name' },
     { label: 'Birth date', value: formatDate(getField('date_of_birth', null)), field: 'date_of_birth', type: 'date' },
     { label: 'Program / Class', value: getField('program_class', profile.major || 'Not available'), field: 'program_class' },

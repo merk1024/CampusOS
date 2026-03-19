@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+
 /* SKELETON LOADER */
 .skeleton {
   background: linear-gradient(90deg, #f3f3f3 25%, #ecebeb 37%, #f3f3f3 63%);
@@ -19,7 +21,6 @@
 .cv-card.skeleton .cv-card-footer {
   display: none;
 }
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
 
 /* Plus Jakarta Sans (body) + Outfit (display) — soft, generous spacing, pleasant gradients */
 
@@ -214,6 +215,9 @@ body, input, select, textarea, button { font-family: 'Plus Jakarta Sans', sans-s
 .cd-hero-name { font-family:'Outfit',sans-serif; font-size:2rem; font-weight:800; letter-spacing:-0.02em; margin-bottom:0.875rem; line-height:1.2; text-shadow:0 2px 8px rgba(0,0,0,.3); }
 .cd-hero-meta { display:flex; flex-wrap:wrap; gap:1rem; font-size:0.9rem; color:rgba(255,255,255,.85); font-weight:500; text-shadow:0 1px 2px rgba(0,0,0,.2); }
 .cd-hero-desc { font-size:1rem; color:rgba(255,255,255,.85); line-height:1.7; max-width:680px; text-shadow:0 1px 2px rgba(0,0,0,.2); }
+.cd-hero-actions { display:flex; gap:0.875rem; margin-top:1.5rem; flex-wrap:wrap; }
+.cd-hero-btn { background:rgba(255,255,255,.12); color:#fff; border-color:rgba(255,255,255,.28); }
+.cd-hero-btn:hover { background:rgba(255,255,255,.2); color:#fff; border-color:rgba(255,255,255,.35); }
 .cd-hero-ring {
   margin-left:auto; display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex-shrink:0;
   background:rgba(255,255,255,.1); backdrop-filter:blur(8px); padding:1.25rem; border-radius:var(--r-lg);
@@ -255,6 +259,7 @@ body, input, select, textarea, button { font-family: 'Plus Jakarta Sans', sans-s
 .cd-form-grid { display:grid; grid-template-columns:100px 1fr 1fr; gap:1.25rem; margin-bottom:1.5rem; }
 .cd-form-grid label { display:flex; flex-direction:column; gap:0.5rem; }
 .cd-form-grid span { font-size:0.8rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
+.cd-form-wide { grid-column:1 / -1; }
 .cd-form-grid input, .cd-form-grid select, .cd-form-grid textarea {
   padding:0.75rem 1rem; border:2px solid var(--border); border-radius:12px; font-size:0.95rem;
   font-family:'Plus Jakarta Sans',sans-serif; background:var(--surface); color:var(--text);
@@ -266,6 +271,8 @@ body, input, select, textarea, button { font-family: 'Plus Jakarta Sans', sans-s
 .cd-btn-pri:hover { transform:translateY(-2px); box-shadow:var(--sh-md); }
 .cd-btn-sec { padding:0.75rem 1.5rem; border:2px solid var(--border); border-radius:12px; background:var(--surface); font-size:0.9rem; font-weight:600; color:var(--muted); cursor:pointer; transition:all 0.2s; }
 .cd-btn-sec:hover { border-color:#c7d2fe; color:var(--accent); background:var(--accent-bg); }
+.cd-btn-danger { padding:0.75rem 1.5rem; border:2px solid rgba(248,113,113,.45); border-radius:12px; background:#fee2e2; font-size:0.9rem; font-weight:700; color:#b91c1c; cursor:pointer; transition:all 0.2s; }
+.cd-btn-danger:hover { background:#fecaca; border-color:#ef4444; transform:translateY(-1px); }
 
 /* SYLLABUS */
 .cd-week-block { margin-bottom:2.5rem; }
@@ -465,6 +472,7 @@ body, input, select, textarea, button { font-family: 'Plus Jakarta Sans', sans-s
   .cd-hero-name { font-size: 1.75rem; }
   .cd-hero-meta { font-size: 0.85rem; }
   .cd-hero-ring { display: none; }
+  .cd-hero-actions { flex-direction: column; }
   
   /* Tabs */
   .cd-tabs { padding: 0 1.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -480,8 +488,9 @@ body, input, select, textarea, button { font-family: 'Plus Jakarta Sans', sans-s
   /* Forms */
   .cd-inline-form { padding: 1.5rem; }
   .cd-form-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .cd-form-wide { grid-column: auto; }
   .cd-form-actions { flex-direction: column-reverse; }
-  .cd-btn-pri, .cd-btn-sec { width: 100%; justify-content: center; }
+  .cd-btn-pri, .cd-btn-sec, .cd-btn-danger { width: 100%; justify-content: center; }
   
   /* Syllabus */
   .cd-week-label { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
@@ -952,7 +961,6 @@ body, input, select, textarea, button { font-family: 'Plus Jakarta Sans', sans-s
     transition-duration: 0.01ms !important;
   }
 }
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap');
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 

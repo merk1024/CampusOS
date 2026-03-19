@@ -14,7 +14,7 @@ const auth = async (req, res, next) => {
     
     // Get user from database
     const user = await db.get(
-      'SELECT id, email, name, role, student_id, group_name FROM users WHERE id = ? AND is_active = 1',
+      'SELECT id, email, name, role, student_id, group_name, subgroup_name FROM users WHERE id = ? AND is_active = 1',
       [decoded.id]
     );
 

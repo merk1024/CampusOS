@@ -479,6 +479,10 @@ body {
 }
 
 .dropdown-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
   padding: 0.75rem 1rem;
   border-radius: 8px;
   cursor: pointer;
@@ -1295,9 +1299,25 @@ body {
 .schedule-grid {
   background: var(--surface);
   border-radius: var(--radius);
-  padding: 2rem;
+  padding: 1.25rem;
   box-shadow: var(--shadow);
   overflow-x: auto;
+  border: 1px solid rgba(216, 224, 239, 0.9);
+}
+
+.schedule-grid-board {
+  display: grid;
+  gap: 1px;
+  min-width: 980px;
+  background: rgba(216, 224, 239, 0.95);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.schedule-board-corner {
+  background: var(--surface-glass);
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .schedule-header {
@@ -1310,8 +1330,10 @@ body {
 }
 
 .day-column {
-  padding: 1rem;
-  font-weight: 600;
+  padding: 0.8rem 0.6rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
   text-align: center;
   background: var(--accent);
   color: white;
@@ -1321,12 +1343,14 @@ body {
   display: grid;
   grid-template-columns: 80px repeat(6, 1fr);
   gap: 1px;
-  min-height: 80px;
+  min-height: 60px;
 }
 
 .time-column {
-  padding: 1rem;
+  padding: 0.65rem 0.5rem;
   font-weight: 600;
+  font-size: 0.82rem;
+  line-height: 1.25;
   text-align: center;
   background: var(--surface-glass);
   display: flex;
@@ -1337,12 +1361,18 @@ body {
 .schedule-cell {
   background: white;
   border: 1px solid var(--border);
-  padding: 0.5rem;
-  min-height: 80px;
+  padding: 0.28rem;
+  min-height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+  border-radius: 12px;
+}
+
+.schedule-grid-item {
+  width: 100%;
+  height: 100%;
 }
 
 .schedule-cell.empty {
@@ -1350,9 +1380,22 @@ body {
   border: 1px dashed var(--border);
 }
 
+.schedule-cell.empty.editable {
+  min-height: 56px;
+  padding: 0.2rem;
+}
+
 .schedule-cell.occupied {
-  background: linear-gradient(135deg, #e6fffa 0%, #b2f5ea 100%);
-  border: 1px solid var(--success);
+  background: linear-gradient(135deg, #effcf8 0%, #d8f7ee 100%);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+.schedule-cell.merged-block {
+  align-items: flex-start;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 0.45rem 0.5rem;
 }
 
 .class-info {
@@ -1362,19 +1405,36 @@ body {
 .class-subject {
   font-weight: 600;
   color: var(--text);
-  margin-bottom: 0.25rem;
+  font-size: 0.86rem;
+  line-height: 1.25;
+  margin-bottom: 0.15rem;
 }
 
 .class-teacher {
-  font-size: 0.875rem;
+  font-size: 0.74rem;
   color: var(--text-light);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.1rem;
 }
 
 .class-room {
-  font-size: 0.875rem;
+  font-size: 0.72rem;
   color: var(--accent);
   font-weight: 500;
+}
+
+.class-group {
+  margin-top: 0.2rem;
+  font-size: 0.68rem;
+  color: var(--text-light);
+  font-weight: 600;
+}
+
+.class-duration {
+  margin-top: 0.28rem;
+  font-size: 0.68rem;
+  color: var(--accent);
+  font-weight: 600;
+  line-height: 1.3;
 }
 /* ══════════════════════════════════════════════════════════
    GRADES TABLE
@@ -1919,6 +1979,7 @@ body {
   font-family: inherit;
   font-size: 0.95rem;
   background: #fbfdff;
+  color: black;
 }
 
 .management-filters {
@@ -2008,6 +2069,126 @@ body {
   gap: 0.5rem;
 }
 
+.schedule-group-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.schedule-group-switcher {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.schedule-group-field {
+  width: 100%;
+  max-width: 780px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.schedule-group-select-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.schedule-group-select {
+  min-width: 240px;
+  padding: 0.85rem 1rem;
+  border: 1px solid #d8e0ef;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--text);
+}
+
+.schedule-group-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+}
+
+.schedule-group-field input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid #d8e0ef;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--text);
+}
+
+.schedule-group-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+}
+
+.schedule-group-hint {
+  margin: 0;
+  width: 100%;
+  max-width: none;
+  color: var(--text-light);
+  line-height: 1.5;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+}
+
+.schedule-group-chips {
+  gap: 0.6rem;
+}
+
+.form-group-wide {
+  grid-column: 1 / -1;
+}
+
+.schedule-slot-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.25rem;
+}
+
+.schedule-slot-chip {
+  border: 1px solid #d8e0ef;
+  background: #fff;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.schedule-slot-chip:hover {
+  border-color: rgba(102, 126, 234, 0.4);
+  color: var(--accent);
+  background: rgba(102, 126, 234, 0.06);
+}
+
+.schedule-slot-chip.active {
+  background: rgba(102, 126, 234, 0.12);
+  color: var(--accent);
+  border-color: rgba(102, 126, 234, 0.38);
+  font-weight: 600;
+}
+
+.schedule-slot-hint {
+  margin: 0.75rem 0 0;
+  color: var(--text-light);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
 .schedule-legend-item {
   display: flex;
   align-items: center;
@@ -2049,7 +2230,8 @@ body {
 .empty-slot {
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
+  line-height: 1.15;
 }
 
 .edit-hint {
@@ -2146,6 +2328,55 @@ body {
   .exam-dashboard-grid,
   .management-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .schedule-group-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .schedule-group-select-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .schedule-group-select {
+    min-width: 100%;
+  }
+
+  .form-group-wide {
+    grid-column: auto;
+  }
+
+  .schedule-grid {
+    padding: 0.85rem;
+  }
+
+  .schedule-grid-board {
+    min-width: 860px;
+  }
+
+  .day-column,
+  .time-column {
+    font-size: 0.76rem;
+  }
+
+  .schedule-row {
+    min-height: 50px;
+  }
+
+  .schedule-cell {
+    min-height: 50px;
+    padding: 0.18rem;
+  }
+
+  .schedule-cell.empty.editable {
+    min-height: 50px;
+    padding: 0.16rem;
+  }
+
+  .schedule-cell.merged-block {
+    padding: 0.28rem 0.32rem;
   }
 
   .exam-card-header,

@@ -22,6 +22,7 @@ CREATE TABLE users (
     name TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('student', 'teacher', 'admin')),
     group_name TEXT, -- For students
+    subgroup_name TEXT,
     phone TEXT,
     avatar TEXT,
     date_of_birth TEXT,
@@ -108,6 +109,9 @@ CREATE TABLE schedule (
     day TEXT NOT NULL,
     time_slot TEXT NOT NULL,
     group_name TEXT NOT NULL,
+    audience_type TEXT DEFAULT 'group',
+    subgroup_name TEXT,
+    student_user_id INTEGER REFERENCES users(id),
     subject TEXT NOT NULL,
     teacher TEXT,
     room TEXT,

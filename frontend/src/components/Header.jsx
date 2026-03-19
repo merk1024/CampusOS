@@ -1,15 +1,18 @@
 import { useState } from 'react';
 
-// Header
-function Header({ user, onLogout }) {
+function Header({ user, onLogout, onNavigate }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const handleNavigate = (page) => {
+    onNavigate?.(page);
+    setShowUserMenu(false);
+  };
 
   return (
     <header className="header">
-        <div className="logo">
-          <span className="logo-icon">🎓</span>
-          <span className="logo-text">Alatoo LMS</span>
-
+      <div className="logo">
+        <span className="logo-icon">🎓</span>
+        <span className="logo-text">Alatoo LMS</span>
       </div>
 
       <div className="header-center">
@@ -20,27 +23,29 @@ function Header({ user, onLogout }) {
       </div>
 
       <div className="header-right">
-        <button className="icon-btn">
+        <button className="icon-btn" onClick={() => handleNavigate('messages')}>
           <span>🔔</span>
           <span className="badge">3</span>
         </button>
-        <button className="icon-btn">
-          <span>✉️</span>
+        <button className="icon-btn" onClick={() => handleNavigate('settings')}>
+          <span>⚙️</span>
         </button>
+
         <div className="user-menu-wrapper">
-          <button className="user-btn" onClick={() => setShowUserMenu(!showUserMenu)}>
+          <button className="user-btn" onClick={() => setShowUserMenu((value) => !value)}>
             <div className="user-avatar">{user.avatar}</div>
             <div className="user-details">
               <div className="user-name">{user.name.split(' ')[0]}</div>
               <div className="user-role">{user.role}</div>
             </div>
           </button>
+
           {showUserMenu && (
             <div className="user-dropdown">
-              <div className="dropdown-item">👤 Profile</div>
-              <div className="dropdown-item">⚙️ Settings</div>
+              <button className="dropdown-item" onClick={() => handleNavigate('profile')}>Profile</button>
+              <button className="dropdown-item" onClick={() => handleNavigate('settings')}>Settings</button>
               <div className="dropdown-divider"></div>
-              <div className="dropdown-item" onClick={onLogout}>🚪 Logout</div>
+              <button className="dropdown-item" onClick={onLogout}>Logout</button>
             </div>
           )}
         </div>

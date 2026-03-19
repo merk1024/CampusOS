@@ -15,6 +15,7 @@ import LoginPage from './components/LoginPage';
 import Messages from './components/Messages';
 import Profile from './components/Profile';
 import Schedule from './components/Schedule';
+import Settings from './components/Settings';
 
 const storage = {
   get(key) {
@@ -29,6 +30,15 @@ const storage = {
   },
   remove(key) {
     localStorage.removeItem(key);
+  }
+};
+
+const getDefaultPage = () => {
+  try {
+    const settings = JSON.parse(localStorage.getItem('lms_app_settings'));
+    return settings?.defaultPage || 'dashboard';
+  } catch {
+    return 'dashboard';
   }
 };
 
@@ -77,7 +87,7 @@ function Sidebar({ activePage, setActivePage, isOpen, onClose, user }) {
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [activePage, setActivePage] = useState('dashboard');
+  const [activePage, setActivePage] = useState(getDefaultPage);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -93,7 +103,8 @@ export default function App() {
             ...savedUser,
             ...response.user,
             studentId: response.user.student_id ?? response.user.studentId ?? savedUser.studentId,
-            group: response.user.group_name ?? response.user.groupName ?? savedUser.group
+            group: response.user.group_name ?? response.user.groupName ?? savedUser.group,
+            subgroup: response.user.subgroup_name ?? response.user.subgroupName ?? savedUser.subgroup
           });
         } catch {
           localStorage.removeItem('token');
@@ -111,6 +122,7 @@ export default function App() {
   const handleLogin = (userData) => {
     setUser(userData);
     storage.set('lms_user', userData);
+    setActivePage(getDefaultPage());
   };
 
   const handleLogout = async () => {
@@ -124,7 +136,7 @@ export default function App() {
     storage.remove('lms_user');
     localStorage.removeItem('token');
     sessionStorage.removeItem('token');
-    setActivePage('dashboard');
+    setActivePage(getDefaultPage());
     setSidebarOpen(false);
   };
 
@@ -148,6 +160,8 @@ export default function App() {
         return <Messages user={user} />;
       case 'profile':
         return <Profile user={user} />;
+      case 'settings':
+        return <Settings user={user} onNavigate={setActivePage} />;
       case 'userManagement':
         return <UserManagement user={user} />;
       default:
@@ -170,7 +184,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} onNavigate={setActivePage} />
       <div className="app-body">
         <Sidebar
           activePage={activePage}

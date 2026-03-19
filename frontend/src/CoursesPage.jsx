@@ -130,9 +130,15 @@ const db = {
 
 const getCourseKey = (course) => String(course?.code || course?.id || '').trim().toUpperCase();
 const getTeacherName = (course) => course?.teacher_name || course?.teacher || 'Teacher not assigned';
+const isConnectionError = (error) => error?.message?.includes('Cannot connect to the server');
 const today = () => new Date().toISOString().slice(0, 10);
 const getCourseDetailStore = () => store.get(COURSE_DETAILS_KEY, {});
 const saveCourseDetailStore = (value) => store.set(COURSE_DETAILS_KEY, value);
+const removeCourseDetailStore = (key) => {
+  const details = getCourseDetailStore();
+  delete details[key];
+  saveCourseDetailStore(details);
+};
 
 const buildDefaultTopics = (course) => {
   const code = getCourseKey(course) || 'COURSE';
@@ -305,8 +311,16 @@ function Detail({ course, userId, userRole, onBack, onCourseChange }) {
   const [progress, setProgress] = useState(() => db.progress.get(userId, course.id));
   const [showTopicForm, setShowTopicForm] = useState(false);
   const [showMaterialForm, setShowMaterialForm] = useState(false);
+  const [showCourseForm, setShowCourseForm] = useState(false);
   const [topic, setTopic] = useState({ week: 1, title: '', desc: '' });
   const [material, setMaterial] = useState({ title: '', type: 'pdf', url: '', size: '' });
+  const [courseForm, setCourseForm] = useState({
+    code: course.code,
+    name: course.name,
+    description: course.description,
+    credits: course.credits,
+    semester: course.semester
+  });
   const [currentCourse, setCurrentCourse] = useState(course);
 
   const canEdit = userRole === 'admin' || userRole === 'teacher';
@@ -317,7 +331,74 @@ function Detail({ course, userId, userRole, onBack, onCourseChange }) {
     persistCourseContent(hydrated);
     db.courses.save(replaceCourse(db.courses.all(), hydrated));
     setCurrentCourse(hydrated);
+    setCourseForm({
+      code: hydrated.code,
+      name: hydrated.name,
+      description: hydrated.description,
+      credits: hydrated.credits,
+      semester: hydrated.semester
+    });
     onCourseChange?.(hydrated);
+  };
+
+  const saveCourseMeta = async (event) => {
+    event.preventDefault();
+
+    const payload = {
+      code: courseForm.code.trim().toUpperCase(),
+      name: courseForm.name.trim(),
+      description: courseForm.description.trim(),
+      credits: Number(courseForm.credits),
+      semester: courseForm.semester.trim()
+    };
+
+    if (!payload.code || !payload.name) {
+      return;
+    }
+
+    try {
+      const response = await api.updateCourse(currentCourse.id, payload);
+      syncCourse({
+        ...currentCourse,
+        ...(response?.course || payload),
+        teacher: getTeacherName(currentCourse),
+        topics: currentCourse.topics,
+        materials: currentCourse.materials
+      });
+    } catch (error) {
+      if (!isConnectionError(error)) {
+        window.alert(error.message || 'Failed to update course');
+        return;
+      }
+
+      console.error('Failed to update course in API, saving locally:', error);
+      syncCourse({
+        ...currentCourse,
+        ...payload
+      });
+    }
+
+    setShowCourseForm(false);
+  };
+
+  const deleteCourse = async () => {
+    const confirmed = window.confirm(`Delete course "${currentCourse.name}"?`);
+    if (!confirmed) return;
+
+    try {
+      await api.deleteCourse(currentCourse.id);
+    } catch (error) {
+      if (!isConnectionError(error)) {
+        window.alert(error.message || 'Failed to delete course');
+        return;
+      }
+
+      console.error('Failed to delete course in API, deleting locally:', error);
+    }
+
+    removeCourseDetailStore(getCourseKey(currentCourse));
+    onCourseChange?.(null, currentCourse.id);
+    onBack();
   };
 
   const toggleTopic = (topicId) => {
@@ -417,6 +498,17 @@ function Detail({ course, userId, userRole, onBack, onCourseChange }) {
         </div>
 
         <p className="cd-hero-desc">{currentCourse.description}</p>
+
+        {canEdit && (
+          <div className="cd-hero-actions">
+            <button className="cd-btn-sec cd-hero-btn" onClick={() => setShowCourseForm((value) => !value)}>
+              {showCourseForm ? 'Close edit' : 'Edit course'}
+            </button>
+            <button className="cd-btn-danger cd-hero-btn" onClick={deleteCourse}>
+              Delete course
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="cd-tabs">
@@ -435,6 +527,38 @@ function Detail({ course, userId, userRole, onBack, onCourseChange }) {
       </div>
 
       <div className="cd-body">
+        {canEdit && showCourseForm && (
+          <form className="cd-inline-form" onSubmit={saveCourseMeta}>
+            <div className="cd-form-grid">
+              <label>
+                <span>Code</span>
+                <input value={courseForm.code} onChange={(event) => setCourseForm({ ...courseForm, code: event.target.value })} required />
+              </label>
+              <label>
+                <span>Credits</span>
+                <input type="number" min="1" max="12" value={courseForm.credits} onChange={(event) => setCourseForm({ ...courseForm, credits: event.target.value })} required />
+              </label>
+              <label>
+                <span>Name</span>
+                <input value={courseForm.name} onChange={(event) => setCourseForm({ ...courseForm, name: event.target.value })} required />
+              </label>
+              <label>
+                <span>Semester</span>
+                <input value={courseForm.semester} onChange={(event) => setCourseForm({ ...courseForm, semester: event.target.value })} required />
+              </label>
+              <label className="cd-form-wide">
+                <span>Description</span>
+                <textarea value={courseForm.description} onChange={(event) => setCourseForm({ ...courseForm, description: event.target.value })} />
+              </label>
+            </div>
+
+            <div className="cd-form-actions">
+              <button type="button" className="cd-btn-sec" onClick={() => setShowCourseForm(false)}>Cancel</button>
+              <button type="submit" className="cd-btn-pri">Save course</button>
+            </div>
+          </form>
+        )}
+
         {tab === 'syllabus' && (
           <div>
             {userRole === 'student' && <div className="cd-hint">Open topics and mark them as done.</div>}
@@ -672,9 +796,23 @@ export default function CoursesPage({ user }) {
     }
   }, [courses, detailId]);
 
-  const updateCourseInState = (nextCourse) => {
+  const updateCourseInState = (nextCourse, removedId = null) => {
+    if (removedId !== null) {
+      setCourses((current) => {
+        const nextCourses = current.filter((course) => course.id !== removedId);
+        db.courses.save(nextCourses);
+        return nextCourses;
+      });
+      setEnrolled((current) => current.filter((courseId) => courseId !== removedId));
+      return;
+    }
+
     const hydrated = enhanceCourse(nextCourse);
-    setCourses((current) => replaceCourse(current, hydrated));
+    setCourses((current) => {
+      const nextCourses = replaceCourse(current, hydrated);
+      db.courses.save(nextCourses);
+      return nextCourses;
+    });
   };
 
   const enroll = async (courseId) => {

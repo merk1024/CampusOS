@@ -10,6 +10,7 @@ const EMPTY_USER = {
   role: 'student',
   student_id: '',
   group_name: '',
+  subgroup_name: '',
   phone: '',
   date_of_birth: '',
   faculty: '',
@@ -69,7 +70,7 @@ function UserManagement({ user }) {
 
   const filteredUsers = users.filter((item) => {
     const matchesRole = roleFilter === 'all' || item.role === roleFilter;
-    const haystack = [item.name, item.email, item.student_id, item.group_name, item.faculty]
+    const haystack = [item.name, item.email, item.student_id, item.group_name, item.subgroup_name, item.faculty]
       .filter(Boolean)
       .join(' ')
       .toLowerCase();
@@ -206,6 +207,17 @@ function UserManagement({ user }) {
                   />
                 </div>
                 <div className="form-group">
+                  <label>Subgroup</label>
+                  <input
+                    type="text"
+                    name="subgroup_name"
+                    value={newUser.subgroup_name}
+                    onChange={handleInputChange}
+                    disabled={newUser.role !== 'student'}
+                    placeholder={newUser.role === 'student' ? 'e.g. 1-Group' : 'Only for students'}
+                  />
+                </div>
+                <div className="form-group">
                   <label>Phone</label>
                   <input type="text" name="phone" value={newUser.phone} onChange={handleInputChange} />
                 </div>
@@ -256,6 +268,7 @@ function UserManagement({ user }) {
               <th>Role</th>
               <th>Student ID</th>
               <th>Group</th>
+              <th>Subgroup</th>
               <th>Faculty</th>
             </tr>
           </thead>
@@ -269,6 +282,7 @@ function UserManagement({ user }) {
                 </td>
                 <td>{item.student_id || '-'}</td>
                 <td>{item.group_name || '-'}</td>
+                <td>{item.subgroup_name || '-'}</td>
                 <td>{item.faculty || '-'}</td>
               </tr>
             ))}

@@ -12,6 +12,7 @@ const PROFILE_FIELDS = `
   role,
   student_id,
   group_name,
+  subgroup_name,
   phone,
   avatar,
   date_of_birth,
@@ -54,6 +55,8 @@ router.put('/profile/me', auth, async (req, res) => {
   try {
     const {
       name,
+      group_name,
+      subgroup_name,
       phone,
       avatar,
       date_of_birth,
@@ -74,6 +77,8 @@ router.put('/profile/me', auth, async (req, res) => {
     await db.run(
       `UPDATE users
        SET name = ?,
+           group_name = ?,
+           subgroup_name = ?,
            phone = ?,
            avatar = ?,
            date_of_birth = ?,
@@ -93,6 +98,8 @@ router.put('/profile/me', auth, async (req, res) => {
        WHERE id = ?`,
       [
         name,
+        group_name,
+        subgroup_name,
         phone,
         avatar,
         date_of_birth,
@@ -145,6 +152,7 @@ router.post('/', auth, isAdmin, async (req, res) => {
       role,
       student_id,
       group_name,
+      subgroup_name,
       phone,
       date_of_birth,
       faculty,
@@ -166,10 +174,10 @@ router.post('/', auth, isAdmin, async (req, res) => {
 
     const result = await db.run(
       `INSERT INTO users (
-        email, password, name, role, student_id, group_name, phone,
+        email, password, name, role, student_id, group_name, subgroup_name, phone,
         date_of_birth, faculty, major, year_of_study, address, emergency_contact,
         father_name, program_class, advisor, study_status, balance_info, grant_type, registration_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         email,
         hashedPassword,
@@ -177,6 +185,7 @@ router.post('/', auth, isAdmin, async (req, res) => {
         role,
         student_id,
         group_name,
+        subgroup_name,
         phone,
         date_of_birth,
         faculty,
@@ -202,7 +211,10 @@ router.post('/', auth, isAdmin, async (req, res) => {
     res.status(201).json({ message: 'User created successfully', user });
   } catch (error) {
     console.error('Create user error:', error);
-    if (error.message.includes('UNIQUE constraint failed')) {
+    if (
+      error.message.includes('UNIQUE constraint failed')
+      || error.message.includes('duplicate key value violates unique constraint')
+    ) {
       return res.status(400).json({ error: 'Email or student ID already exists' });
     }
     res.status(500).json({ error: 'Server error' });
@@ -235,6 +247,8 @@ router.put('/:id', auth, async (req, res) => {
 
     const {
       name,
+      group_name,
+      subgroup_name,
       phone,
       avatar,
       date_of_birth,
@@ -255,6 +269,8 @@ router.put('/:id', auth, async (req, res) => {
     await db.run(
       `UPDATE users
        SET name = ?,
+           group_name = ?,
+           subgroup_name = ?,
            phone = ?,
            avatar = ?,
            date_of_birth = ?,
@@ -274,6 +290,8 @@ router.put('/:id', auth, async (req, res) => {
        WHERE id = ?`,
       [
         name,
+        group_name,
+        subgroup_name,
         phone,
         avatar,
         date_of_birth,

@@ -23,6 +23,7 @@ function LoginPage({ onLogin }) {
         role: response.user.role,
         studentId: response.user.student_id ?? response.user.studentId,
         group: response.user.group_name ?? response.user.groupName,
+        subgroup: response.user.subgroup_name ?? response.user.subgroupName,
         avatar: response.user.avatar || response.user.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase(),
         token: response.token
       };

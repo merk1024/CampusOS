@@ -1,127 +1,373 @@
 const bcrypt = require('bcryptjs');
 const db = require('../config/database');
 
+const USERS = [
+  {
+    student_id: '240141052',
+    email: 'erbol.abdusaitov1@alatoo.edu.kg',
+    password: 'student',
+    name: 'Erbol Abdusaitov',
+    role: 'student',
+    group_name: 'CYB-23',
+    subgroup_name: '1-Group',
+    phone: '+996555123456',
+    avatar: 'EA'
+  },
+  {
+    email: 'teacher@alatoo.edu.kg',
+    password: 'teacher',
+    name: 'Azhar Kazakbaeva',
+    role: 'teacher',
+    phone: '+996555123458',
+    avatar: 'AK'
+  },
+  {
+    email: 'admin@alatoo.edu.kg',
+    password: 'admin',
+    name: 'Admin User',
+    role: 'admin',
+    phone: '+996555123459',
+    avatar: 'AU'
+  }
+];
+
+const COURSES = [
+  {
+    code: 'CS101',
+    name: 'Programming Language 2',
+    description: 'Advanced programming concepts',
+    credits: 3,
+    semester: 'Spring 2025-2026',
+    teacherEmail: 'teacher@alatoo.edu.kg'
+  },
+  {
+    code: 'MATH201',
+    name: 'Calculus 2',
+    description: 'Integral calculus and series',
+    credits: 4,
+    semester: 'Spring 2025-2026',
+    teacherEmail: 'teacher@alatoo.edu.kg'
+  },
+  {
+    code: 'WEB101',
+    name: 'Web Development',
+    description: 'Modern web technologies',
+    credits: 3,
+    semester: 'Spring 2025-2026',
+    teacherEmail: 'teacher@alatoo.edu.kg'
+  }
+];
+
+const EXAMS = [
+  {
+    courseCode: 'CS101',
+    group_name: 'CYB-23',
+    subject: 'Programming Language 2',
+    exam_date: '2026-02-20',
+    exam_time: '10:00',
+    room: 'BIGLAB',
+    teacher_name: 'Azhar Kazakbaeva',
+    type: 'Exam',
+    semester: 'Spring 2025-2026'
+  },
+  {
+    courseCode: 'MATH201',
+    group_name: 'CYB-23',
+    subject: 'Calculus 2',
+    exam_date: '2026-02-25',
+    exam_time: '14:00',
+    room: 'B107',
+    teacher_name: 'Hussien Chebsi',
+    type: 'Exam',
+    semester: 'Spring 2025-2026'
+  },
+  {
+    courseCode: 'WEB101',
+    group_name: 'CYB-23',
+    subject: 'Web Development',
+    exam_date: '2026-03-10',
+    exam_time: '11:00',
+    room: 'B205',
+    teacher_name: 'Azhar Kazakbaeva',
+    type: 'Pass/Fail',
+    semester: 'Spring 2025-2026'
+  }
+];
+
+const SCHEDULE_ENTRIES = [
+  ['Monday', '08:00-08:40', 'Programming Language 2', 'Azhar Kazakbaeva', 'BIGLAB'],
+  ['Monday', '08:45-09:25', 'Calculus 2', 'Hussien Chebsi', 'B107'],
+  ['Monday', '09:30-10:10', 'English for Engineers', 'Aizada Asanbekova', 'A201'],
+  ['Tuesday', '08:00-08:40', 'Algorithms', 'John Smith', 'A105'],
+  ['Tuesday', '08:45-09:25', 'Database Systems', 'Sarah Wilson', 'B301'],
+  ['Wednesday', '08:00-08:40', 'Programming Language 2 Lab', 'Azhar Kazakbaeva', 'BIGLAB'],
+  ['Wednesday', '08:45-09:25', 'Calculus 2', 'Hussien Chebsi', 'B107'],
+  ['Thursday', '08:00-08:40', 'Computer Networks', 'David Brown', 'C102'],
+  ['Thursday', '08:45-09:25', 'Software Engineering', 'Lisa Davis', 'A203'],
+  ['Friday', '08:00-08:40', 'Web Development Lab', 'Maria Johnson', 'B205']
+];
+
+const ANNOUNCEMENTS = [
+  {
+    title: 'Welcome to the LMS',
+    content: 'Track your courses, assignments, exams, grades, and schedule in one place.',
+    type: 'general',
+    is_pinned: true
+  },
+  {
+    title: 'Schedule update',
+    content: 'Please double-check Monday classes before coming to campus.',
+    type: 'important',
+    is_pinned: false
+  }
+];
+
+const ASSIGNMENTS = [
+  {
+    courseCode: 'CS101',
+    title: 'Programming Language 2 - Lab 3',
+    description: 'Complete the OOP exercises and submit your code.',
+    due_date: '2026-02-15T23:59:00Z',
+    max_grade: 100
+  },
+  {
+    courseCode: 'MATH201',
+    title: 'Calculus 2 - Problem Set 5',
+    description: 'Solve integrals and differential equations from chapters 7-8.',
+    due_date: '2026-02-18T23:59:00Z',
+    max_grade: 50
+  }
+];
+
+const GRADES = [
+  { subject: 'Programming Language 2', student_id: '240141052', grade: 85 },
+  { subject: 'Calculus 2', student_id: '240141052', grade: 78 },
+  { subject: 'Web Development', student_id: '240141052', grade: 92 }
+];
+
+async function findUserByEmail(email) {
+  return db.get('SELECT * FROM users WHERE email = ?', [email]);
+}
+
+async function ensureUser(user, hashedPassword) {
+  const existing = await findUserByEmail(user.email);
+  if (existing) {
+    return existing;
+  }
+
+  await db.run(
+    `INSERT INTO users (
+      student_id, email, password, name, role, group_name, subgroup_name, phone, avatar
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      user.student_id || null,
+      user.email,
+      hashedPassword,
+      user.name,
+      user.role,
+      user.group_name || null,
+      user.subgroup_name || null,
+      user.phone || null,
+      user.avatar || null
+    ]
+  );
+
+  return findUserByEmail(user.email);
+}
+
+async function ensureCourse(course, teacherId) {
+  const existing = await db.get('SELECT * FROM courses WHERE code = ?', [course.code]);
+  if (existing) {
+    return existing;
+  }
+
+  await db.run(
+    'INSERT INTO courses (code, name, description, credits, semester, teacher_id) VALUES (?, ?, ?, ?, ?, ?)',
+    [course.code, course.name, course.description, course.credits, course.semester, teacherId]
+  );
+
+  return db.get('SELECT * FROM courses WHERE code = ?', [course.code]);
+}
+
+async function ensureExam(exam, courseId, createdBy) {
+  const existing = await db.get(
+    'SELECT * FROM exams WHERE subject = ? AND exam_date = ? AND exam_time = ?',
+    [exam.subject, exam.exam_date, exam.exam_time]
+  );
+
+  if (existing) {
+    return existing;
+  }
+
+  await db.run(
+    `INSERT INTO exams (
+      course_id, group_name, subject, exam_date, exam_time, room, teacher_name, type, semester, created_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      courseId,
+      exam.group_name,
+      exam.subject,
+      exam.exam_date,
+      exam.exam_time,
+      exam.room,
+      exam.teacher_name,
+      exam.type,
+      exam.semester,
+      createdBy
+    ]
+  );
+
+  return db.get(
+    'SELECT * FROM exams WHERE subject = ? AND exam_date = ? AND exam_time = ?',
+    [exam.subject, exam.exam_date, exam.exam_time]
+  );
+}
+
+async function ensureExamStudent(examId, studentId) {
+  const existing = await db.get(
+    'SELECT id FROM exam_students WHERE exam_id = ? AND student_id = ?',
+    [examId, studentId]
+  );
+
+  if (!existing) {
+    await db.run(
+      'INSERT INTO exam_students (exam_id, student_id) VALUES (?, ?)',
+      [examId, studentId]
+    );
+  }
+}
+
+async function ensureGrade(examId, studentId, grade, gradedBy) {
+  const existing = await db.get(
+    'SELECT id FROM grades WHERE exam_id = ? AND student_id = ?',
+    [examId, studentId]
+  );
+
+  if (existing) {
+    await db.run(
+      'UPDATE grades SET grade = ?, graded_by = ?, graded_at = CURRENT_TIMESTAMP WHERE exam_id = ? AND student_id = ?',
+      [grade, gradedBy, examId, studentId]
+    );
+    return;
+  }
+
+  await db.run(
+    'INSERT INTO grades (exam_id, student_id, grade, graded_by) VALUES (?, ?, ?, ?)',
+    [examId, studentId, grade, gradedBy]
+  );
+}
+
+async function ensureScheduleEntry(day, timeSlot, subject, teacher, room) {
+  const existing = await db.get(
+    'SELECT id FROM schedule WHERE day = ? AND time_slot = ? AND group_name = ? AND subject = ?',
+    [day, timeSlot, 'CYB-23', subject]
+  );
+
+  if (!existing) {
+    await db.run(
+      'INSERT INTO schedule (day, time_slot, group_name, subject, teacher, room) VALUES (?, ?, ?, ?, ?, ?)',
+      [day, timeSlot, 'CYB-23', subject, teacher, room]
+    );
+  }
+}
+
+async function ensureAnnouncement(item, createdBy) {
+  const existing = await db.get('SELECT id FROM announcements WHERE title = ?', [item.title]);
+  if (!existing) {
+    await db.run(
+      'INSERT INTO announcements (title, content, type, is_pinned, created_by) VALUES (?, ?, ?, ?, ?)',
+      [item.title, item.content, item.type, item.is_pinned, createdBy]
+    );
+  }
+}
+
+async function ensureAssignment(item, courseId, createdBy) {
+  const existing = await db.get(
+    'SELECT id FROM assignments WHERE title = ? AND course_id = ?',
+    [item.title, courseId]
+  );
+
+  if (!existing) {
+    await db.run(
+      'INSERT INTO assignments (course_id, title, description, due_date, max_grade, created_by) VALUES (?, ?, ?, ?, ?, ?)',
+      [courseId, item.title, item.description, item.due_date, item.max_grade, createdBy]
+    );
+  }
+}
+
 async function seed() {
   try {
-    console.log('🌱 Starting database seeding...');
+    console.log('Starting database seeding...');
+    await db.migrate();
 
-    // Hash passwords
     const salt = await bcrypt.genSalt(10);
-    const studentPass = await bcrypt.hash('student', salt);
-    const teacherPass = await bcrypt.hash('teacher', salt);
-    const adminPass = await bcrypt.hash('admin', salt);
+    const passwordMap = new Map();
 
-    // Insert users
-    console.log('👥 Creating users...');
-    await db.run(`
-      INSERT INTO users (student_id, email, password, name, role, group_name, phone, avatar) VALUES
-      ('240145121', 'student@alatoo.edu.kg', ?, 'Azamat Bekzhanov', 'student', 'COMSE-25', '+996555123456', 'AB'),
-      (NULL, 'teacher@alatoo.edu.kg', ?, 'Azhar Kazakbaeva', 'teacher', NULL, '+996555123458', 'AK'),
-      (NULL, 'admin@alatoo.edu.kg', ?, 'Admin User', 'admin', NULL, '+996555123459', 'AU')
-    `, [studentPass, teacherPass, adminPass]);
+    for (const user of USERS) {
+      passwordMap.set(user.email, await bcrypt.hash(user.password, salt));
+    }
 
-    // Insert courses
-    console.log('📚 Creating courses...');
-    await db.run(`
-      INSERT INTO courses (code, name, description, credits, semester, teacher_id) VALUES
-      ('CS101', 'Programming Language 2', 'Advanced programming concepts', 3, 'Spring 2025-2026', 2),
-      ('MATH201', 'Calculus 2', 'Integral calculus and series', 4, 'Spring 2025-2026', 2),
-      ('WEB101', 'Web Development', 'Modern web technologies', 3, 'Spring 2025-2026', 2)
-    `);
+    const createdUsers = new Map();
+    for (const user of USERS) {
+      const created = await ensureUser(user, passwordMap.get(user.email));
+      createdUsers.set(user.email, created);
+    }
 
-    // Insert exams
-    console.log('📝 Creating exams...');
-    await db.run(`
-      INSERT INTO exams (course_id, group_name, subject, exam_date, exam_time, room, teacher_name, type, semester, created_by) VALUES
-      (1, 'COMSE-25', 'Programming Language 2', '2026-02-20', '10:00', 'BIGLAB', 'Azhar Kazakbaeva', 'Экзамен', 'Spring 2025-2026', 2),
-      (2, 'COMSE-25', 'Calculus 2', '2026-02-25', '14:00', 'B107', 'Hussien Chebsi', 'Экзамен', 'Spring 2025-2026', 2),
-      (3, 'COMSE-25', 'Web Development', '2026-03-10', '11:00', 'B205', 'Azhar Kazakbaeva', 'Зачёт', 'Spring 2025-2026', 2)
-    `);
+    const teacher = createdUsers.get('teacher@alatoo.edu.kg');
+    const admin = createdUsers.get('admin@alatoo.edu.kg');
+    const student = createdUsers.get('erbol.abdusaitov1@alatoo.edu.kg');
 
-    // Link students to exams
-    console.log('🔗 Linking students to exams...');
-    await db.run(`
-      INSERT INTO exam_students (exam_id, student_id) VALUES
-      (1, '240145121'),
-      (2, '240145121'),
-      (3, '240145121')
-    `);
+    const createdCourses = new Map();
+    for (const course of COURSES) {
+      const created = await ensureCourse(course, teacher.id);
+      createdCourses.set(course.code, created);
+    }
 
-    // Insert grades
-    console.log('📊 Creating grades...');
-    await db.run(`
-      INSERT INTO grades (exam_id, student_id, grade, graded_by) VALUES
-      (1, '240145121', 85, 2),
-      (2, '240145121', 78, 2),
-      (3, '240145121', 92, 3)
-    `);
+    const createdExams = new Map();
+    for (const exam of EXAMS) {
+      const created = await ensureExam(exam, createdCourses.get(exam.courseCode).id, teacher.id);
+      createdExams.set(exam.subject, created);
+      await ensureExamStudent(created.id, student.student_id);
+    }
 
-    // Insert schedule
-    console.log('📅 Creating schedule...');
-    await db.run(`
-      INSERT INTO schedule (day, time_slot, group_name, subject, teacher, room) VALUES
-      ('Понедельник', '09:00', 'COMSE-25', 'Programming Language 2', 'Azhar Kazakbaeva', 'BIGLAB'),
-      ('Понедельник', '10:30', 'COMSE-25', 'Calculus 2', 'Hussien Chebsi', 'B107'),
-      ('Понедельник', '12:00', 'COMSE-25', 'English for Engineers', 'Aizada Asanbekova', 'A201'),
-      ('Понедельник', '13:30', 'COMSE-25', 'Data Structures', 'Azhar Kazakbaeva', 'BIGLAB'),
-      ('Понедельник', '15:00', 'COMSE-25', 'Web Development', 'Maria Johnson', 'B205'),
-      ('Вторник', '09:00', 'COMSE-25', 'Algorithms', 'John Smith', 'A105'),
-      ('Вторник', '10:30', 'COMSE-25', 'Database Systems', 'Sarah Wilson', 'B301'),
-      ('Вторник', '12:00', 'COMSE-25', 'Computer Networks', 'David Brown', 'C102'),
-      ('Вторник', '13:30', 'COMSE-25', 'Software Engineering', 'Lisa Davis', 'A203'),
-      ('Вторник', '15:00', 'COMSE-25', 'Mobile Development', 'Mike Johnson', 'BIGLAB'),
-      ('Среда', '09:00', 'COMSE-25', 'Programming Language 2 Lab', 'Azhar Kazakbaeva', 'BIGLAB'),
-      ('Среда', '10:30', 'COMSE-25', 'Calculus 2', 'Hussien Chebsi', 'B107'),
-      ('Среда', '12:00', 'COMSE-25', 'Data Structures Lab', 'Azhar Kazakbaeva', 'BIGLAB'),
-      ('Среда', '13:30', 'COMSE-25', 'Web Development Lab', 'Maria Johnson', 'B205'),
-      ('Четверг', '09:00', 'COMSE-25', 'Algorithms', 'John Smith', 'A105'),
-      ('Четверг', '10:30', 'COMSE-25', 'Database Systems', 'Sarah Wilson', 'B301'),
-      ('Четверг', '12:00', 'COMSE-25', 'Computer Networks Lab', 'David Brown', 'C102'),
-      ('Четверг', '13:30', 'COMSE-25', 'Software Engineering', 'Lisa Davis', 'A203'),
-      ('Пятница', '09:00', 'COMSE-25', 'Mobile Development Lab', 'Mike Johnson', 'BIGLAB'),
-      ('Пятница', '10:30', 'COMSE-25', 'English for Engineers', 'Aizada Asanbekova', 'A201'),
-      ('Пятница', '12:00', 'COMSE-25', 'Project Work', 'Various', 'BIGLAB')
-    `);
+    for (const grade of GRADES) {
+      await ensureGrade(createdExams.get(grade.subject).id, grade.student_id, grade.grade, teacher.id);
+    }
 
-    // Insert announcements
-    console.log('📢 Creating announcements...');
-    await db.run(`
-      INSERT INTO announcements (title, content, type, is_pinned, created_by) VALUES
-      ('Добро пожаловать!', 'Добро пожаловать в систему управления обучением Alatoo University. Здесь вы можете следить за своими оценками, расписанием и заданиями.', 'general', true, 3),
-      ('Изменение расписания', 'Внимание! Занятие по Programming Language 2 в понедельник перенесено с 9:00 на 10:00.', 'important', false, 2),
-      ('Экзаменационная сессия', 'Экзаменационная сессия начнется 20 февраля 2026. Не забудьте подготовиться!', 'exam', true, 2)
-    `);
+    for (const [day, timeSlot, subject, teacherName, room] of SCHEDULE_ENTRIES) {
+      await ensureScheduleEntry(day, timeSlot, subject, teacherName, room);
+    }
 
-    // Insert assignments
-    console.log('📝 Creating assignments...');
-    await db.run(`
-      INSERT INTO assignments (title, description, due_date, max_grade, created_by) VALUES
-      ('Programming Language 2 - Lab 3', 'Complete the OOP exercises and submit your code. Include comments and documentation.', '2026-02-15', 100, 2),
-      ('Calculus 2 - Problem Set 5', 'Solve integrals and differential equations from chapters 7-8.', '2026-02-18', 50, 2),
-      ('Web Development - Portfolio Project', 'Create a responsive portfolio website using HTML, CSS, and JavaScript.', '2026-02-25', 200, 2)
-    `);
+    for (const announcement of ANNOUNCEMENTS) {
+      await ensureAnnouncement(announcement, admin.id);
+    }
 
-    console.log('✅ Database seeding completed successfully!');
+    for (const assignment of ASSIGNMENTS) {
+      await ensureAssignment(assignment, createdCourses.get(assignment.courseCode).id, teacher.id);
+    }
+
+    console.log('Database seeding completed successfully.');
     console.log('');
-    console.log('📝 Test accounts:');
-    console.log('   Student: student@alatoo.edu.kg / student');
-    console.log('   Teacher: teacher@alatoo.edu.kg / teacher');
-    console.log('   Admin:   admin@alatoo.edu.kg / admin');
+    console.log('Test accounts:');
+    console.log('  Student: erbol.abdusaitov1@alatoo.edu.kg / student');
+    console.log('  Teacher: teacher@alatoo.edu.kg / teacher');
+    console.log('  Admin:   admin@alatoo.edu.kg / admin');
   } catch (error) {
-    console.error('❌ Error seeding database:', error);
+    console.error('Error seeding database:', error);
     throw error;
   }
 }
 
-// Run seeding if called directly
 if (require.main === module) {
-  seed().then(() => {
-    console.log('🎉 Seeding complete!');
-    process.exit(0);
-  }).catch((err) => {
-    console.error('💥 Seeding failed:', err);
-    process.exit(1);
-  });
+  seed()
+    .then(() => {
+      console.log('Seeding complete.');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('Seeding failed:', error);
+      process.exit(1);
+    });
 }
 
 module.exports = seed;

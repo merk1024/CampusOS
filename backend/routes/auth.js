@@ -14,6 +14,7 @@ const AUTH_USER_FIELDS = `
   role,
   student_id,
   group_name,
+  subgroup_name,
   phone,
   avatar,
   father_name,
@@ -43,7 +44,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { email, password, name, role, studentId, groupName, phone } = req.body;
+      const { email, password, name, role, studentId, groupName, subgroupName, phone } = req.body;
 
       const existingUser = await db.get('SELECT id FROM users WHERE email = ?', [email]);
       if (existingUser) {
@@ -61,9 +62,9 @@ router.post(
       const hashedPassword = await bcrypt.hash(password, salt);
 
       await db.run(
-        `INSERT INTO users (email, password, name, role, student_id, group_name, phone)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [email, hashedPassword, name, role, studentId || null, groupName || null, phone || null]
+        `INSERT INTO users (email, password, name, role, student_id, group_name, subgroup_name, phone)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [email, hashedPassword, name, role, studentId || null, groupName || null, subgroupName || null, phone || null]
       );
 
       const user = await db.get(
@@ -147,7 +148,8 @@ router.post(
         user: {
           ...freshUser,
           studentId: freshUser.student_id,
-          groupName: freshUser.group_name
+          groupName: freshUser.group_name,
+          subgroupName: freshUser.subgroup_name
         }
       });
     } catch (error) {

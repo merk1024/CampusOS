@@ -163,7 +163,7 @@ router.post('/:id/enroll', auth, async (req, res) => {
       [req.params.id, req.user.id]
     );
 
-    res.json({ message: 'Enrolled successfully', enrollment: { id: result.lastID } });
+    res.json({ message: 'Enrolled successfully', enrollment: { id: result.id } });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
