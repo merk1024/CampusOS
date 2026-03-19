@@ -26,12 +26,12 @@ services:
         generateValue: true
       - key: FRONTEND_URL
         sync: false
-
-  - type: static
+  - type: web
     name: web-table-exam-frontend
+    runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
-    staticPublishPath: dist
+    staticPublishPath: frontend/dist
     pullRequestPreviewsEnabled: false
     envVars:
       - key: VITE_API_BASE_URL
