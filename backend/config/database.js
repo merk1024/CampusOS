@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
 const { Pool } = require('pg');
 
 const SQLITE_DB_PATH = path.join(__dirname, '..', 'database.db');
@@ -105,6 +104,7 @@ const applyDemoStudentDefaults = async (db) => {
 };
 
 const createSqliteAdapter = () => {
+  const sqlite3 = require('sqlite3').verbose();
   const sqlite = new sqlite3.Database(SQLITE_DB_PATH, (error) => {
     if (error) {
       console.error('Error opening SQLite database:', error.message);

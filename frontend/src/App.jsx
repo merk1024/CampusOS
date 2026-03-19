@@ -17,6 +17,7 @@ import Profile from './components/Profile';
 import Schedule from './components/Schedule';
 import Settings from './components/Settings';
 
+
 const storage = {
   get(key) {
     try {
