@@ -1,105 +1,111 @@
-# AIU Schedule System
+# CampusOS
 
-Веб-система для управления расписанием, экзаменами и учебным процессом в университете.
+CampusOS — это веб-система для управления учебным процессом университета.
+Платформа объединяет расписание занятий, экзамены, курсы, оценки и управление пользователями в одной цифровой среде.
 
-## Возможности
-- Управление экзаменами, расписанием, курсами, оценками
-- Роли: студент, преподаватель, администратор
-- Современный адаптивный интерфейс (React + Vite)
-- Сервер на Node.js (Express) + SQLite
-- JWT-аутентификация
-- Импорт/экспорт данных, фильтрация, поиск
+Система предназначена для университетов, колледжей и образовательных центров, которые хотят централизовать управление академическими данными.
 
 ---
 
-## Структура проекта
+# Основные возможности
+
+• управление расписанием занятий
+• управление экзаменами
+• управление курсами и предметами
+• система оценок студентов
+• роли пользователей (студент, преподаватель, администратор)
+• поиск и фильтрация данных
+• импорт и экспорт информации
+• современный адаптивный интерфейс
+
+---
+
+# Архитектура системы
+
+CampusOS использует современный стек веб-разработки.
+
+Frontend:
+React + Vite
+
+Backend:
+Node.js + Express
+
+Database:
+MongoDB
+
+Authentication:
+JWT (JSON Web Token)
+
+---
+
+# Структура проекта
 
 ```
-Web_table_exam/
-├── backend/      # Сервер Express, база данных, API
-├── frontend/     # React-приложение (Vite)
+CampusOS/
+│
+├── backend/        серверная часть (API, база данных, авторизация)
+│
+├── frontend/       React-приложение
+│
 └── README.md
 ```
 
 ---
 
-## Быстрый старт
+# Быстрый старт
 
-### 1. Клонирование репозитория
-```bash
-git clone <repo_url>
-cd Web_table_exam
+## 1. Клонирование проекта
+
 ```
-
-### 2. Запуск backend
-```bash
-cd backend
-npm install
-npm start
-# Сервер будет доступен на http://localhost:5001
-```
-
-### 3. Запуск frontend
-```bash
-cd frontend
-npm install
-npm run dev
-# Откройте http://localhost:5173 (или порт, указанный в консоли)
+git clone <repository_url>
+cd CampusOS
 ```
 
 ---
 
-## .env и переменные окружения
-Создайте файл `.env` в папке backend для настройки БД и секретов JWT.
+# Установка зависимостей
 
----
+## Backend
 
-## Основные команды
-- `npm start` — запуск backend
-- `npm run dev` — запуск frontend (Vite)
-
----
-
-## Контакты
-Для вопросов и предложений: [your-email@example.com]
-
-```bash
+```
 cd backend
 npm install
 ```
 
-### Frontend
+## Frontend
 
-```bash
+```
 cd ../frontend
 npm install
 ```
 
 ---
 
-## 2. Запуск
+# Запуск системы
 
-### Запуск backend
+## Запуск backend
 
-```bash
+```
 cd backend
 npm run dev
 ```
 
-Сервер будет доступен на:
+Сервер будет доступен по адресу:
 
 ```
 http://localhost:3001
 ```
 
-### Запуск frontend
+---
 
-```bash
+## Запуск frontend
+
+```
 cd frontend
 npm run dev
 ```
 
-Откройте:
+Открыть в браузере:
 
 ```
 http://localhost:5173
@@ -107,131 +113,129 @@ http://localhost:5173
 
 ---
 
-# 🗄 База данных
+# База данных
 
-Используется **MongoDB (локальная установка или MongoDB Atlas)**.
+CampusOS использует MongoDB.
 
-Подключение в `backend/index.js`:
+Подключение настраивается в backend:
 
-```js
-mongoose.connect('mongodb://localhost:27017/aiu_schedule');
 ```
+mongoose.connect("mongodb://localhost:27017/campusos")
+```
+
+Можно использовать:
+
+• локальную MongoDB
+• MongoDB Atlas (облачную)
 
 ---
 
-# 📦 Структура базы данных
+# Основные коллекции базы данных
 
-## Коллекция `exams`
+## users
 
-```json
+```
 {
-  "group": "COMSE-25",
-  "subject": "Programming Language 2",
-  "date": "2026-02-10",
-  "time": "10:00",
-  "room": "BIGLAB",
-  "teacher": "Azhar Kazakbaeva",
-  "type": "Экзамен",
-  "semester": "Spring 2025-2026",
-  "students": ["Student 1"],
-  "grades": {
-    "Student 1": 85
-  },
-  "createdAt": "2026-01-15T10:00:00Z"
+  name: "Student Name",
+  login: "student",
+  password: "hashed_password",
+  role: "student",
+  group: "COMSE-25",
+  email: "student@university.edu",
+  createdAt: "2026-01-01"
 }
 ```
 
 ---
 
-## Коллекция `schedule`
+## schedule
 
-```json
+```
 {
-  "classes": [
-    {
-      "day": "Понедельник",
-      "group": "COMSE-25",
-      "time": "10:00-10:40",
-      "subject": "Calculus 2",
-      "teacher": "Hussien Chebsi",
-      "room": "B107"
-    }
-  ],
-  "groups": ["COMSE-25"],
-  "semester": "Spring 2025-2026",
-  "uploadDate": "2026-01-15T10:00:00Z"
+  day: "Monday",
+  group: "COMSE-25",
+  time: "10:00-10:40",
+  subject: "Calculus",
+  teacher: "Professor Name",
+  room: "B107"
 }
 ```
 
 ---
 
-## Коллекция `users`
+## exams
 
-```json
+```
 {
-  "name": "Student Name",
-  "login": "student",
-  "password": "hashed_password",
-  "role": "student",
-  "group": "COMSE-25",
-  "email": "student@aiu.edu",
-  "createdAt": "2026-01-01T00:00:00Z"
+  group: "COMSE-25",
+  subject: "Programming",
+  date: "2026-02-10",
+  time: "10:00",
+  room: "BIGLAB",
+  teacher: "Teacher Name",
+  semester: "Spring 2026",
+  students: [],
+  grades: {}
 }
 ```
 
 ---
 
-# 🔐 Аутентификация (JWT)
+# Аутентификация
 
-Backend использует JWT:
+Система использует JWT для авторизации пользователей.
 
-```js
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+Backend использует библиотеки:
+
+```
+jsonwebtoken
+bcrypt
 ```
 
-### Backend (Railway/Render - бесплатно):
-
-1. Зарегистрироваться на https://railway.app или https://render.com
-2. Подключить GitHub репозиторий
-3. Выбрать `server/` как root directory
-4. Deploy!
-
-### База данных:
-- MongoDB Atlas - бесплатно до 512MB
-- Firebase - бесплатно до 1GB
-- Supabase - бесплатно до 500MB
-
-## 📱 Мобильное приложение
-
-Можно обернуть в React Native:
-
-```bash
-npx react-native init AIUScheduleApp
-# Скопировать логику из App.jsx
-```
-
-Или использовать Capacitor для PWA:
-
-```bash
-npm install @capacitor/core @capacitor/cli
-npx cap init
-npx cap add android
-npx cap add ios
-```
-
-## 🤝 Поддержка
-
-Возникли вопросы? 
-<<<<<<< HEAD
-- 📧 Email: erbolabdusaito@gmail.com
-=======
-- 💬 Telegram: @merk1024
-
-## 📝 Лицензия
-
-MIT License
+Это обеспечивает безопасную авторизацию и хранение паролей.
 
 ---
 
-Сделано с ❤️ для AIU
+# Развертывание (Deployment)
+
+Backend можно разместить на:
+
+• Railway
+• Render
+• VPS сервер
+
+База данных:
+
+• MongoDB Atlas
+• Supabase
+• Firebase
+
+---
+
+# Будущие функции (Roadmap)
+
+• мобильное приложение
+• push-уведомления
+• интеграция с университетской почтой
+• аналитика успеваемости студентов
+• система уведомлений о экзаменах
+
+---
+
+# Автор
+
+Erbol Abdusaitov
+
+Email: [erbolabdusaito@gmail.com](mailto:erbolabdusaito@gmail.com)
+Telegram: @merk1024
+
+---
+
+# Лицензия
+
+Copyright (c) 2026 Erbol Abdusaitov
+
+All rights reserved.
+
+Проект CampusOS является интеллектуальной собственностью автора.
+Копирование, распространение или использование исходного кода без разрешения автора запрещено.
