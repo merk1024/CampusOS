@@ -1,6 +1,6 @@
 const DEFAULT_API_BASE_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:5002/api'
-  : 'https://web-table-exam.onrender.com/api';
+  : 'https://web-table-exam-api.onrender.com/api';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/$/, '');
 
@@ -14,7 +14,7 @@ const parseJsonSafely = async (response) => {
     return JSON.parse(text);
   } catch {
     return { message: text };
-  }
+  }ф
 };
 
 const getErrorMessage = async (response, fallbackMessage) => {
