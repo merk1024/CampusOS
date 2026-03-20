@@ -1,5 +1,5 @@
 const DEFAULT_API_BASE_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:5002/api'
+  ? 'http://localhost:5000/api'
   : 'https://web-table-exam-api.onrender.com/api';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/$/, '');
@@ -14,7 +14,7 @@ const parseJsonSafely = async (response) => {
     return JSON.parse(text);
   } catch {
     return { message: text };
-  }ф
+  }
 };
 
 const getErrorMessage = async (response, fallbackMessage) => {
@@ -33,7 +33,7 @@ const request = async (path, options = {}) => {
     return parseJsonSafely(response);
   } catch (error) {
     if (error instanceof TypeError) {
-      throw new Error('Cannot connect to the server. Check that backend is running on http://localhost:5002.');
+      throw new Error('Cannot connect to the server. Check that backend is running on http://localhost:5000.');
     }
     throw error;
   }

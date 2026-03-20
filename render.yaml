@@ -11,7 +11,7 @@ services:
     rootDir: backend
     plan: free
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node seeds/seed.js && npm start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
@@ -25,7 +25,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        sync: false
+        value: https://web-table-exam-frontend.onrender.com
   - type: web
     name: web-table-exam-frontend
     runtime: static
@@ -35,7 +35,7 @@ services:
     pullRequestPreviewsEnabled: false
     envVars:
       - key: VITE_API_BASE_URL
-        sync: false
+        value: https://web-table-exam-api.onrender.com/api
     routes:
       - type: rewrite
         source: /*
