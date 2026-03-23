@@ -140,6 +140,12 @@ body {
   box-shadow: inset 0 0 0 1px rgba(167, 243, 208, 0.08);
 }
 
+:root[data-theme='dark'] .schedule-cell.drop-target {
+  background: rgba(14, 165, 233, 0.12) !important;
+  border-color: rgba(56, 189, 248, 0.55) !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18), inset 0 0 0 1px rgba(125, 211, 252, 0.12);
+}
+
 :root[data-theme='dark'] .message-card.pinned {
   background: linear-gradient(135deg, rgba(120, 53, 15, 0.52) 0%, rgba(69, 26, 3, 0.72) 100%);
   border-color: rgba(245, 158, 11, 0.32);
@@ -477,6 +483,22 @@ body {
   gap: 1.5rem;
 }
 
+.header-left,
+.header-right {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.header-center {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: center;
+}
+
+.header-right {
+  justify-content: flex-end;
+}
+
 .menu-btn {
   display: none;
   width: 44px;
@@ -506,11 +528,18 @@ body {
   align-items: center;
   gap: 0.9rem;
   color: var(--text);
+  min-width: 0;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  font: inherit;
 }
 
 .logo-image {
   height: 2.4rem;
   width: auto;
+  max-width: min(15rem, 100%);
 }
 
 .logo-chip {
@@ -562,7 +591,7 @@ body {
 
 .search-box {
   position: relative;
-  width: 400px;
+  width: min(100%, 400px);
 }
 
 .search-icon {
@@ -652,6 +681,7 @@ body {
   border-radius: var(--radius);
   cursor: pointer;
   transition: all 0.2s;
+  max-width: min(100%, 220px);
 }
 
 .user-btn:hover {
@@ -673,18 +703,25 @@ body {
 
 .user-details {
   text-align: left;
+  min-width: 0;
 }
 
 .user-name {
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-role {
   font-size: 0.8rem;
   color: var(--text-muted);
   text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-dropdown {
@@ -697,6 +734,7 @@ body {
   box-shadow: var(--shadow-lg);
   padding: 0.5rem;
   min-width: 180px;
+  z-index: 120;
   animation: dropdownIn 0.2s ease;
 }
 
@@ -1202,10 +1240,16 @@ body {
 
   .header {
     padding: 0 1rem;
+    gap: 0.8rem;
   }
 
   .logo-image {
     height: 2.1rem;
+  }
+
+  .header-left,
+  .header-right {
+    gap: 0.75rem;
   }
 
   .theme-toggle {
@@ -1219,6 +1263,15 @@ body {
   .search-box {
     width: 100%;
     max-width: 300px;
+  }
+
+  .user-btn {
+    padding: 0.4rem;
+    max-width: none;
+  }
+
+  .user-details {
+    display: none;
   }
 
   .sidebar {
@@ -1292,6 +1345,10 @@ body {
 
   .logo {
     gap: 0.5rem;
+  }
+
+  .header-center {
+    display: none;
   }
 
   .logo-chip {
@@ -1469,9 +1526,23 @@ body {
   :root {
     --sidebar-width: 220px;
   }
+
+  .header {
+    padding: 0 1rem;
+    gap: 0.9rem;
+  }
+
+  .header-left,
+  .header-right {
+    gap: 0.9rem;
+  }
   
   .search-box {
     width: 300px;
+  }
+
+  .user-btn {
+    max-width: 180px;
   }
   
   .dashboard-grid, .courses-grid {
@@ -1505,6 +1576,19 @@ body {
 
   .header-right {
     gap: 0.6rem;
+  }
+
+  .header-center {
+    display: none;
+  }
+
+  .user-btn {
+    padding: 0.4rem;
+    max-width: none;
+  }
+
+  .user-details {
+    display: none;
   }
   
   .search-box {
@@ -1649,11 +1733,34 @@ body {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
 }
 
+.schedule-cell.occupied.editable {
+  cursor: grab;
+}
+
+.schedule-cell.occupied.editable:active {
+  cursor: grabbing;
+}
+
 .schedule-cell.merged-block {
   align-items: flex-start;
   justify-content: flex-start;
   text-align: left;
   padding: 0.45rem 0.5rem;
+}
+
+.schedule-cell.drag-source {
+  opacity: 0.62;
+  transform: scale(0.98);
+}
+
+.schedule-cell.drop-target {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.45);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.schedule-cell.drop-target .empty-slot {
+  color: var(--accent);
 }
 
 .class-info {
@@ -1693,6 +1800,18 @@ body {
   color: var(--accent);
   font-weight: 600;
   line-height: 1.3;
+}
+
+.class-copy-hint {
+  margin-top: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 /* ══════════════════════════════════════════════════════════
    GRADES TABLE

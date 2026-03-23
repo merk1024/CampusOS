@@ -33,6 +33,26 @@ const emptyForm = {
   room: ''
 };
 
+const getRangeSlots = (startIndex, span = 1) => timeSlots.slice(startIndex, startIndex + span);
+
+const matchesScheduleScope = (item, { groupName, audienceType, subgroupName, studentUserId }) => {
+  const itemAudienceType = item.audience_type || 'group';
+
+  if (item.group_name !== groupName || itemAudienceType !== audienceType) {
+    return false;
+  }
+
+  if (audienceType === 'subgroup') {
+    return (item.subgroup_name || '') === (subgroupName || '');
+  }
+
+  if (audienceType === 'individual') {
+    return Number(item.student_user_id || 0) === Number(studentUserId || 0);
+  }
+
+  return true;
+};
+
 function Schedule() {
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +65,9 @@ function Schedule() {
   const [showCustomGroupInput, setShowCustomGroupInput] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
   const [selectedTimeSlots, setSelectedTimeSlots] = useState([]);
+  const [draggedBlock, setDraggedBlock] = useState(null);
+  const [dropTarget, setDropTarget] = useState(null);
+  const [copyFeedback, setCopyFeedback] = useState({ type: '', message: '' });
 
   const canEdit = canManageAcademicRecords(user);
   const studentGroup = user?.group_name || user?.group || '';
@@ -159,7 +182,8 @@ function Schedule() {
           span,
           startSlot: timeSlot,
           endSlot: timeSlots[slotIndex + span - 1],
-          entry: current
+          entry: current,
+          coveredSlots: getRangeSlots(slotIndex, span)
         });
 
         slotIndex += span;
@@ -168,6 +192,45 @@ function Schedule() {
 
     return blocks;
   }, [scheduleMap]);
+
+  const clearDragState = () => {
+    setDraggedBlock(null);
+    setDropTarget(null);
+  };
+
+  const getConflictingSlots = (entry, day, slots) => {
+    const audienceType = entry.audience_type || 'group';
+
+    return slots.filter((slot) => (
+      schedule.some((item) => (
+        item.day === day
+        && item.time_slot === slot
+        && matchesScheduleScope(item, {
+          groupName: entry.group_name,
+          audienceType,
+          subgroupName: entry.subgroup_name || '',
+          studentUserId: entry.student_user_id || null
+        })
+      ))
+    ));
+  };
+
+  const canCopyToCell = (sourceBlock, targetBlock) => {
+    if (!sourceBlock || targetBlock.type !== 'empty') {
+      return false;
+    }
+
+    const targetSlots = getRangeSlots(targetBlock.startIndex, sourceBlock.span);
+    if (targetSlots.length !== sourceBlock.span) {
+      return false;
+    }
+
+    if (sourceBlock.day === targetBlock.day && sourceBlock.startSlot === targetBlock.startSlot) {
+      return false;
+    }
+
+    return getConflictingSlots(sourceBlock.entry, targetBlock.day, targetSlots).length === 0;
+  };
 
   useEffect(() => {
     const savedUser = JSON.parse(localStorage.getItem('lms_user'));
@@ -287,6 +350,106 @@ function Schedule() {
     }
 
     setShowEditForm(true);
+  };
+
+  const handleDragStart = (block) => (event) => {
+    if (!canEdit || block.type !== 'occupied') {
+      return;
+    }
+
+    setDraggedBlock(block);
+    setCopyFeedback({ type: '', message: '' });
+    event.dataTransfer.effectAllowed = 'copy';
+    event.dataTransfer.setData('text/plain', `${block.day}__${block.startSlot}`);
+  };
+
+  const handleDragEnd = () => {
+    clearDragState();
+  };
+
+  const handleDragOver = (block) => (event) => {
+    if (!draggedBlock) {
+      return;
+    }
+
+    if (!canCopyToCell(draggedBlock, block)) {
+      setDropTarget(null);
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    setDropTarget({
+      day: block.day,
+      startSlot: block.startSlot
+    });
+  };
+
+  const handleDragLeave = (block) => () => {
+    setDropTarget((current) => (
+      current?.day === block.day && current?.startSlot === block.startSlot
+        ? null
+        : current
+    ));
+  };
+
+  const handleDrop = (block) => async (event) => {
+    event.preventDefault();
+
+    if (!draggedBlock) {
+      return;
+    }
+
+    const targetSlots = getRangeSlots(block.startIndex, draggedBlock.span);
+
+    if (targetSlots.length !== draggedBlock.span) {
+      setCopyFeedback({
+        type: 'error',
+        message: 'Not enough consecutive slots in this day to place the copied class.'
+      });
+      clearDragState();
+      return;
+    }
+
+    const conflicts = getConflictingSlots(draggedBlock.entry, block.day, targetSlots);
+    if (conflicts.length) {
+      setCopyFeedback({
+        type: 'error',
+        message: `Cannot copy into ${block.day}. These slots are already occupied: ${conflicts.join(', ')}.`
+      });
+      clearDragState();
+      return;
+    }
+
+    try {
+      await Promise.all(
+        targetSlots.map((slot) => api.createScheduleEntry({
+          day: block.day,
+          time_slot: slot,
+          group_name: draggedBlock.entry.group_name,
+          audience_type: draggedBlock.entry.audience_type || 'group',
+          subgroup_name: draggedBlock.entry.subgroup_name || null,
+          student_user_id: draggedBlock.entry.student_user_id || null,
+          subject: draggedBlock.entry.subject,
+          teacher: draggedBlock.entry.teacher,
+          room: draggedBlock.entry.room
+        }))
+      );
+
+      await reloadSchedule(draggedBlock.entry.group_name.trim());
+      setCopyFeedback({
+        type: 'success',
+        message: `Copied "${draggedBlock.entry.subject}" to ${block.day} at ${targetSlots[0]}${draggedBlock.span > 1 ? ` for ${draggedBlock.span} slots` : ''}.`
+      });
+    } catch (dropError) {
+      console.error('Failed to copy schedule entry:', dropError);
+      setCopyFeedback({
+        type: 'error',
+        message: dropError.message || 'Failed to copy class to the selected slot.'
+      });
+    } finally {
+      clearDragState();
+    }
   };
 
   const closeModal = () => {
@@ -421,7 +584,7 @@ function Schedule() {
         </div>
         {canEdit && (
           <div className="page-actions">
-            <p className="edit-hint">Pick a group, then click any cell to add or edit classes</p>
+            <p className="edit-hint">Pick a group, click any cell to edit it, or drag a class onto an empty slot to copy it.</p>
           </div>
         )}
       </div>
@@ -446,9 +609,15 @@ function Schedule() {
         <div className="schedule-admin-card schedule-admin-legend">
           <span className="schedule-legend-item"><span className="schedule-dot occupied"></span> Existing class</span>
           <span className="schedule-legend-item"><span className="schedule-dot empty"></span> Empty slot</span>
-          {canEdit && <span className="schedule-legend-item"><span className="schedule-dot editable"></span> Click to manage</span>}
+          {canEdit && <span className="schedule-legend-item"><span className="schedule-dot editable"></span> Click to manage or drag to copy</span>}
         </div>
       </div>
+
+      {copyFeedback.message && (
+        <div className={copyFeedback.type === 'error' ? 'error-message' : 'success-message'}>
+          {copyFeedback.message}
+        </div>
+      )}
 
       {canEdit ? (
         <div className="management-toolbar schedule-group-toolbar">
@@ -597,12 +766,19 @@ function Schedule() {
             {mergedBlocks.map((block) => (
               <div
                 key={`${block.day}-${block.startSlot}-${block.type}`}
-                className={`schedule-cell schedule-grid-item ${block.type === 'occupied' ? 'occupied merged-block' : 'empty'} ${canEdit ? 'editable' : ''}`}
+                className={`schedule-cell schedule-grid-item ${block.type === 'occupied' ? 'occupied merged-block' : 'empty'} ${canEdit ? 'editable' : ''} ${draggedBlock?.day === block.day && draggedBlock?.startSlot === block.startSlot ? 'drag-source' : ''} ${dropTarget?.day === block.day && dropTarget?.startSlot === block.startSlot ? 'drop-target' : ''}`}
                 style={{
                   gridColumn: block.dayIndex + 2,
                   gridRow: `${block.startIndex + 2} / span ${block.span}`
                 }}
                 onClick={() => handleCellClick(block.day, block.startSlot)}
+                draggable={canEdit && block.type === 'occupied'}
+                onDragStart={block.type === 'occupied' ? handleDragStart(block) : undefined}
+                onDragEnd={block.type === 'occupied' ? handleDragEnd : undefined}
+                onDragOver={canEdit ? handleDragOver(block) : undefined}
+                onDragLeave={canEdit ? handleDragLeave(block) : undefined}
+                onDrop={canEdit ? handleDrop(block) : undefined}
+                title={canEdit && block.type === 'occupied' ? 'Drag this class to an empty slot to copy it.' : undefined}
               >
                 {block.type === 'occupied' ? (
                   <div className="class-info">
@@ -613,13 +789,14 @@ function Schedule() {
                       Group: {block.entry.group_name}
                       {block.entry.subgroup_name ? ` / ${block.entry.subgroup_name}` : ''}
                     </div>
+                    {canEdit && <div className="class-copy-hint">Drag to copy</div>}
                     {block.span > 1 && (
                       <div className="class-duration">{block.span} slots · {block.startSlot} to {block.endSlot}</div>
                     )}
                   </div>
                 ) : canEdit ? (
                   <div className="empty-slot">
-                    <span>+ Add Class</span>
+                    <span>{dropTarget?.day === block.day && dropTarget?.startSlot === block.startSlot ? 'Drop to copy' : '+ Add Class'}</span>
                   </div>
                 ) : null}
               </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import campusosBrandDark from '../assets/campusos-brand-dark.svg';
 import campusosBrandLight from '../assets/campusos-brand-light.svg';
@@ -91,23 +91,65 @@ function MoonIcon() {
 
 function Header({ user, onLogout, onNavigate, onMenuToggle, theme, onToggleTheme }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef(null);
   const brandLogo = theme === 'dark' ? campusosBrandDark : campusosBrandLight;
+  const displayName = user?.name?.trim() || user?.email || 'User';
+  const firstName = displayName.split(/\s+/)[0] || 'User';
+  const avatarLabel = user?.avatar?.trim()
+    || displayName
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+
+  useEffect(() => {
+    if (!showUserMenu) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [showUserMenu]);
 
   const handleNavigate = (page) => {
     onNavigate?.(page);
     setShowUserMenu(false);
   };
 
+  const handleLogoutClick = () => {
+    setShowUserMenu(false);
+    onLogout?.();
+  };
+
   return (
     <header className="header">
       <div className="header-left">
-        <button className="menu-btn" onClick={onMenuToggle} aria-label="Open navigation">
+        <button type="button" className="menu-btn" onClick={onMenuToggle} aria-label="Open navigation">
           <MenuIcon />
         </button>
-        <div className="logo">
+        <button type="button" className="logo" onClick={() => handleNavigate('dashboard')} aria-label="Open dashboard">
           <img src={brandLogo} alt="CampusOS" className="logo-image" />
           <span className="logo-chip">Portal</span>
-        </div>
+        </button>
       </div>
 
       <div className="header-center">
@@ -121,6 +163,7 @@ function Header({ user, onLogout, onNavigate, onMenuToggle, theme, onToggleTheme
 
       <div className="header-right">
         <button
+          type="button"
           className={`theme-toggle ${theme === 'dark' ? 'active' : ''}`}
           onClick={onToggleTheme}
           aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
@@ -129,29 +172,29 @@ function Header({ user, onLogout, onNavigate, onMenuToggle, theme, onToggleTheme
           <span className="theme-toggle-label">{theme === 'dark' ? 'Light' : 'Dark'}</span>
         </button>
 
-        <button className="icon-btn" onClick={() => handleNavigate('messages')} aria-label="Open messages">
+        <button type="button" className="icon-btn" onClick={() => handleNavigate('messages')} aria-label="Open messages">
           <BellIcon />
           <span className="badge">3</span>
         </button>
-        <button className="icon-btn" onClick={() => handleNavigate('settings')} aria-label="Open settings">
+        <button type="button" className="icon-btn" onClick={() => handleNavigate('settings')} aria-label="Open settings">
           <SettingsIcon />
         </button>
 
-        <div className="user-menu-wrapper">
-          <button className="user-btn" onClick={() => setShowUserMenu((value) => !value)}>
-            <div className="user-avatar">{user.avatar}</div>
+        <div className="user-menu-wrapper" ref={userMenuRef}>
+          <button type="button" className="user-btn" onClick={() => setShowUserMenu((value) => !value)} aria-expanded={showUserMenu} aria-haspopup="menu">
+            <div className="user-avatar">{avatarLabel}</div>
             <div className="user-details">
-              <div className="user-name">{user.name.split(' ')[0]}</div>
+              <div className="user-name">{firstName}</div>
               <div className="user-role">{getRoleLabel(user)}</div>
             </div>
           </button>
 
           {showUserMenu && (
-            <div className="user-dropdown">
-              <button className="dropdown-item" onClick={() => handleNavigate('profile')}>Profile</button>
-              <button className="dropdown-item" onClick={() => handleNavigate('settings')}>Settings</button>
+            <div className="user-dropdown" role="menu">
+              <button type="button" className="dropdown-item" onClick={() => handleNavigate('profile')}>Profile</button>
+              <button type="button" className="dropdown-item" onClick={() => handleNavigate('settings')}>Settings</button>
               <div className="dropdown-divider"></div>
-              <button className="dropdown-item" onClick={onLogout}>Logout</button>
+              <button type="button" className="dropdown-item" onClick={handleLogoutClick}>Logout</button>
             </div>
           )}
         </div>
