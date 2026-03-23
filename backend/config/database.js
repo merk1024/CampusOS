@@ -28,7 +28,8 @@ const USER_PROFILE_COLUMNS = [
 const SCHEDULE_COLUMNS = [
   ['audience_type', "TEXT DEFAULT 'group'"],
   ['subgroup_name', 'TEXT'],
-  ['student_user_id', 'INTEGER']
+  ['student_user_id', 'INTEGER'],
+  ['course_id', 'INTEGER']
 ];
 
 const shouldUsePostgres = () => (

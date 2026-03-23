@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import './CoursesPage.css';
 import { api } from './api';
-import { canManageAcademicRecords, isStudentAccount } from './roles';
+import { canManageAcademicRecords, hasAdminAccess, isStudentAccount } from './roles';
 
 const COURSE_DETAILS_KEY = 'course_details_v2';
 const COURSE_FALLBACK_KEY = 'course_cards_v2';
@@ -16,7 +16,8 @@ const DEFAULT_CREATE_FORM = {
   name: '',
   description: '',
   credits: 3,
-  semester: 'Spring 2026'
+  semester: 'Spring 2026',
+  teacher_id: ''
 };
 
 const store = {
@@ -78,6 +79,7 @@ const db = {
 
 const getCourseKey = (course) => String(course?.code || course?.id || '').trim().toUpperCase();
 const getTeacherName = (course) => course?.teacher_name || course?.teacher || 'Teacher not assigned';
+const normalizeTeacherId = (value) => (value === '' || value === null || value === undefined ? '' : String(value));
 const isConnectionError = (error) => error?.message?.includes('Cannot connect to the server');
 const getCourseDetailStore = () => store.get(COURSE_DETAILS_KEY, {});
 const saveCourseDetailStore = (value) => store.set(COURSE_DETAILS_KEY, value);
@@ -228,7 +230,7 @@ function Card({ course, enrolled, progress, isStudent, onOpen, onEnroll, onUnenr
   );
 }
 
-function Detail({ course, userId, userRole, onBack, onCourseChange }) {
+function Detail({ course, userId, userRole, isAdmin, teacherOptions, onBack, onCourseChange }) {
   const [tab, setTab] = useState('syllabus');
   const [progress, setProgress] = useState(() => db.progress.get(userId, course.id));
   const [showTopicForm, setShowTopicForm] = useState(false);
@@ -241,7 +243,8 @@ function Detail({ course, userId, userRole, onBack, onCourseChange }) {
     name: course.name,
     description: course.description,
     credits: course.credits,
-    semester: course.semester
+    semester: course.semester,
+    teacher_id: normalizeTeacherId(course.teacher_id)
   });
   const [currentCourse, setCurrentCourse] = useState(course);
 
@@ -258,7 +261,8 @@ function Detail({ course, userId, userRole, onBack, onCourseChange }) {
       name: hydrated.name,
       description: hydrated.description,
       credits: hydrated.credits,
-      semester: hydrated.semester
+      semester: hydrated.semester,
+      teacher_id: normalizeTeacherId(hydrated.teacher_id)
     });
     onCourseChange?.(hydrated);
   };
@@ -271,7 +275,8 @@ function Detail({ course, userId, userRole, onBack, onCourseChange }) {
       name: courseForm.name.trim(),
       description: courseForm.description.trim(),
       credits: Number(courseForm.credits),
-      semester: courseForm.semester.trim()
+      semester: courseForm.semester.trim(),
+      ...(isAdmin ? { teacher_id: courseForm.teacher_id || null } : {})
     };
 
     if (!payload.code || !payload.name) {
@@ -280,10 +285,11 @@ function Detail({ course, userId, userRole, onBack, onCourseChange }) {
 
     try {
       const response = await api.updateCourse(currentCourse.id, payload);
+      const nextCourseData = response?.course || payload;
       syncCourse({
         ...currentCourse,
-        ...(response?.course || payload),
-        teacher: getTeacherName(currentCourse),
+        ...nextCourseData,
+        teacher: getTeacherName(nextCourseData),
         topics: currentCourse.topics,
         materials: currentCourse.materials
       });
@@ -468,6 +474,20 @@ function Detail({ course, userId, userRole, onBack, onCourseChange }) {
                 <span>Semester</span>
                 <input value={courseForm.semester} onChange={(event) => setCourseForm({ ...courseForm, semester: event.target.value })} required />
               </label>
+              {isAdmin && (
+                <label>
+                  <span>Teacher</span>
+                  <select
+                    value={courseForm.teacher_id}
+                    onChange={(event) => setCourseForm({ ...courseForm, teacher_id: event.target.value })}
+                  >
+                    <option value="">Unassigned</option>
+                    {teacherOptions.map((teacherOption) => (
+                      <option key={teacherOption.id} value={teacherOption.id}>{teacherOption.name}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <label className="cd-form-wide">
                 <span>Description</span>
                 <textarea value={courseForm.description} onChange={(event) => setCourseForm({ ...courseForm, description: event.target.value })} />
@@ -624,6 +644,7 @@ function Detail({ course, userId, userRole, onBack, onCourseChange }) {
 export default function CoursesPage({ user }) {
   const [courses, setCourses] = useState([]);
   const [enrolled, setEnrolled] = useState([]);
+  const [teacherOptions, setTeacherOptions] = useState([]);
   const [listView, setListView] = useState('catalog');
   const [detailId, setDetailId] = useState(null);
   const [search, setSearch] = useState('');
@@ -634,7 +655,12 @@ export default function CoursesPage({ user }) {
 
   const isStudent = isStudentAccount(user);
   const canManage = canManageAcademicRecords(user);
+  const isAdmin = hasAdminAccess(user);
   const userId = user?.id || 'guest';
+  const teacherLookup = teacherOptions.reduce((lookup, teacher) => {
+    lookup[String(teacher.id)] = teacher.name;
+    return lookup;
+  }, {});
 
   const loadCourses = async () => {
     setLoading(true);
@@ -713,6 +739,25 @@ export default function CoursesPage({ user }) {
   }, [isStudent, userId]);
 
   useEffect(() => {
+    if (!isAdmin) {
+      setTeacherOptions([]);
+      return;
+    }
+
+    const loadTeacherOptions = async () => {
+      try {
+        const response = await api.getUsers();
+        setTeacherOptions((response?.users || []).filter((item) => item.role === 'teacher'));
+      } catch (error) {
+        console.error('Failed to load teachers:', error);
+        setTeacherOptions([]);
+      }
+    };
+
+    loadTeacherOptions();
+  }, [isAdmin]);
+
+  useEffect(() => {
     if (detailId && !courses.some((course) => course.id === detailId)) {
       setDetailId(null);
     }
@@ -776,7 +821,8 @@ export default function CoursesPage({ user }) {
       name: form.name.trim(),
       description: form.description.trim(),
       credits: Number(form.credits),
-      semester: form.semester.trim()
+      semester: form.semester.trim(),
+      ...(isAdmin ? { teacher_id: form.teacher_id || null } : {})
     };
 
     if (!payload.code || !payload.name) {
@@ -799,7 +845,13 @@ export default function CoursesPage({ user }) {
       const localCourse = enhanceCourse({
         id: Date.now(),
         ...payload,
-        teacher: user?.name || user?.email || 'Local teacher'
+        teacher_id: payload.teacher_id || null,
+        teacher_name: isAdmin
+          ? (teacherLookup[String(payload.teacher_id)] || 'Teacher not assigned')
+          : (user?.name || user?.email || 'Local teacher'),
+        teacher: isAdmin
+          ? (teacherLookup[String(payload.teacher_id)] || 'Teacher not assigned')
+          : (user?.name || user?.email || 'Local teacher')
       });
       const nextCourses = replaceCourse(courses, localCourse);
       db.courses.save(nextCourses);
@@ -826,6 +878,8 @@ export default function CoursesPage({ user }) {
           course={detailCourse}
           userId={userId}
           userRole={user?.role}
+          isAdmin={isAdmin}
+          teacherOptions={teacherOptions}
           onBack={() => setDetailId(null)}
           onCourseChange={updateCourseInState}
         />
@@ -897,6 +951,17 @@ export default function CoursesPage({ user }) {
               <span>Semester</span>
               <input value={form.semester} onChange={(event) => setForm({ ...form, semester: event.target.value })} placeholder="Spring 2026" required />
             </label>
+            {isAdmin && (
+              <label>
+                <span>Teacher</span>
+                <select value={form.teacher_id} onChange={(event) => setForm({ ...form, teacher_id: event.target.value })}>
+                  <option value="">Assign later</option>
+                  {teacherOptions.map((teacherOption) => (
+                    <option key={teacherOption.id} value={teacherOption.id}>{teacherOption.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label className="lms-course-form-wide">
               <span>Description</span>
               <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Short description of the subject" />
