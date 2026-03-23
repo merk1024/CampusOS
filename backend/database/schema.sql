@@ -40,6 +40,7 @@ CREATE TABLE users (
     last_login_at TEXT,
     last_login_ip TEXT,
     registration_date TEXT,
+    is_superadmin INTEGER DEFAULT 0,
     is_active INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP

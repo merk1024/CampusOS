@@ -27,6 +27,10 @@ services:
         generateValue: true
       - key: FRONTEND_URL
         value: https://web-table-exam-frontend.onrender.com
+      - key: SUPERADMIN_EMAIL
+        value: erbol.abdusatov@alatoo.edu.kg
+      - key: SUPERADMIN_NAME
+        value: Erbol Abdusatov
   - type: web
     name: web-table-exam-frontend
     runtime: static

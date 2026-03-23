@@ -1,7 +1,17 @@
 const bcrypt = require('bcryptjs');
 const db = require('../config/database');
+const { SUPERADMIN_EMAIL } = require('../utils/access');
+const ACTIVE_STATUS = db.client === 'postgres' ? true : 1;
 
 const USERS = [
+  {
+    email: process.env.SUPERADMIN_EMAIL || SUPERADMIN_EMAIL,
+    password: process.env.SUPERADMIN_BOOTSTRAP_PASSWORD || 'ChangeMe123!',
+    name: process.env.SUPERADMIN_NAME || 'Erbol Abdusatov',
+    role: 'admin',
+    avatar: 'EA',
+    is_superadmin: 1
+  },
   {
     student_id: '240141052',
     email: 'erbol.abdusaitov1@alatoo.edu.kg',
@@ -35,13 +45,29 @@ async function findUserByEmail(email) {
 async function ensureUser(user, hashedPassword) {
   const existing = await findUserByEmail(user.email);
   if (existing) {
+    if (user.is_superadmin) {
+      await db.run(
+        `UPDATE users
+         SET name = COALESCE(name, ?),
+             role = ?,
+             avatar = COALESCE(avatar, ?),
+             is_superadmin = 1,
+             is_active = ?,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [user.name, 'admin', user.avatar || null, ACTIVE_STATUS, existing.id]
+      );
+
+      return findUserByEmail(user.email);
+    }
+
     return existing;
   }
 
   await db.run(
     `INSERT INTO users (
-      student_id, email, password, name, role, group_name, subgroup_name, avatar
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      student_id, email, password, name, role, group_name, subgroup_name, avatar, is_superadmin
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       user.student_id || null,
       user.email,
@@ -50,7 +76,8 @@ async function ensureUser(user, hashedPassword) {
       user.role,
       user.group_name || null,
       user.subgroup_name || null,
-      user.avatar || null
+      user.avatar || null,
+      user.is_superadmin || 0
     ]
   );
 
@@ -72,6 +99,7 @@ async function seed() {
     console.log('Account seeding completed successfully.');
     console.log('');
     console.log('Available accounts:');
+    console.log(`  Super:   ${process.env.SUPERADMIN_EMAIL || SUPERADMIN_EMAIL} / ${process.env.SUPERADMIN_BOOTSTRAP_PASSWORD || 'ChangeMe123!'}`);
     console.log('  Student: erbol.abdusaitov1@alatoo.edu.kg / student');
     console.log('  Teacher: teacher@alatoo.edu.kg / teacher');
     console.log('  Admin:   admin@alatoo.edu.kg / admin');

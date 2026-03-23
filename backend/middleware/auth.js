@@ -1,5 +1,10 @@
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
+const {
+  hasAdminAccess,
+  canManageAcademicRecords,
+  isStudentAccount
+} = require('../utils/access');
 
 const getActiveUserFilter = () => (
   db.client === 'postgres'
@@ -26,7 +31,7 @@ const auth = async (req, res, next) => {
     
     // Get user from database
     const user = await db.get(
-      `SELECT id, email, name, role, student_id, group_name, subgroup_name
+      `SELECT id, email, name, role, student_id, group_name, subgroup_name, is_superadmin
        FROM users
        WHERE id = ? AND ${getActiveUserFilter()}`,
       [decoded.id]
@@ -50,7 +55,7 @@ const auth = async (req, res, next) => {
 
 // Check if user is admin
 const isAdmin = (req, res, next) => {
-  if (req.user.role !== 'admin') {
+  if (!hasAdminAccess(req.user)) {
     return res.status(403).json({ error: 'Access denied. Admin only.' });
   }
   next();
@@ -58,7 +63,7 @@ const isAdmin = (req, res, next) => {
 
 // Check if user is teacher or admin
 const isTeacherOrAdmin = (req, res, next) => {
-  if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
+  if (!canManageAcademicRecords(req.user)) {
     return res.status(403).json({ error: 'Access denied. Teachers and admins only.' });
   }
   next();
@@ -66,7 +71,7 @@ const isTeacherOrAdmin = (req, res, next) => {
 
 // Check if user is student
 const isStudent = (req, res, next) => {
-  if (req.user.role !== 'student') {
+  if (!isStudentAccount(req.user)) {
     return res.status(403).json({ error: 'Access denied. Students only.' });
   }
   next();
@@ -75,7 +80,7 @@ const isStudent = (req, res, next) => {
 // Check if user can modify schedule entry (admin or teacher of the subject)
 const canModifySchedule = async (req, res, next) => {
   try {
-    if (req.user.role === 'admin') {
+    if (hasAdminAccess(req.user)) {
       return next();
     }
 

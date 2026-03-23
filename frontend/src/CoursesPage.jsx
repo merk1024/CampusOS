@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import './CoursesPage.css';
 import { api } from './api';
+import { canManageAcademicRecords, isStudentAccount } from './roles';
 
 const COURSE_DETAILS_KEY = 'course_details_v2';
 const COURSE_FALLBACK_KEY = 'course_cards_v2';
@@ -631,8 +632,8 @@ export default function CoursesPage({ user }) {
   const [form, setForm] = useState(DEFAULT_CREATE_FORM);
   const { toast, show } = useToast();
 
-  const isStudent = user?.role === 'student';
-  const canManage = user?.role === 'admin' || user?.role === 'teacher';
+  const isStudent = isStudentAccount(user);
+  const canManage = canManageAcademicRecords(user);
   const userId = user?.id || 'guest';
 
   const loadCourses = async () => {

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { auth, isTeacherOrAdmin, isStudent } = require('../middleware/auth');
 const db = require('../config/database');
+const { hasAdminAccess } = require('../utils/access');
 
 // Get all courses
 router.get('/', auth, async (req, res) => {
@@ -102,7 +103,7 @@ router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
     }
 
     // Only course teacher or admin can update
-    if (req.user.role !== 'admin' && course.teacher_id !== req.user.id) {
+    if (!hasAdminAccess(req.user) && course.teacher_id !== req.user.id) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -132,7 +133,7 @@ router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
     }
 
     // Only course teacher or admin can delete
-    if (req.user.role !== 'admin' && course.teacher_id !== req.user.id) {
+    if (!hasAdminAccess(req.user) && course.teacher_id !== req.user.id) {
       return res.status(403).json({ error: 'Access denied' });
     }
 

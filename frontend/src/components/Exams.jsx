@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { api } from '../api';
+import { canManageAcademicRecords } from '../roles';
 
 const EMPTY_FORM = {
   group_name: '',
@@ -23,7 +24,7 @@ function Exams({ user }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [groupFilter, setGroupFilter] = useState('all');
 
-  const canManage = user?.role === 'teacher' || user?.role === 'admin';
+  const canManage = canManageAcademicRecords(user);
 
   const loadExams = async () => {
     try {

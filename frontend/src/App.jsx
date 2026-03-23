@@ -22,6 +22,7 @@ import Messages from './components/Messages';
 import Profile from './components/Profile';
 import Schedule from './components/Schedule';
 import Settings from './components/Settings';
+import { hasAdminAccess } from './roles';
 
 const SETTINGS_KEY = 'lms_app_settings';
 
@@ -92,7 +93,7 @@ function Sidebar({ activePage, setActivePage, isOpen, onClose, user }) {
     { id: 'profile', label: 'Profile', icon: 'PRF' }
   ];
 
-  if (user?.role === 'admin') {
+  if (hasAdminAccess(user)) {
     menuItems.push({ id: 'userManagement', label: 'User Management', icon: 'USR' });
   }
 
@@ -162,6 +163,7 @@ export default function App() {
           setUser({
             ...savedUser,
             ...response.user,
+            isSuperadmin: response.user.is_superadmin ?? response.user.isSuperadmin ?? savedUser.isSuperadmin,
             studentId: response.user.student_id ?? response.user.studentId ?? savedUser.studentId,
             group: response.user.group_name ?? response.user.groupName ?? savedUser.group,
             subgroup: response.user.subgroup_name ?? response.user.subgroupName ?? savedUser.subgroup

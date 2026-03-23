@@ -22,6 +22,7 @@ function LoginPage({ onLogin, notice = '' }) {
         email: response.user.email,
         name: response.user.name,
         role: response.user.role,
+        isSuperadmin: response.user.is_superadmin ?? response.user.isSuperadmin ?? 0,
         studentId: response.user.student_id ?? response.user.studentId,
         group: response.user.group_name ?? response.user.groupName,
         subgroup: response.user.subgroup_name ?? response.user.subgroupName,

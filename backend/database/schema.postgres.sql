@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS users (
     last_login_at TEXT,
     last_login_ip TEXT,
     registration_date TEXT,
+    is_superadmin INTEGER DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import './AttendancePage.css';
 import { api } from './api';
+import { canManageAcademicRecords } from './roles';
 
 function getStatusColor(status) {
   switch (status) {
@@ -117,7 +118,7 @@ function StudentAttendance({ user }) {
 }
 
 export default function AttendancePage({ user }) {
-  const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
+  const isTeacher = canManageAcademicRecords(user);
 
   return (
     <div className="attendance-page">

@@ -21,7 +21,8 @@ const USER_PROFILE_COLUMNS = [
   ['grant_type', 'TEXT'],
   ['last_login_at', 'TEXT'],
   ['last_login_ip', 'TEXT'],
-  ['registration_date', 'TEXT']
+  ['registration_date', 'TEXT'],
+  ['is_superadmin', 'INTEGER DEFAULT 0']
 ];
 
 const SCHEDULE_COLUMNS = [

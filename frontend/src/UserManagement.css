@@ -121,6 +121,11 @@
   color: #92400e;
 }
 
+.role-superadmin {
+  background: #fef08a;
+  color: #854d0e;
+}
+
 .btn-sm {
   padding: 0.375rem 0.75rem;
   font-size: 0.875rem;

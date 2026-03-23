@@ -25,6 +25,7 @@ const AUTH_USER_FIELDS = `
   grant_type,
   date_of_birth,
   registration_date,
+  is_superadmin,
   last_login_at,
   last_login_ip
 `;
@@ -147,6 +148,7 @@ router.post(
         token,
         user: {
           ...freshUser,
+          isSuperadmin: Number(freshUser.is_superadmin || 0) === 1,
           studentId: freshUser.student_id,
           groupName: freshUser.group_name,
           subgroupName: freshUser.subgroup_name

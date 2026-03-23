@@ -235,6 +235,14 @@ export const api = {
     });
   },
 
+  async saveGrade(gradeData) {
+    return request('/grades', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(gradeData)
+    });
+  },
+
   async getGrades(studentId) {
     if (!studentId) {
       throw new Error('Student ID is required to load grades.');

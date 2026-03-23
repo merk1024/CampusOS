@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const router = express.Router();
 const { auth, isAdmin } = require('../middleware/auth');
 const db = require('../config/database');
+const { hasAdminAccess } = require('../utils/access');
 
 const PROFILE_FIELDS = `
   id,
@@ -27,6 +28,7 @@ const PROFILE_FIELDS = `
   study_status,
   balance_info,
   grant_type,
+  is_superadmin,
   last_login_at,
   last_login_ip,
   registration_date,
@@ -223,6 +225,10 @@ router.post('/', auth, isAdmin, async (req, res) => {
 
 router.get('/:id', auth, async (req, res) => {
   try {
+    if (!hasAdminAccess(req.user) && req.user.id !== Number(req.params.id)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     const user = await db.get(
       `SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`,
       [req.params.id]
@@ -241,7 +247,7 @@ router.get('/:id', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'admin' && req.user.id !== Number(req.params.id)) {
+    if (!hasAdminAccess(req.user) && req.user.id !== Number(req.params.id)) {
       return res.status(403).json({ error: 'Access denied' });
     }
 

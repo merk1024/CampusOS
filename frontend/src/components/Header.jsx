@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import campusosBrandDark from '../assets/campusos-brand-dark.svg';
 import campusosBrandLight from '../assets/campusos-brand-light.svg';
+import { getRoleLabel } from '../roles';
 
 function MenuIcon() {
   return (
@@ -141,7 +142,7 @@ function Header({ user, onLogout, onNavigate, onMenuToggle, theme, onToggleTheme
             <div className="user-avatar">{user.avatar}</div>
             <div className="user-details">
               <div className="user-name">{user.name.split(' ')[0]}</div>
-              <div className="user-role">{user.role}</div>
+              <div className="user-role">{getRoleLabel(user)}</div>
             </div>
           </button>
 

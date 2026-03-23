@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { api } from './api';
 import './UserManagement.css';
+import { getRoleKey, getRoleLabel, hasAdminAccess } from './roles';
 
 const EMPTY_USER = {
   email: '',
@@ -41,7 +42,7 @@ function UserManagement({ user }) {
   };
 
   useEffect(() => {
-    if (user?.role === 'admin') {
+    if (hasAdminAccess(user)) {
       loadUsers();
     }
   }, [user]);
@@ -69,7 +70,7 @@ function UserManagement({ user }) {
   };
 
   const filteredUsers = users.filter((item) => {
-    const matchesRole = roleFilter === 'all' || item.role === roleFilter;
+    const matchesRole = roleFilter === 'all' || getRoleKey(item) === roleFilter;
     const haystack = [item.name, item.email, item.student_id, item.group_name, item.subgroup_name, item.faculty]
       .filter(Boolean)
       .join(' ')
@@ -80,12 +81,13 @@ function UserManagement({ user }) {
 
   const counts = {
     total: users.length,
-    students: users.filter((item) => item.role === 'student').length,
-    teachers: users.filter((item) => item.role === 'teacher').length,
-    admins: users.filter((item) => item.role === 'admin').length
+    students: users.filter((item) => getRoleKey(item) === 'student').length,
+    teachers: users.filter((item) => getRoleKey(item) === 'teacher').length,
+    admins: users.filter((item) => item.role === 'admin' && getRoleKey(item) !== 'superadmin').length,
+    superAdmins: users.filter((item) => getRoleKey(item) === 'superadmin').length
   };
 
-  if (user?.role !== 'admin') {
+  if (!hasAdminAccess(user)) {
     return (
       <div className="page">
         <div className="page-header">
@@ -127,6 +129,10 @@ function UserManagement({ user }) {
           <span className="management-summary-label">Admins</span>
           <strong>{counts.admins}</strong>
         </div>
+        <div className="management-summary-card">
+          <span className="management-summary-label">Super admins</span>
+          <strong>{counts.superAdmins}</strong>
+        </div>
       </div>
 
       <div className="management-toolbar">
@@ -139,14 +145,14 @@ function UserManagement({ user }) {
           />
         </div>
         <div className="management-filters">
-          {['all', 'student', 'teacher', 'admin'].map((role) => (
+          {['all', 'student', 'teacher', 'admin', 'superadmin'].map((role) => (
             <button
               key={role}
               type="button"
               className={`management-filter-chip ${roleFilter === role ? 'active' : ''}`}
               onClick={() => setRoleFilter(role)}
             >
-              {role === 'all' ? 'All roles' : role}
+              {role === 'all' ? 'All roles' : role === 'superadmin' ? 'Super admin' : role}
             </button>
           ))}
         </div>
@@ -278,7 +284,7 @@ function UserManagement({ user }) {
                 <td>{item.name}</td>
                 <td>{item.email}</td>
                 <td>
-                  <span className={`role-badge role-${item.role}`}>{item.role}</span>
+                  <span className={`role-badge role-${getRoleKey(item)}`}>{getRoleLabel(item)}</span>
                 </td>
                 <td>{item.student_id || '-'}</td>
                 <td>{item.group_name || '-'}</td>

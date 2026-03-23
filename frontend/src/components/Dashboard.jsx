@@ -1,5 +1,7 @@
+import { getRoleLabel } from '../roles';
+
 function Dashboard({ user }) {
-  const roleLabel = user?.role ? user.role[0].toUpperCase() + user.role.slice(1) : 'User';
+  const roleLabel = getRoleLabel(user);
 
   const quickActions = [
     'Open your schedule to check current classes.',

@@ -153,6 +153,12 @@ body {
   color: var(--text-muted);
 }
 
+:root[data-theme='dark'] .success-message {
+  background: rgba(22, 101, 52, 0.22);
+  border-color: rgba(74, 222, 128, 0.28);
+  color: #bbf7d0;
+}
+
 /* ══════════════════════════════════════════════════════════
    LOGIN PAGE
 ══════════════════════════════════════════════════════════ */
@@ -337,6 +343,16 @@ body {
   border: 1px solid #feb2b2;
   border-radius: var(--radius);
   color: var(--danger);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.success-message {
+  padding: 1rem;
+  background: #f0fff4;
+  border: 1px solid #9ae6b4;
+  border-radius: var(--radius);
+  color: #166534;
   margin-bottom: 1.5rem;
   font-size: 0.9rem;
 }

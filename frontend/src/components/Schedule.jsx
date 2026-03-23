@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
+import { canManageAcademicRecords, isStudentAccount } from '../roles';
 
 const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 const timeSlots = [
@@ -45,7 +46,7 @@ function Schedule() {
   const [formData, setFormData] = useState(emptyForm);
   const [selectedTimeSlots, setSelectedTimeSlots] = useState([]);
 
-  const canEdit = user && (user.role === 'admin' || user.role === 'teacher');
+  const canEdit = canManageAcademicRecords(user);
   const studentGroup = user?.group_name || user?.group || '';
   const studentSubgroup = user?.subgroup_name || user?.subgroup || '';
 
@@ -81,7 +82,7 @@ function Schedule() {
   }, [schedule, selectedGroup, studentGroup, studentSubgroup]);
 
   const visibleSchedule = useMemo(() => {
-    if (user?.role === 'student') {
+    if (isStudentAccount(user)) {
       return schedule;
     }
 
@@ -102,7 +103,7 @@ function Schedule() {
 
       return audienceType === 'group';
     });
-  }, [schedule, selectedAudienceView, selectedGroup, selectedSubgroup, user?.role]);
+  }, [schedule, selectedAudienceView, selectedGroup, selectedSubgroup, user]);
   const scheduleMap = useMemo(() => {
     return new Map(
       visibleSchedule.map((item) => [`${item.day}__${item.time_slot}`, item])
@@ -174,7 +175,7 @@ function Schedule() {
   }, []);
 
   useEffect(() => {
-    if (user?.role === 'student' || selectedAudienceView !== 'subgroup') {
+    if (isStudentAccount(user) || selectedAudienceView !== 'subgroup') {
       return;
     }
 
@@ -186,7 +187,7 @@ function Schedule() {
     if (!subgroupOptions.includes(selectedSubgroup)) {
       setSelectedSubgroup(subgroupOptions[0]);
     }
-  }, [selectedAudienceView, selectedSubgroup, subgroupOptions, user?.role]);
+  }, [selectedAudienceView, selectedSubgroup, subgroupOptions, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -200,7 +201,7 @@ function Schedule() {
         const entries = response.schedule || [];
         setSchedule(entries);
 
-        if (user.role === 'student') {
+        if (isStudentAccount(user)) {
           setSelectedGroup(user.group_name || user.group || '');
           return;
         }
@@ -224,7 +225,7 @@ function Schedule() {
     const entries = response.schedule || [];
     setSchedule(entries);
 
-    if (user?.role === 'student') {
+    if (isStudentAccount(user)) {
       setSelectedGroup(studentGroup);
       return;
     }
@@ -274,7 +275,7 @@ function Schedule() {
         id: null,
         day,
         time_slot: timeSlot,
-        group_name: user?.role === 'student' ? studentGroup : selectedGroup,
+        group_name: isStudentAccount(user) ? studentGroup : selectedGroup,
         audience_type: selectedAudienceView,
         subgroup_name: selectedAudienceView === 'subgroup' ? selectedSubgroup : '',
         student_user_id: '',
@@ -416,7 +417,7 @@ function Schedule() {
       <div className="page-header">
         <div>
           <h1>Schedule</h1>
-          <p>{user?.role === 'student' ? `Weekly timetable for ${studentGroup || 'your group'}${studentSubgroup ? ` / ${studentSubgroup}` : ''}` : 'Manage timetable group by group'}</p>
+          <p>{isStudentAccount(user) ? `Weekly timetable for ${studentGroup || 'your group'}${studentSubgroup ? ` / ${studentSubgroup}` : ''}` : 'Manage timetable group by group'}</p>
         </div>
         {canEdit && (
           <div className="page-actions">
@@ -437,7 +438,7 @@ function Schedule() {
         <div className="schedule-admin-card">
           <span className="management-summary-label">Current group</span>
           <strong>
-            {user?.role === 'student'
+            {isStudentAccount(user)
               ? `${studentGroup || 'Not set'}${studentSubgroup ? ` / ${studentSubgroup}` : ''}`
               : (selectedGroup || 'Choose group')}
           </strong>
