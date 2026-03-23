@@ -1001,9 +1001,9 @@ h1,h2,h3{font-family:'Outfit',sans-serif;font-weight:700;letter-spacing:-.02em}
 .page{padding:3rem 2rem 5rem;max-width:1280px;margin:0 auto;animation:in .6s ease}
 @keyframes in{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 
-.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2.5rem;gap:1.5rem;flex-wrap:wrap}
-.header h2{font-size:2.25rem;font-weight:800;background:linear-gradient(135deg,var(--accent),#0c6cd4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.5rem}
-.header p{color:var(--muted);font-size:1rem;font-weight:500}
+.courses-legacy-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2.5rem;gap:1.5rem;flex-wrap:wrap}
+.courses-legacy-header h2{font-size:2.25rem;font-weight:800;background:linear-gradient(135deg,var(--accent),#0c6cd4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.5rem}
+.courses-legacy-header p{color:var(--muted);font-size:1rem;font-weight:500}
 
 .controls{display:flex;gap:1rem;align-items:center;margin-bottom:2rem;flex-wrap:wrap}
 .views{display:flex;gap:.5rem;background:var(--surface);padding:.5rem;border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--border)}
@@ -1117,14 +1117,14 @@ input:focus{border-color:#38bdf8;box-shadow:0 0 0 4px rgba(21,150,238,.12),var(-
 
 @media(max-width:1024px){
 .page{padding:2rem 1.5rem}
-.header h2{font-size:2rem}
+.courses-legacy-header h2{font-size:2rem}
 .grid{grid-template-columns:repeat(2,1fr);gap:1.25rem}
 }
 
 @media(max-width:768px){
 .page{padding:1.5rem 1rem}
-.header{flex-direction:column}
-.header h2{font-size:1.75rem}
+.courses-legacy-header{flex-direction:column}
+.courses-legacy-header h2{font-size:1.75rem}
 .controls{flex-direction:column;align-items:stretch}
 .views{width:100%}
 input{width:100%;min-width:100%}
@@ -1150,7 +1150,7 @@ input{width:100%;min-width:100%}
 
 @media(max-width:480px){
 .page{padding:1rem .75rem}
-.header h2{font-size:1.5rem}
+.courses-legacy-header h2{font-size:1.5rem}
 .card{border-radius:14px}
 .card-top{padding:1.25rem 1.25rem .5rem}
 .card-icon{font-size:2.25rem}
