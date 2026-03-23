@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { auth, isTeacherOrAdmin } = require('../middleware/auth');
+const { auth, isTeacherOrAdmin, isStudent } = require('../middleware/auth');
 const db = require('../config/database');
 
 // Get all courses
@@ -24,7 +24,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Get course by ID
-router.get('/enrolled', auth, async (req, res) => {
+router.get('/enrolled', auth, isStudent, async (req, res) => {
   try {
     const result = await db.all(`
       SELECT c.* FROM courses c
@@ -146,8 +146,13 @@ router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
 });
 
 // Enroll in course
-router.post('/:id/enroll', auth, async (req, res) => {
+router.post('/:id/enroll', auth, isStudent, async (req, res) => {
   try {
+    const course = await db.get('SELECT id FROM courses WHERE id = ?', [req.params.id]);
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
     // Check if already enrolled
     const existing = await db.get(
       'SELECT id FROM course_enrollments WHERE course_id = ? AND student_id = ?',
@@ -170,8 +175,13 @@ router.post('/:id/enroll', auth, async (req, res) => {
 });
 
 // Unenroll from course
-router.delete('/:id/enroll', auth, async (req, res) => {
+router.delete('/:id/enroll', auth, isStudent, async (req, res) => {
   try {
+    const course = await db.get('SELECT id FROM courses WHERE id = ?', [req.params.id]);
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
     await db.run(
       'DELETE FROM course_enrollments WHERE course_id = ? AND student_id = ?',
       [req.params.id, req.user.id]

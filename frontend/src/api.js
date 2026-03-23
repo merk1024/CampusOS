@@ -1,8 +1,27 @@
-const DEFAULT_API_BASE_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:5002/api'
-  : 'https://web-table-exam-api.onrender.com/api';
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1']);
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/$/, '');
+const trimTrailingSlash = (value) => value.replace(/\/+$/, '');
+
+const getDefaultApiBaseUrl = () => {
+  if (typeof window === 'undefined') {
+    return 'http://localhost:5000/api';
+  }
+
+  if (LOCAL_HOSTNAMES.has(window.location.hostname)) {
+    return 'http://localhost:5000/api';
+  }
+
+  return `${window.location.origin}/api`;
+};
+
+const API_BASE_URL = trimTrailingSlash(import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl());
+const API_TARGET = (() => {
+  try {
+    return new URL(API_BASE_URL).origin;
+  } catch {
+    return API_BASE_URL;
+  }
+})();
 
 const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
 
@@ -14,7 +33,7 @@ const parseJsonSafely = async (response) => {
     return JSON.parse(text);
   } catch {
     return { message: text };
-  }ф
+  }
 };
 
 const getErrorMessage = async (response, fallbackMessage) => {
@@ -33,7 +52,7 @@ const request = async (path, options = {}) => {
     return parseJsonSafely(response);
   } catch (error) {
     if (error instanceof TypeError) {
-      throw new Error('Cannot connect to the server. Check that backend is running on http://localhost:5002.');
+      throw new Error(`Cannot connect to the server. Check that backend is running and reachable at ${API_TARGET}.`);
     }
     throw error;
   }
@@ -181,8 +200,20 @@ export const api = {
     });
   },
 
-  async getGrades() {
-    return request('/grades', { headers: getHeaders() });
+  async getGrades(studentId) {
+    if (!studentId) {
+      throw new Error('Student ID is required to load grades.');
+    }
+
+    return request(`/grades/student/${encodeURIComponent(studentId)}`, { headers: getHeaders() });
+  },
+
+  async getGradeStats(studentId) {
+    if (!studentId) {
+      throw new Error('Student ID is required to load grade statistics.');
+    }
+
+    return request(`/grades/stats/${encodeURIComponent(studentId)}`, { headers: getHeaders() });
   },
 
   async getSchedule() {
