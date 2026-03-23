@@ -1,0 +1,24 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mark-blue" x1="14" y1="14" x2="104" y2="104" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#37C8FF"/>
+      <stop offset="1" stop-color="#0B6BFF"/>
+    </linearGradient>
+    <linearGradient id="mark-orange" x1="36" y1="44" x2="106" y2="114" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD15A"/>
+      <stop offset="1" stop-color="#FF6A00"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#0C1324"/>
+  <circle cx="64" cy="64" r="34" fill="#101A31"/>
+  <circle cx="64" cy="64" r="28" fill="none" stroke="#1D2A47" stroke-width="4"/>
+  <ellipse cx="64" cy="64" rx="50" ry="34" transform="rotate(-30 64 64)" stroke="url(#mark-blue)" stroke-width="7"/>
+  <ellipse cx="64" cy="64" rx="52" ry="14" transform="rotate(-30 64 64)" stroke="url(#mark-orange)" stroke-width="7"/>
+  <path d="M64 22L68 32L78 36L68 40L64 50L60 40L50 36L60 32L64 22Z" fill="#FFD978"/>
+  <path d="M64 42L88 54V60H40V54L64 42Z" fill="#F7FAFF"/>
+  <path d="M48 62H80V67H48V62Z" fill="#F7FAFF"/>
+  <path d="M49 69H56V92H49V69Z" fill="#F7FAFF"/>
+  <path d="M60.5 69H67.5V92H60.5V69Z" fill="#F7FAFF"/>
+  <path d="M72 69H79V92H72V69Z" fill="#F7FAFF"/>
+  <path d="M44 95H84V101H44V95Z" fill="#F7FAFF"/>
+</svg>

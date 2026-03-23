@@ -1,14 +1,16 @@
-// Footer
+import campusosBrand from '../assets/campusos-brand.svg';
+
 function Footer() {
+  const year = new Date().getFullYear();
+
   return (
     <footer className="footer">
       <div className="footer-content">
         <div className="footer-left">
           <div className="footer-logo">
-            <span className="logo-icon">🎓</span>
-            <span className="logo-text">Alatoo University</span>
+            <img src={campusosBrand} alt="CampusOS" className="footer-logo-image" />
           </div>
-          <p className="footer-text">© 2024 Alatoo University. All rights reserved.</p>
+          <p className="footer-text">Copyright {year} CampusOS by Alatoo University. All rights reserved.</p>
         </div>
         <div className="footer-right">
           <div className="footer-links">

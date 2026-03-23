@@ -284,10 +284,10 @@ export default function ScheduleManager({ userRole = 'admin' }) {
     <div className="sm-wrap">
       <header className="sm-header">
         <div className="sm-title">
-          <span className="sm-logo">🎓</span>
+          <span className="sm-logo">COS</span>
           <div>
             <h1>Schedule Manager</h1>
-            <p>Alatoo University · Spring 2025–2026</p>
+            <p>CampusOS · Spring 2025-2026</p>
           </div>
         </div>
         <div className="sm-legend">
@@ -317,7 +317,7 @@ export default function ScheduleManager({ userRole = 'admin' }) {
 
       {canEdit && (
         <div className="elective-palette">
-          <div className="ep-label">🌟 Elective Courses — click a cell to assign</div>
+          <div className="ep-label">Elective Courses - click a cell to assign</div>
           <div className="ep-list">
             {ELECTIVES.map(e=>(
               <div key={e.id} className="ep-card" style={{'--ec':e.color}}>

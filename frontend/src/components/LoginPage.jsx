@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { api } from '../api';
+import campusosHero from '../assets/campusos-hero.svg';
 
 function LoginPage({ onLogin }) {
   const [login, setLogin] = useState('');
@@ -49,26 +50,47 @@ function LoginPage({ onLogin }) {
       <div className="login-container">
         <div className="login-left">
           <div className="login-brand">
-            <span className="brand-icon">🎓</span>
-            <h1>Alatoo University</h1>
-            <h2>Learning Management System</h2>
+            <img
+              src={campusosHero}
+              alt="CampusOS Latonia Edition"
+              className="login-brand-image"
+            />
+            <div className="login-brand-copy">
+              <strong>Academic operations, unified.</strong>
+              <p>
+                CampusOS brings courses, grading, attendance, and scheduling
+                into one calm workspace for students, instructors, and campus teams.
+              </p>
+            </div>
           </div>
           <div className="login-features">
             <div className="feature">
-              <span className="feature-icon">✅</span>
-              <span>Access all your courses</span>
+              <span className="feature-badge">CRS</span>
+              <div className="feature-copy">
+                <strong>Courses in one place</strong>
+                <span>Materials, assignments, and semester progress stay aligned.</span>
+              </div>
             </div>
             <div className="feature">
-              <span className="feature-icon">📊</span>
-              <span>Track your progress</span>
+              <span className="feature-badge">GRD</span>
+              <div className="feature-copy">
+                <strong>Live academic progress</strong>
+                <span>Check grades, results, and performance signals without friction.</span>
+              </div>
             </div>
             <div className="feature">
-              <span className="feature-icon">🗓️</span>
-              <span>Manage your schedule</span>
+              <span className="feature-badge">SCH</span>
+              <div className="feature-copy">
+                <strong>Schedule visibility</strong>
+                <span>Stay on top of classes, exams, and attendance from one dashboard.</span>
+              </div>
             </div>
             <div className="feature">
-              <span className="feature-icon">💬</span>
-              <span>Connect with teachers</span>
+              <span className="feature-badge">MSG</span>
+              <div className="feature-copy">
+                <strong>Clear communication</strong>
+                <span>Announcements and updates reach the right people at the right time.</span>
+              </div>
             </div>
           </div>
         </div>
