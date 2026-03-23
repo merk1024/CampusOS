@@ -25,8 +25,16 @@ const API_TARGET = (() => {
 
 export const AUTH_SESSION_EXPIRED_EVENT = 'campusos:auth-session-expired';
 export const SESSION_EXPIRED_MESSAGE = 'Session expired. Please sign in again.';
+const SESSION_ERROR_MESSAGES = new Set([
+  'Token is not valid',
+  'No authentication token, access denied',
+  'User not found or inactive',
+  SESSION_EXPIRED_MESSAGE
+]);
 
 const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
+
+export const isSessionErrorMessage = (message) => SESSION_ERROR_MESSAGES.has(message);
 
 export const clearAuthSession = () => {
   localStorage.removeItem('token');
@@ -69,7 +77,7 @@ const request = async (path, options = {}) => {
     if (!response.ok) {
       const errorMessage = await getErrorMessage(response, 'Request failed');
 
-      if (!skipAuthHandling && response.status === 401 && getToken()) {
+      if (!skipAuthHandling && response.status === 401 && getToken() && isSessionErrorMessage(errorMessage)) {
         notifySessionExpired();
         throw new Error(SESSION_EXPIRED_MESSAGE);
       }

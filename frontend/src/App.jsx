@@ -5,7 +5,8 @@ import {
   api,
   AUTH_SESSION_EXPIRED_EVENT,
   SESSION_EXPIRED_MESSAGE,
-  clearAuthSession
+  clearAuthSession,
+  isSessionErrorMessage
 } from './api';
 import AttendancePage from './AttendancePage';
 import CoursesPage from './CoursesPage';
@@ -166,9 +167,15 @@ export default function App() {
             subgroup: response.user.subgroup_name ?? response.user.subgroupName ?? savedUser.subgroup
           });
           setAuthNotice('');
-        } catch {
-          clearAuthSession();
-          setAuthNotice(SESSION_EXPIRED_MESSAGE);
+        } catch (error) {
+          if (isSessionErrorMessage(error?.message)) {
+            clearAuthSession();
+            setAuthNotice(SESSION_EXPIRED_MESSAGE);
+          } else {
+            console.error('Failed to restore session, using saved profile:', error);
+            setUser(savedUser);
+            setAuthNotice('');
+          }
         }
       }
 
