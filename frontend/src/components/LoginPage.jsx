@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { api } from '../api';
 import campusosHero from '../assets/campusos-hero.svg';
 
-function LoginPage({ onLogin }) {
+function LoginPage({ onLogin, notice = '' }) {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -100,7 +100,7 @@ function LoginPage({ onLogin }) {
             <h2>Welcome Back</h2>
             <p className="login-subtitle">Sign in with your email or student number</p>
 
-            {error && <div className="error-message">{error}</div>}
+            {(error || notice) && <div className="error-message">{error || notice}</div>}
 
             <div className="form-field">
               <label>Email or Student ID</label>

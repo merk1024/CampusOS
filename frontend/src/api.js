@@ -23,7 +23,26 @@ const API_TARGET = (() => {
   }
 })();
 
+export const AUTH_SESSION_EXPIRED_EVENT = 'campusos:auth-session-expired';
+export const SESSION_EXPIRED_MESSAGE = 'Session expired. Please sign in again.';
+
 const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
+
+export const clearAuthSession = () => {
+  localStorage.removeItem('token');
+  sessionStorage.removeItem('token');
+  localStorage.removeItem('lms_user');
+};
+
+const notifySessionExpired = (message = SESSION_EXPIRED_MESSAGE) => {
+  clearAuthSession();
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(AUTH_SESSION_EXPIRED_EVENT, {
+      detail: { message }
+    }));
+  }
+};
 
 const parseJsonSafely = async (response) => {
   const text = await response.text();
@@ -42,11 +61,20 @@ const getErrorMessage = async (response, fallbackMessage) => {
 };
 
 const request = async (path, options = {}) => {
+  const { skipAuthHandling = false, ...fetchOptions } = options;
+
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, options);
+    const response = await fetch(`${API_BASE_URL}${path}`, fetchOptions);
 
     if (!response.ok) {
-      throw new Error(await getErrorMessage(response, 'Request failed'));
+      const errorMessage = await getErrorMessage(response, 'Request failed');
+
+      if (!skipAuthHandling && response.status === 401 && getToken()) {
+        notifySessionExpired();
+        throw new Error(SESSION_EXPIRED_MESSAGE);
+      }
+
+      throw new Error(errorMessage);
     }
 
     return parseJsonSafely(response);
@@ -69,6 +97,7 @@ const getHeaders = () => {
 export const api = {
   async login(login, password) {
     return request('/auth/login', {
+      skipAuthHandling: true,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ login, password })
@@ -82,9 +111,7 @@ export const api = {
         headers: getHeaders()
       });
     } finally {
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('token');
-      localStorage.removeItem('lms_user');
+      clearAuthSession();
     }
   },
 

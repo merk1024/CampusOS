@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
 
 import './App.css';
-import { api } from './api';
+import {
+  api,
+  AUTH_SESSION_EXPIRED_EVENT,
+  SESSION_EXPIRED_MESSAGE,
+  clearAuthSession
+} from './api';
 import AttendancePage from './AttendancePage';
 import CoursesPage from './CoursesPage';
 import UserManagement from './UserManagement';
@@ -122,12 +127,28 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(getInitialTheme);
+  const [authNotice, setAuthNotice] = useState('');
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     document.documentElement.style.colorScheme = theme;
     writeAppSettings({ theme });
   }, [theme]);
+
+  useEffect(() => {
+    const handleAuthSessionExpired = (event) => {
+      setUser(null);
+      setActivePage(getDefaultPage());
+      setSidebarOpen(false);
+      setAuthNotice(event.detail?.message || SESSION_EXPIRED_MESSAGE);
+    };
+
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleAuthSessionExpired);
+
+    return () => {
+      window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleAuthSessionExpired);
+    };
+  }, []);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -144,10 +165,10 @@ export default function App() {
             group: response.user.group_name ?? response.user.groupName ?? savedUser.group,
             subgroup: response.user.subgroup_name ?? response.user.subgroupName ?? savedUser.subgroup
           });
+          setAuthNotice('');
         } catch {
-          localStorage.removeItem('token');
-          sessionStorage.removeItem('token');
-          storage.remove('lms_user');
+          clearAuthSession();
+          setAuthNotice(SESSION_EXPIRED_MESSAGE);
         }
       }
 
@@ -161,6 +182,7 @@ export default function App() {
     setUser(userData);
     storage.set('lms_user', userData);
     setActivePage(getDefaultPage());
+    setAuthNotice('');
   };
 
   const handleLogout = async () => {
@@ -176,6 +198,7 @@ export default function App() {
     sessionStorage.removeItem('token');
     setActivePage(getDefaultPage());
     setSidebarOpen(false);
+    setAuthNotice('');
   };
 
   const handleThemeChange = (nextTheme) => {
@@ -232,7 +255,7 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginPage onLogin={handleLogin} />;
+    return <LoginPage onLogin={handleLogin} notice={authNotice} />;
   }
 
   return (
