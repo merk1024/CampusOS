@@ -87,6 +87,7 @@ function StudentAttendance({ user }) {
       </div>
     );
   }
+  
 
   return (
     <div className="att-student">
