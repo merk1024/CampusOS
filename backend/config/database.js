@@ -70,36 +70,11 @@ const splitSqlStatements = (contents) => {
   return statements.filter(Boolean);
 };
 
-const applyDemoStudentDefaults = async (db) => {
+const normalizeScheduleAudienceTypes = async (db) => {
   await db.query(
     `UPDATE schedule
      SET audience_type = COALESCE(audience_type, 'group')
      WHERE audience_type IS NULL`
-  );
-
-  await db.query(
-    `UPDATE users
-     SET subgroup_name = CASE
-           WHEN subgroup_name IS NULL AND group_name = 'CYB-23' THEN '1-Group'
-           ELSE subgroup_name
-         END,
-         date_of_birth = COALESCE(date_of_birth, '2005-12-25'),
-         faculty = COALESCE(faculty, 'Faculty of Engineering and Informatics'),
-         major = COALESCE(major, 'Cybersecurity and Ethical Hacking'),
-         year_of_study = COALESCE(year_of_study, 3),
-         father_name = COALESCE(father_name, 'Iliiaz'),
-         program_class = COALESCE(program_class, 'Cybersecurity and Ethical Hacking - Bcl.-EN - 3'),
-         advisor = COALESCE(advisor, 'Nuraiym Kuletova'),
-         study_status = COALESCE(study_status, 'Studying'),
-         balance_info = COALESCE(balance_info, 'No debt [ 1.33 USD advance payment ]'),
-         grant_type = COALESCE(grant_type, 'Not available'),
-         registration_date = COALESCE(registration_date, '2024-08-15'),
-         email = CASE WHEN email = 'student@alatoo.edu.kg' THEN 'erbol.abdusaitov1@alatoo.edu.kg' ELSE email END,
-         student_id = CASE WHEN role = 'student' AND student_id = '240145121' THEN '240141052' ELSE student_id END,
-         name = CASE WHEN role = 'student' AND name = 'Azamat Bekzhanov' THEN 'Erbol Abdusaitov' ELSE name END,
-         group_name = CASE WHEN role = 'student' AND group_name = 'COMSE-25' THEN 'CYB-23' ELSE group_name END,
-         avatar = CASE WHEN role = 'student' AND (avatar IS NULL OR avatar = 'AB') THEN 'EA' ELSE avatar END
-     WHERE role = 'student'`
   );
 };
 
@@ -198,7 +173,7 @@ const createSqliteAdapter = () => {
           }
         }
 
-        await applyDemoStudentDefaults(adapter);
+        await normalizeScheduleAudienceTypes(adapter);
       })().catch((error) => {
         migrationPromise = null;
         throw error;
@@ -291,7 +266,7 @@ const createPostgresAdapter = () => {
           await pool.query(`ALTER TABLE schedule ADD COLUMN IF NOT EXISTS ${name} ${type}`);
         }
 
-        await applyDemoStudentDefaults(adapter);
+        await normalizeScheduleAudienceTypes(adapter);
       })().catch((error) => {
         migrationPromise = null;
         throw error;

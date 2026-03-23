@@ -79,21 +79,8 @@ function Profile() {
     );
   }
 
-  const demoDefaults = profile.role === 'student'
-    ? {
-        father_name: 'Iliiaz',
-        program_class: 'Киберкоопсуздук жана этикалык хакердик - Бкл.-EN - 3',
-        advisor: 'Нурайым Кулетова',
-        study_status: 'Studying',
-        balance_info: 'No debt [ 1.33 USD advance payment ]',
-        grant_type: 'Not available',
-        last_login_ip: '192.168.11.35',
-        registration_date: '2024-08-15'
-      }
-    : {};
-
   const getField = (fieldName, fallback = 'Not available') => (
-    profile[fieldName] ?? demoDefaults[fieldName] ?? fallback
+    profile[fieldName] ?? fallback
   );
 
   const rows = [

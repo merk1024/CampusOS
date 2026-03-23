@@ -116,13 +116,6 @@ function LoginPage({ onLogin }) {
             <button type="submit" className="btn-login" disabled={loading}>
               {loading ? 'Signing In...' : 'Sign In'}
             </button>
-
-            <div className="demo-hint">
-              <p><strong>Demo account:</strong></p>
-              <p>Email: erbol.abdusaitov1@alatoo.edu.kg</p>
-              <p>Student ID: 240141052</p>
-              <p>Password: student</p>
-            </div>
           </form>
         </div>
       </div>

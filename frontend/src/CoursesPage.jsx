@@ -18,59 +18,6 @@ const DEFAULT_CREATE_FORM = {
   semester: 'Spring 2026'
 };
 
-const DEMO_COURSES = [
-  {
-    id: 1,
-    code: 'CS101',
-    name: 'Programming Language 2',
-    description: 'Advanced OOP, design patterns, and data structures.',
-    credits: 6,
-    semester: 'Spring 2026',
-    teacher: 'Azhar Kazakbaeva',
-    topics: [
-      { id: 'CS101-T1', week: 1, title: 'OOP fundamentals', desc: 'Classes, inheritance, and polymorphism.' },
-      { id: 'CS101-T2', week: 2, title: 'Design patterns', desc: 'Factory, strategy, and singleton in practice.' },
-      { id: 'CS101-T3', week: 3, title: 'Collections and algorithms', desc: 'Lists, stacks, queues, and problem solving.' }
-    ],
-    materials: [
-      { id: 'CS101-M1', title: 'Course outline', type: 'pdf', size: '0.8 MB', date: '2026-02-01', url: '' },
-      { id: 'CS101-M2', title: 'Week 1 slides', type: 'pptx', size: '2.1 MB', date: '2026-02-03', url: '' }
-    ]
-  },
-  {
-    id: 2,
-    code: 'WEB101',
-    name: 'Web Development',
-    description: 'HTML, CSS, JavaScript, and modern frontend basics.',
-    credits: 4,
-    semester: 'Spring 2026',
-    teacher: 'Maria Teacher',
-    topics: [
-      { id: 'WEB101-T1', week: 1, title: 'HTML and semantic layout', desc: 'Page structure and accessibility basics.' },
-      { id: 'WEB101-T2', week: 2, title: 'CSS layouts', desc: 'Flexbox, grid, and responsive design.' }
-    ],
-    materials: [
-      { id: 'WEB101-M1', title: 'Frontend checklist', type: 'docx', size: '0.4 MB', date: '2026-02-02', url: '' }
-    ]
-  },
-  {
-    id: 3,
-    code: 'CYB101',
-    name: 'Cybersecurity',
-    description: 'Network security, basic cryptography, and secure practices.',
-    credits: 4,
-    semester: 'Spring 2026',
-    teacher: 'Ruslan Amanov',
-    topics: [
-      { id: 'CYB101-T1', week: 1, title: 'Threat landscape', desc: 'Common attack vectors and risk awareness.' },
-      { id: 'CYB101-T2', week: 2, title: 'Cryptography basics', desc: 'Hashing, encryption, and certificates.' }
-    ],
-    materials: [
-      { id: 'CYB101-M1', title: 'Security glossary', type: 'pdf', size: '0.6 MB', date: '2026-02-05', url: '' }
-    ]
-  }
-];
-
 const store = {
   get(key, fallback = null) {
     try {
@@ -92,7 +39,7 @@ const store = {
 const db = {
   init() {
     if (!store.get(COURSE_FALLBACK_KEY)) {
-      store.set(COURSE_FALLBACK_KEY, DEMO_COURSES);
+      store.set(COURSE_FALLBACK_KEY, []);
     }
     if (!store.get(ENROLLMENTS_KEY)) {
       store.set(ENROLLMENTS_KEY, {});
@@ -102,7 +49,7 @@ const db = {
     }
   },
   courses: {
-    all: () => store.get(COURSE_FALLBACK_KEY, DEMO_COURSES),
+    all: () => store.get(COURSE_FALLBACK_KEY, []),
     save: (courses) => store.set(COURSE_FALLBACK_KEY, courses)
   },
   enrollments: {
@@ -131,7 +78,6 @@ const db = {
 const getCourseKey = (course) => String(course?.code || course?.id || '').trim().toUpperCase();
 const getTeacherName = (course) => course?.teacher_name || course?.teacher || 'Teacher not assigned';
 const isConnectionError = (error) => error?.message?.includes('Cannot connect to the server');
-const today = () => new Date().toISOString().slice(0, 10);
 const getCourseDetailStore = () => store.get(COURSE_DETAILS_KEY, {});
 const saveCourseDetailStore = (value) => store.set(COURSE_DETAILS_KEY, value);
 const removeCourseDetailStore = (key) => {
@@ -139,25 +85,6 @@ const removeCourseDetailStore = (key) => {
   delete details[key];
   saveCourseDetailStore(details);
 };
-
-const buildDefaultTopics = (course) => {
-  const code = getCourseKey(course) || 'COURSE';
-  return [
-    { id: `${code}-TOPIC-1`, week: 1, title: 'Course overview', desc: `Introduction to ${course.name} and course expectations.` },
-    { id: `${code}-TOPIC-2`, week: 2, title: 'Core concepts', desc: course.description || `Key ideas for ${course.name}.` },
-    { id: `${code}-TOPIC-3`, week: 3, title: 'Practice and assessment', desc: 'Hands-on tasks and assessment preparation.' }
-  ];
-};
-
-const buildDefaultMaterials = (course) => {
-  const code = getCourseKey(course) || 'COURSE';
-  return [
-    { id: `${code}-MAT-1`, title: 'Course outline', type: 'pdf', size: '0.5 MB', date: today(), url: '' },
-    { id: `${code}-MAT-2`, title: 'Assessment guide', type: 'docx', size: '0.3 MB', date: today(), url: '' }
-  ];
-};
-
-const seedCourse = (course) => DEMO_COURSES.find((item) => getCourseKey(item) === getCourseKey(course));
 
 const replaceCourse = (courses, nextCourse) => {
   const nextKey = getCourseKey(nextCourse);
@@ -190,32 +117,26 @@ const enhanceCourse = (course) => {
   const icon = COURSE_ICONS[hash % COURSE_ICONS.length];
   const details = getCourseDetailStore();
   const saved = details[code];
-  const seeded = seedCourse(course);
 
   const hydrated = {
-    ...seeded,
     ...course,
     code,
     color,
     icon,
     teacher: getTeacherName(course),
-    credits: Number(course.credits || seeded?.credits || 3),
-    semester: course.semester || seeded?.semester || 'Current semester',
-    description: course.description || seeded?.description || `${course.name} course card.`,
+    credits: Number(course.credits || 3),
+    semester: course.semester || 'Current semester',
+    description: course.description || `${course.name} course card.`,
     topics: Array.isArray(saved?.topics) && saved.topics.length
       ? saved.topics
       : Array.isArray(course.topics) && course.topics.length
         ? course.topics
-        : Array.isArray(seeded?.topics) && seeded.topics.length
-          ? seeded.topics
-          : buildDefaultTopics({ ...course, code }),
+        : [],
     materials: Array.isArray(saved?.materials) && saved.materials.length
       ? saved.materials
       : Array.isArray(course.materials) && course.materials.length
         ? course.materials
-        : Array.isArray(seeded?.materials) && seeded.materials.length
-          ? seeded.materials
-          : buildDefaultMaterials({ ...course, code })
+        : []
   };
 
   if (!saved) {
@@ -453,7 +374,7 @@ function Detail({ course, userId, userRole, onBack, onCourseChange }) {
           type: material.type,
           size: material.size.trim() || 'Local file',
           url: material.url.trim(),
-          date: today()
+          date: new Date().toISOString().slice(0, 10)
         }
       ]
     });

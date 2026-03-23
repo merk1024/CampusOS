@@ -268,22 +268,6 @@ body {
   transform: translateY(0);
 }
 
-.demo-hint {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: #f7fafc;
-  border-radius: var(--radius);
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  line-height: 1.8;
-}
-
-.demo-hint strong {
-  color: var(--text);
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
 /* ══════════════════════════════════════════════════════════
    MAIN APP LAYOUT
 ══════════════════════════════════════════════════════════ */
