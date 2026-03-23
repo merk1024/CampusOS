@@ -1,0 +1,47 @@
+<svg width="720" height="180" viewBox="0 0 720 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brand-light-blue" x1="20" y1="18" x2="128" y2="136" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#37C8FF"/>
+      <stop offset="1" stop-color="#0B6BFF"/>
+    </linearGradient>
+    <linearGradient id="brand-light-orange" x1="36" y1="58" x2="122" y2="142" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD15A"/>
+      <stop offset="1" stop-color="#FF6A00"/>
+    </linearGradient>
+    <linearGradient id="brand-light-os" x1="510" y1="34" x2="626" y2="132" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3AD6FF"/>
+      <stop offset="1" stop-color="#0B77FF"/>
+    </linearGradient>
+    <filter id="brand-light-shadow" x="10" y="10" width="140" height="140" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0F172A" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <g transform="translate(12 14)">
+    <g filter="url(#brand-light-shadow)">
+      <circle cx="74" cy="72" r="50" fill="#0E1628"/>
+      <circle cx="74" cy="72" r="39" fill="none" stroke="#1F2A44" stroke-width="4"/>
+      <ellipse cx="74" cy="72" rx="58" ry="39" transform="rotate(-30 74 72)" stroke="url(#brand-light-blue)" stroke-width="9"/>
+      <ellipse cx="74" cy="72" rx="62" ry="18" transform="rotate(-30 74 72)" stroke="url(#brand-light-orange)" stroke-width="9"/>
+    </g>
+    <path d="M74 18L78 30L90 34L78 38L74 50L70 38L58 34L70 30L74 18Z" fill="#FFD978"/>
+    <path d="M74 40L106 56V63H42V56L74 40Z" fill="#F7FAFF"/>
+    <path d="M52 65H96V71H52V65Z" fill="#F7FAFF"/>
+    <path d="M54 73H63V102H54V73Z" fill="#F7FAFF"/>
+    <path d="M69.5 73H78.5V102H69.5V73Z" fill="#F7FAFF"/>
+    <path d="M85 73H94V102H85V73Z" fill="#F7FAFF"/>
+    <path d="M46 104H102V111H46V104Z" fill="#F7FAFF"/>
+    <path d="M38 54H44V104H38V54Z" fill="#7F96C6"/>
+    <path d="M104 54H110V104H104V54Z" fill="#7F96C6"/>
+  </g>
+
+  <g transform="translate(170 0)">
+    <text x="0" y="118" fill="#0F172A" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="92" font-weight="800" letter-spacing="-3">
+      Campus
+    </text>
+    <text x="340" y="118" fill="url(#brand-light-os)" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="92" font-weight="800" letter-spacing="-3">
+      OS
+    </text>
+    <rect x="172" y="129" width="332" height="2.5" rx="1.25" fill="url(#brand-light-blue)" opacity="0.62"/>
+  </g>
+</svg>

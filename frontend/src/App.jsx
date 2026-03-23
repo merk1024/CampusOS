@@ -278,7 +278,7 @@ export default function App() {
         />
         <main className="main-content">{renderPage()}</main>
       </div>
-      <Footer />
+      <Footer theme={theme} />
     </div>
   );
 }

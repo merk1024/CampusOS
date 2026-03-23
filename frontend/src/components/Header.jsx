@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
-import campusosBrand from '../assets/campusos-brand.svg';
+import campusosBrandDark from '../assets/campusos-brand-dark.svg';
+import campusosBrandLight from '../assets/campusos-brand-light.svg';
 
 function MenuIcon() {
   return (
@@ -89,6 +90,7 @@ function MoonIcon() {
 
 function Header({ user, onLogout, onNavigate, onMenuToggle, theme, onToggleTheme }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const brandLogo = theme === 'dark' ? campusosBrandDark : campusosBrandLight;
 
   const handleNavigate = (page) => {
     onNavigate?.(page);
@@ -102,7 +104,7 @@ function Header({ user, onLogout, onNavigate, onMenuToggle, theme, onToggleTheme
           <MenuIcon />
         </button>
         <div className="logo">
-          <img src={campusosBrand} alt="CampusOS" className="logo-image" />
+          <img src={brandLogo} alt="CampusOS" className="logo-image" />
           <span className="logo-chip">Portal</span>
         </div>
       </div>
