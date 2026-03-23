@@ -1,6 +1,18 @@
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
 
+const getActiveUserFilter = () => (
+  db.client === 'postgres'
+    ? 'is_active = TRUE'
+    : 'is_active = 1'
+);
+
+const isJwtValidationError = (error) => (
+  error?.name === 'JsonWebTokenError'
+  || error?.name === 'TokenExpiredError'
+  || error?.name === 'NotBeforeError'
+);
+
 // Verify JWT token
 const auth = async (req, res, next) => {
   try {
@@ -14,7 +26,9 @@ const auth = async (req, res, next) => {
     
     // Get user from database
     const user = await db.get(
-      'SELECT id, email, name, role, student_id, group_name, subgroup_name FROM users WHERE id = ? AND is_active = 1',
+      `SELECT id, email, name, role, student_id, group_name, subgroup_name
+       FROM users
+       WHERE id = ? AND ${getActiveUserFilter()}`,
       [decoded.id]
     );
 
@@ -26,7 +40,11 @@ const auth = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
-    res.status(401).json({ error: 'Token is not valid' });
+    if (isJwtValidationError(error)) {
+      return res.status(401).json({ error: 'Token is not valid' });
+    }
+
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
