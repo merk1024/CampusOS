@@ -17,6 +17,15 @@ import Profile from './components/Profile';
 import Schedule from './components/Schedule';
 import Settings from './components/Settings';
 
+const SETTINGS_KEY = 'lms_app_settings';
+
+const DEFAULT_SETTINGS = {
+  language: 'English',
+  defaultPage: 'dashboard',
+  reminderMode: 'All notifications',
+  density: 'Comfortable',
+  theme: null
+};
 
 const storage = {
   get(key) {
@@ -34,30 +43,51 @@ const storage = {
   }
 };
 
-const getDefaultPage = () => {
+const readAppSettings = () => {
   try {
-    const settings = JSON.parse(localStorage.getItem('lms_app_settings'));
-    return settings?.defaultPage || 'dashboard';
+    const value = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    return { ...DEFAULT_SETTINGS, ...(value || {}) };
   } catch {
-    return 'dashboard';
+    return { ...DEFAULT_SETTINGS };
   }
+};
+
+const writeAppSettings = (patch) => {
+  const nextSettings = { ...readAppSettings(), ...patch };
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(nextSettings));
+  return nextSettings;
+};
+
+const getDefaultPage = () => readAppSettings().defaultPage || 'dashboard';
+
+const getInitialTheme = () => {
+  const storedTheme = readAppSettings().theme;
+  if (storedTheme === 'dark' || storedTheme === 'light') {
+    return storedTheme;
+  }
+
+  if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
+    return 'dark';
+  }
+
+  return 'light';
 };
 
 function Sidebar({ activePage, setActivePage, isOpen, onClose, user }) {
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
-    { id: 'courses', label: 'Courses', icon: '📚' },
-    { id: 'schedule', label: 'Schedule', icon: '🗓️' },
-    { id: 'exams', label: 'Exams', icon: '📝' },
-    { id: 'grades', label: 'Grades', icon: '📊' },
-    { id: 'assignments', label: 'Assignments', icon: '📝' },
-    { id: 'attendance', label: 'Attendance', icon: '📋' },
-    { id: 'messages', label: 'Messages', icon: '💬' },
-    { id: 'profile', label: 'Profile', icon: '👤' }
+    { id: 'dashboard', label: 'Dashboard', icon: 'DB' },
+    { id: 'courses', label: 'Courses', icon: 'CRS' },
+    { id: 'schedule', label: 'Schedule', icon: 'SCH' },
+    { id: 'exams', label: 'Exams', icon: 'EXM' },
+    { id: 'grades', label: 'Grades', icon: 'GRD' },
+    { id: 'assignments', label: 'Assignments', icon: 'ASN' },
+    { id: 'attendance', label: 'Attendance', icon: 'ATT' },
+    { id: 'messages', label: 'Messages', icon: 'MSG' },
+    { id: 'profile', label: 'Profile', icon: 'PRF' }
   ];
 
   if (user?.role === 'admin') {
-    menuItems.push({ id: 'userManagement', label: 'User Management', icon: '👥' });
+    menuItems.push({ id: 'userManagement', label: 'User Management', icon: 'USR' });
   }
 
   const handleNavigate = (page) => {
@@ -91,6 +121,13 @@ export default function App() {
   const [activePage, setActivePage] = useState(getDefaultPage);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState(getInitialTheme);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    writeAppSettings({ theme });
+  }, [theme]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -141,6 +178,14 @@ export default function App() {
     setSidebarOpen(false);
   };
 
+  const handleThemeChange = (nextTheme) => {
+    setTheme(nextTheme);
+  };
+
+  const handleThemeToggle = () => {
+    setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark'));
+  };
+
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard':
@@ -162,7 +207,14 @@ export default function App() {
       case 'profile':
         return <Profile user={user} />;
       case 'settings':
-        return <Settings user={user} onNavigate={setActivePage} />;
+        return (
+          <Settings
+            user={user}
+            onNavigate={setActivePage}
+            theme={theme}
+            onThemeChange={handleThemeChange}
+          />
+        );
       case 'userManagement':
         return <UserManagement user={user} />;
       default:
@@ -185,7 +237,14 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header user={user} onLogout={handleLogout} onNavigate={setActivePage} />
+      <Header
+        user={user}
+        onLogout={handleLogout}
+        onNavigate={setActivePage}
+        onMenuToggle={() => setSidebarOpen((value) => !value)}
+        theme={theme}
+        onToggleTheme={handleThemeToggle}
+      />
       <div className="app-body">
         <Sidebar
           activePage={activePage}

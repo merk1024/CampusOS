@@ -2,33 +2,35 @@ import { useState } from 'react';
 
 const SETTINGS_KEY = 'lms_app_settings';
 
+const DEFAULT_SETTINGS = {
+  language: 'English',
+  defaultPage: 'dashboard',
+  reminderMode: 'All notifications',
+  density: 'Comfortable',
+  theme: 'light'
+};
+
 const readSettings = () => {
   try {
-    return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {
-      language: 'English',
-      defaultPage: 'dashboard',
-      reminderMode: 'All notifications',
-      density: 'Comfortable'
-    };
+    return { ...DEFAULT_SETTINGS, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}) };
   } catch {
-    return {
-      language: 'English',
-      defaultPage: 'dashboard',
-      reminderMode: 'All notifications',
-      density: 'Comfortable'
-    };
+    return { ...DEFAULT_SETTINGS };
   }
 };
 
-function Settings({ user, onNavigate }) {
+function Settings({ user, onNavigate, theme, onThemeChange }) {
   const [settings, setSettings] = useState(readSettings);
   const [saved, setSaved] = useState('');
 
   const handleSave = (event) => {
     event.preventDefault();
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...settings, theme }));
     setSaved('Settings saved');
     window.setTimeout(() => setSaved(''), 2200);
+  };
+
+  const handleThemeSelect = (nextTheme) => {
+    onThemeChange?.(nextTheme);
   };
 
   return (
@@ -36,7 +38,7 @@ function Settings({ user, onNavigate }) {
       <div className="page-header">
         <div>
           <h1>Settings</h1>
-          <p>Manage your account preferences and quick navigation.</p>
+          <p>Manage your account preferences, theme, and quick navigation.</p>
         </div>
       </div>
 
@@ -78,6 +80,14 @@ function Settings({ user, onNavigate }) {
             <select value={settings.density} onChange={(event) => setSettings({ ...settings, density: event.target.value })}>
               <option>Comfortable</option>
               <option>Compact</option>
+            </select>
+          </label>
+
+          <label>
+            Theme
+            <select value={theme} onChange={(event) => handleThemeSelect(event.target.value)}>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
             </select>
           </label>
         </div>

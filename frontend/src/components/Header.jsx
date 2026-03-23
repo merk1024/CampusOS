@@ -2,6 +2,14 @@ import { useState } from 'react';
 
 import campusosBrand from '../assets/campusos-brand.svg';
 
+function MenuIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 7H20M4 12H20M4 17H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function SearchIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -51,7 +59,35 @@ function SettingsIcon() {
   );
 }
 
-function Header({ user, onLogout, onNavigate }) {
+function SunIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M12 2V4.5M12 19.5V22M4.93 4.93L6.7 6.7M17.3 17.3L19.07 19.07M2 12H4.5M19.5 12H22M4.93 19.07L6.7 17.3M17.3 6.7L19.07 4.93"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M20 14.5A7.5 7.5 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function Header({ user, onLogout, onNavigate, onMenuToggle, theme, onToggleTheme }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const handleNavigate = (page) => {
@@ -61,9 +97,14 @@ function Header({ user, onLogout, onNavigate }) {
 
   return (
     <header className="header">
-      <div className="logo">
-        <img src={campusosBrand} alt="CampusOS" className="logo-image" />
-        <span className="logo-chip">Portal</span>
+      <div className="header-left">
+        <button className="menu-btn" onClick={onMenuToggle} aria-label="Open navigation">
+          <MenuIcon />
+        </button>
+        <div className="logo">
+          <img src={campusosBrand} alt="CampusOS" className="logo-image" />
+          <span className="logo-chip">Portal</span>
+        </div>
       </div>
 
       <div className="header-center">
@@ -76,6 +117,15 @@ function Header({ user, onLogout, onNavigate }) {
       </div>
 
       <div className="header-right">
+        <button
+          className={`theme-toggle ${theme === 'dark' ? 'active' : ''}`}
+          onClick={onToggleTheme}
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+          <span className="theme-toggle-label">{theme === 'dark' ? 'Light' : 'Dark'}</span>
+        </button>
+
         <button className="icon-btn" onClick={() => handleNavigate('messages')} aria-label="Open messages">
           <BellIcon />
           <span className="badge">3</span>

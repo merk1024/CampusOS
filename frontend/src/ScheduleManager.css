@@ -25,7 +25,44 @@
   font-family: 'IBM Plex Sans', sans-serif;
 }
 
+:root[data-theme='dark'] {
+  --bg:       #060f1d;
+  --surface:  #0d172a;
+  --surface2: #111d32;
+  --border:   #22324b;
+  --text:     #e2e8f0;
+  --muted:    #94a3b8;
+  --accent:   #38bdf8;
+  --accent2:  #0ea5e9;
+  --lunch:    #1f2937;
+  --lunch-b:  #475569;
+  --shadow:   0 6px 20px rgba(2,6,23,.28);
+  --shadow-lg: 0 16px 36px rgba(2,6,23,.45);
+}
+
 body { background: var(--bg); color: var(--text); }
+
+:root[data-theme='dark'] .sm-header,
+:root[data-theme='dark'] .sm-toolbar-chip,
+:root[data-theme='dark'] .chip-btn {
+  background: #020817;
+}
+
+:root[data-theme='dark'] .sm-group-tab:hover,
+:root[data-theme='dark'] .sm-group-tab.active,
+:root[data-theme='dark'] .sf-radio:hover,
+:root[data-theme='dark'] .sf-radio.active,
+:root[data-theme='dark'] .sm-toast-info {
+  background: rgba(56, 189, 248, 0.12);
+}
+
+:root[data-theme='dark'] .sm-day-btn.active {
+  background: var(--accent);
+}
+
+:root[data-theme='dark'] .chip-btn:hover {
+  background: #111d32;
+}
 
 /* ── WRAPPER ───────────────────────────── */
 .sm-wrap {
