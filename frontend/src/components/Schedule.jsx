@@ -79,6 +79,7 @@ function Schedule() {
   const [selectedAudienceView, setSelectedAudienceView] = useState('group');
   const [selectedSubgroup, setSelectedSubgroup] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [selectedCourseFilter, setSelectedCourseFilter] = useState('');
   const [showCustomGroupInput, setShowCustomGroupInput] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
@@ -139,8 +140,23 @@ function Schedule() {
       return audienceType === 'group';
     });
   }, [isStudent, schedule, selectedAudienceView, selectedGroup, selectedStudentId, selectedSubgroup]);
+  const filteredSchedule = useMemo(() => (
+    selectedCourseFilter
+      ? visibleSchedule.filter((item) => String(item.course_id || '') === String(selectedCourseFilter))
+      : visibleSchedule
+  ), [selectedCourseFilter, visibleSchedule]);
+  const overviewByDay = useMemo(() => (
+    days
+      .map((day) => ({
+        day,
+        items: filteredSchedule
+          .filter((item) => item.day === day)
+          .sort((left, right) => timeSlots.indexOf(left.time_slot) - timeSlots.indexOf(right.time_slot))
+      }))
+      .filter((section) => section.items.length > 0)
+  ), [filteredSchedule]);
 
-  const scheduleMap = useMemo(() => new Map(visibleSchedule.map((item) => [`${item.day}__${item.time_slot}`, item])), [visibleSchedule]);
+  const scheduleMap = useMemo(() => new Map(filteredSchedule.map((item) => [`${item.day}__${item.time_slot}`, item])), [filteredSchedule]);
   const mergedBlocks = useMemo(() => {
     const signature = (item) => [item.subject, item.teacher, item.room, item.group_name, item.audience_type || 'group', item.subgroup_name || '', item.student_user_id || '', item.course_id || ''].join('||');
     const blocks = [];
@@ -196,7 +212,7 @@ function Schedule() {
       try {
         const [scheduleResponse, courseResponse, usersResponse] = await Promise.all([
           api.getSchedule(),
-          canEdit ? api.getCourses() : Promise.resolve({ courses: [] }),
+          api.getCourses(),
           isAdmin ? api.getUsers() : Promise.resolve({ users: [] })
         ]);
         const nextSchedule = normalizeEntries(scheduleResponse?.schedule || []);
@@ -246,6 +262,16 @@ function Schedule() {
     }
   }, [selectedAudienceView, selectedStudentId, studentOptions]);
 
+  useEffect(() => {
+    if (!selectedCourseFilter) return;
+    if (!filteredSchedule.some((item) => String(item.course_id || '') === String(selectedCourseFilter))) {
+      const courseStillExists = courseOptions.some((item) => String(item.id) === String(selectedCourseFilter));
+      if (!courseStillExists) {
+        setSelectedCourseFilter('');
+      }
+    }
+  }, [courseOptions, filteredSchedule, selectedCourseFilter]);
+
   const reloadSchedule = async (nextGroup = selectedGroup) => {
     const entries = await loadSchedule();
     if (isStudent) {
@@ -275,8 +301,12 @@ function Schedule() {
 
   const handleStudentPick = (studentId, applyToForm = false) => {
     setSelectedStudentId(studentId);
-    if (!applyToForm) return;
     const student = students.find((item) => String(item.id) === String(studentId));
+    if (student?.group_name) {
+      setSelectedGroup(student.group_name);
+      setShowCustomGroupInput(false);
+    }
+    if (!applyToForm) return;
     if (!student) return;
     setFormData((current) => ({
       ...current,
@@ -285,6 +315,18 @@ function Schedule() {
       subgroup_name: '',
       audience_type: 'individual'
     }));
+  };
+
+  const resetFilters = () => {
+    if (isStudent) {
+      setSelectedCourseFilter('');
+      return;
+    }
+
+    setSelectedAudienceView('group');
+    setSelectedSubgroup('');
+    setSelectedCourseFilter('');
+    setSelectedGroup(groupOptions[0] || '');
   };
 
   const handleCoursePick = (courseId) => {
@@ -584,6 +626,17 @@ function Schedule() {
                 </div>
               </div>
             )}
+
+            <div className="schedule-group-field">
+              <span className="management-summary-label">Course filter</span>
+              <div className="schedule-group-select-row">
+                <select className="schedule-group-select" value={selectedCourseFilter} onChange={(event) => setSelectedCourseFilter(event.target.value)}>
+                  <option value="">All linked courses</option>
+                  {courseOptions.map((course) => <option key={course.id} value={course.id}>{course.code} - {course.name}</option>)}
+                </select>
+                <button type="button" className="management-filter-chip" onClick={resetFilters}>Reset view</button>
+              </div>
+            </div>
           </div>
           <p className="schedule-group-hint">
             {selectedAudienceView === 'individual'
@@ -596,7 +649,51 @@ function Schedule() {
       ) : (
         <div className="management-toolbar schedule-group-toolbar">
           <div className="schedule-group-field"><span className="management-summary-label">Your timetable source</span><input value={`${studentGroup}${studentSubgroup ? ` / ${studentSubgroup}` : ''}`} readOnly /></div>
+          <div className="schedule-group-field">
+            <span className="management-summary-label">Course filter</span>
+            <div className="schedule-group-select-row">
+              <select className="schedule-group-select" value={selectedCourseFilter} onChange={(event) => setSelectedCourseFilter(event.target.value)}>
+                <option value="">All linked courses</option>
+                {courseOptions.map((course) => <option key={course.id} value={course.id}>{course.code} - {course.name}</option>)}
+              </select>
+              <button type="button" className="management-filter-chip" onClick={resetFilters}>Reset</button>
+            </div>
+          </div>
           <p className="schedule-group-hint">Students see a personal timetable built from selected subjects, group classes, subgroup classes, and manual personal slots.</p>
+        </div>
+      )}
+
+      {overviewByDay.length > 0 && (
+        <div className="schedule-overview-strip">
+          {overviewByDay.map((section) => (
+            <div key={section.day} className="schedule-overview-card">
+              <div className="schedule-overview-head">
+                <strong>{section.day}</strong>
+                <span>{section.items.length} class{section.items.length === 1 ? '' : 'es'}</span>
+              </div>
+              <div className="schedule-overview-body">
+                {section.items.slice(0, 4).map((item) => (
+                  canEdit ? (
+                    <button
+                      key={`${item.id}-${item.time_slot}`}
+                      type="button"
+                      className="schedule-overview-item"
+                      onClick={() => handleCellClick(item.day, item.time_slot)}
+                    >
+                      <span>{item.time_slot}</span>
+                      <strong>{item.subject}</strong>
+                    </button>
+                  ) : (
+                    <div key={`${item.id}-${item.time_slot}`} className="schedule-overview-item">
+                      <span>{item.time_slot}</span>
+                      <strong>{item.subject}</strong>
+                    </div>
+                  )
+                ))}
+                {section.items.length > 4 && <div className="schedule-overview-more">+{section.items.length - 4} more</div>}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -631,7 +728,13 @@ function Schedule() {
                     {block.entry.course_code && <div className="class-teacher">{block.entry.course_code}</div>}
                     <div className="class-teacher">{block.entry.teacher}</div>
                     <div className="class-room">Room: {block.entry.room || 'TBD'}</div>
-                    <div className="class-group">Group: {block.entry.group_name}{block.entry.subgroup_name ? ` / ${block.entry.subgroup_name}` : ''}{(block.entry.audience_type || 'group') === 'individual' && block.entry.student_user_id ? ` / Student #${block.entry.student_user_id}` : ''}</div>
+                    <div className="class-group">
+                      Group: {block.entry.group_name}
+                      {block.entry.subgroup_name ? ` / ${block.entry.subgroup_name}` : ''}
+                      {(block.entry.audience_type || 'group') === 'individual' && block.entry.student_user_id
+                        ? ` / ${getStudentLabel(students.find((item) => String(item.id) === String(block.entry.student_user_id)) || (Number(block.entry.student_user_id) === Number(user?.id) ? user : null))}`
+                        : ''}
+                    </div>
                     {canEdit && <div className="class-copy-hint">Drag to copy</div>}
                     {block.span > 1 && <div className="class-duration">{block.span} slots | {block.startSlot} to {block.endSlot}</div>}
                   </div>
