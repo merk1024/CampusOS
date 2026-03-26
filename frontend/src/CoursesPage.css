@@ -275,16 +275,42 @@ body, input, select, textarea, button { font-family: 'Plus Jakarta Sans', sans-s
 
 /* FORMS */
 .cd-inline-form { background:var(--surf2); border:2px solid var(--border); border-radius:var(--r-lg); padding:2rem; margin-bottom:2rem; box-shadow:var(--sh); }
-.cd-form-grid { display:grid; grid-template-columns:100px 1fr 1fr; gap:1.25rem; margin-bottom:1.5rem; }
-.cd-form-grid label { display:flex; flex-direction:column; gap:0.5rem; }
-.cd-form-grid span { font-size:0.8rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
+.cd-form-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:1.1rem;
+  margin-bottom:1.5rem;
+  align-items:start;
+}
+.cd-form-grid label {
+  display:flex;
+  flex-direction:column;
+  gap:0.6rem;
+  min-width:0;
+}
+.cd-form-grid span {
+  display:block;
+  font-size:0.8rem;
+  font-weight:700;
+  line-height:1.2;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+}
 .cd-form-wide { grid-column:1 / -1; }
 .cd-form-grid input, .cd-form-grid select, .cd-form-grid textarea {
-  padding:0.75rem 1rem; border:2px solid var(--border); border-radius:12px; font-size:0.95rem;
+  width:100%;
+  min-height:50px;
+  padding:0.85rem 1rem;
+  border:2px solid var(--border);
+  border-radius:12px;
+  font-size:0.95rem;
+  line-height:1.45;
   font-family:'Plus Jakarta Sans',sans-serif; background:var(--surface); color:var(--text);
   outline:none; transition:all 0.2s;
 }
 .cd-form-grid input:focus, .cd-form-grid select:focus, .cd-form-grid textarea:focus { border-color:#38bdf8; box-shadow:0 0 0 4px var(--accent-bg); }
+.cd-form-grid textarea { min-height:120px; resize:vertical; }
 .cd-form-actions { display:flex; gap:0.875rem; justify-content:flex-end; }
 .cd-btn-pri { padding:0.75rem 1.5rem; border:none; border-radius:12px; background:linear-gradient(135deg,var(--accent),var(--accent-hover)); color:#fff; font-size:0.9rem; font-weight:700; cursor:pointer; transition:var(--transition); box-shadow:var(--sh); }
 .cd-btn-pri:hover { transform:translateY(-2px); box-shadow:var(--sh-md); }
