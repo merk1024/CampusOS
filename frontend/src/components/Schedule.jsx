@@ -793,7 +793,7 @@ function Schedule() {
         <div className="lms-empty">Choose or type a group name above to start building its schedule.</div>
       ) : (
         <div className="schedule-grid">
-          <div className="schedule-grid-board" style={{ gridTemplateColumns: '80px repeat(6, minmax(150px, 1fr))', gridTemplateRows: `52px repeat(${timeSlots.length}, 56px)` }}>
+          <div className="schedule-grid-board" style={{ gridTemplateColumns: '76px repeat(6, minmax(122px, 1fr))', gridTemplateRows: `52px repeat(${timeSlots.length}, 56px)` }}>
             <div className="schedule-board-corner"></div>
             {days.map((day, index) => <div key={day} className="day-column schedule-grid-day" style={{ gridColumn: index + 2, gridRow: 1 }}>{day}</div>)}
             {timeSlots.map((slot, index) => <div key={slot} className="time-column schedule-grid-time" style={{ gridColumn: 1, gridRow: index + 2 }}>{getSlotStart(slot)}</div>)}
