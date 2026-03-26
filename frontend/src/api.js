@@ -313,6 +313,27 @@ export const api = {
     return request(`/attendance/student/${studentId}`, { headers: getHeaders() });
   },
 
+  async getAttendanceSessions(date) {
+    return request(`/attendance/management/sessions?date=${encodeURIComponent(date)}`, {
+      headers: getHeaders()
+    });
+  },
+
+  async getAttendanceSession(scheduleId, date) {
+    return request(
+      `/attendance/management/session/${encodeURIComponent(scheduleId)}?date=${encodeURIComponent(date)}`,
+      { headers: getHeaders() }
+    );
+  },
+
+  async saveAttendanceBatch(scheduleId, date, records) {
+    return request('/attendance/bulk', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ scheduleId, date, records })
+    });
+  },
+
   async markAttendance(scheduleId, studentId, date, status) {
     return request('/attendance', {
       method: 'POST',
