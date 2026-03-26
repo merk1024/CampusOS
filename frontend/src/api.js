@@ -290,6 +290,21 @@ export const api = {
     return request('/announcements', { headers: getHeaders() });
   },
 
+  async createAnnouncement(announcementData) {
+    return request('/announcements', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(announcementData)
+    });
+  },
+
+  async deleteAnnouncement(id) {
+    return request(`/announcements/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+  },
+
   async getAssignments() {
     return request('/assignments', { headers: getHeaders() });
   },

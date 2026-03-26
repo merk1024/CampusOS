@@ -1,51 +1,134 @@
-import { useState, useEffect } from 'react';
-import { api } from '../api';
+import { useEffect, useMemo, useState } from 'react';
 
-// Messages
-function Messages() {
+import { api } from '../api';
+import { canManageAcademicRecords } from '../roles';
+
+const EMPTY_FORM = {
+  title: '',
+  content: '',
+  type: 'general',
+  isPinned: false
+};
+
+const TYPE_META = {
+  all: { label: 'All', badge: 'ALL' },
+  important: { label: 'Important', badge: 'IMP' },
+  exam: { label: 'Exams', badge: 'EXM' },
+  general: { label: 'General', badge: 'GEN' }
+};
+
+const formatAnnouncementDate = (value) => {
+  if (!value) return 'Date unavailable';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Date unavailable';
+
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
+};
+
+function Messages({ user }) {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [filter, setFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showComposer, setShowComposer] = useState(false);
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const loadAnnouncements = async () => {
-      try {
-        const response = await api.getAnnouncements();
-        setAnnouncements(response.announcements || []);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const canManage = canManageAcademicRecords(user);
 
-    loadAnnouncements();
-  }, []);
-
-  const filteredAnnouncements = announcements.filter(ann =>
-    filter === 'all' || ann.type === filter
-  ).sort((a, b) => {
-    if (a.is_pinned && !b.is_pinned) return -1;
-    if (!a.is_pinned && b.is_pinned) return 1;
-    return new Date(b.created_at) - new Date(a.created_at);
-  });
-
-  const getTypeColor = (type) => {
-    switch (type) {
-      case 'important': return '#ef4444';
-      case 'exam': return '#f59e0b';
-      case 'general': return '#10b981';
-      default: return '#6b7280';
+  const loadAnnouncements = async () => {
+    try {
+      setLoading(true);
+      const response = await api.getAnnouncements();
+      setAnnouncements(response?.announcements || []);
+      setError('');
+    } catch (err) {
+      setError(err.message || 'Failed to load messages');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getTypeIcon = (type) => {
-    switch (type) {
-      case 'important': return '⚠️';
-      case 'exam': return '📝';
-      case 'general': return '📢';
-      default: return '💬';
+  useEffect(() => {
+    loadAnnouncements();
+  }, []);
+
+  const filteredAnnouncements = useMemo(() => (
+    announcements
+      .filter((announcement) => (
+        (filter === 'all' || announcement.type === filter)
+        && [
+          announcement.title,
+          announcement.content,
+          announcement.author_name,
+          announcement.type
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(searchTerm.trim().toLowerCase())
+      ))
+      .sort((left, right) => {
+        if (left.is_pinned && !right.is_pinned) return -1;
+        if (!left.is_pinned && right.is_pinned) return 1;
+        return new Date(right.created_at) - new Date(left.created_at);
+      })
+  ), [announcements, filter, searchTerm]);
+
+  const summary = useMemo(() => ({
+    total: announcements.length,
+    pinned: announcements.filter((announcement) => announcement.is_pinned).length,
+    important: announcements.filter((announcement) => announcement.type === 'important').length
+  }), [announcements]);
+
+  const resetComposer = () => {
+    setFormData(EMPTY_FORM);
+    setShowComposer(false);
+  };
+
+  const handleCreateAnnouncement = async (event) => {
+    event.preventDefault();
+
+    try {
+      setSaving(true);
+      await api.createAnnouncement({
+        title: formData.title.trim(),
+        content: formData.content.trim(),
+        type: formData.type,
+        isPinned: formData.isPinned
+      });
+      await loadAnnouncements();
+      setNotice('Announcement published.');
+      resetComposer();
+      window.setTimeout(() => setNotice(''), 2200);
+    } catch (err) {
+      setError(err.message || 'Failed to publish announcement');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id) => {
+    if (!window.confirm('Delete this announcement?')) {
+      return;
+    }
+
+    try {
+      await api.deleteAnnouncement(id);
+      await loadAnnouncements();
+      setNotice('Announcement deleted.');
+      window.setTimeout(() => setNotice(''), 2200);
+    } catch (err) {
+      setError(err.message || 'Failed to delete announcement');
     }
   };
 
@@ -53,7 +136,7 @@ function Messages() {
     return (
       <div className="page">
         <div className="page-header">
-          <h1>💬 Messages</h1>
+          <h1>Messages</h1>
           <p>Loading announcements...</p>
         </div>
         <div className="loading-spinner"></div>
@@ -61,11 +144,11 @@ function Messages() {
     );
   }
 
-  if (error) {
+  if (error && !announcements.length) {
     return (
       <div className="page">
         <div className="page-header">
-          <h1>💬 Messages</h1>
+          <h1>Messages</h1>
           <p>Error loading messages: {error}</p>
         </div>
       </div>
@@ -76,62 +159,160 @@ function Messages() {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>💬 Messages</h1>
-          <p>Announcements and notifications</p>
+          <h1>Messages</h1>
+          <p>Campus announcements, exam notices, and important updates.</p>
         </div>
-        <div className="filter-buttons">
-          <button
-            className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-            onClick={() => setFilter('all')}
-          >
-            All
+        {canManage && (
+          <button className="btn-primary" onClick={() => setShowComposer((current) => !current)}>
+            {showComposer ? 'Close composer' : 'New announcement'}
           </button>
-          <button
-            className={`filter-btn ${filter === 'important' ? 'active' : ''}`}
-            onClick={() => setFilter('important')}
-          >
-            Important
-          </button>
-          <button
-            className={`filter-btn ${filter === 'exam' ? 'active' : ''}`}
-            onClick={() => setFilter('exam')}
-          >
-            Exams
-          </button>
-          <button
-            className={`filter-btn ${filter === 'general' ? 'active' : ''}`}
-            onClick={() => setFilter('general')}
-          >
-            General
-          </button>
+        )}
+      </div>
+
+      {error && <div className="error-message">{error}</div>}
+      {notice && <div className="success-message">{notice}</div>}
+
+      <div className="management-summary-grid">
+        <div className="management-summary-card">
+          <span className="management-summary-label">Total messages</span>
+          <strong>{summary.total}</strong>
+        </div>
+        <div className="management-summary-card">
+          <span className="management-summary-label">Pinned</span>
+          <strong>{summary.pinned}</strong>
+        </div>
+        <div className="management-summary-card">
+          <span className="management-summary-label">Important</span>
+          <strong>{summary.important}</strong>
         </div>
       </div>
+
+      <div className="management-toolbar messages-toolbar">
+        <div className="management-search">
+          <input
+            type="text"
+            placeholder="Search by title, content, author or type"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
+        </div>
+        <div className="filter-buttons">
+          {Object.entries(TYPE_META).map(([typeKey, meta]) => (
+            <button
+              key={typeKey}
+              type="button"
+              className={`filter-btn ${filter === typeKey ? 'active' : ''}`}
+              onClick={() => setFilter(typeKey)}
+            >
+              {meta.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {canManage && showComposer && (
+        <form className="exam-form-card message-compose-card" onSubmit={handleCreateAnnouncement}>
+          <div className="exam-form-header">
+            <div>
+              <h3>Publish announcement</h3>
+              <p>Share important updates with students and staff from one place.</p>
+            </div>
+          </div>
+          <div className="exam-form-grid">
+            <label className="exam-form-field">
+              <span className="exam-form-label">Title</span>
+              <input
+                type="text"
+                placeholder="Announcement title"
+                value={formData.title}
+                onChange={(event) => setFormData({ ...formData, title: event.target.value })}
+                required
+              />
+            </label>
+            <label className="exam-form-field">
+              <span className="exam-form-label">Type</span>
+              <select
+                value={formData.type}
+                onChange={(event) => setFormData({ ...formData, type: event.target.value })}
+              >
+                <option value="general">General</option>
+                <option value="important">Important</option>
+                <option value="exam">Exam</option>
+              </select>
+            </label>
+            <label className="exam-form-field exam-form-field-wide">
+              <span className="exam-form-label">Content</span>
+              <textarea
+                className="message-compose-textarea"
+                placeholder="Write the announcement details here"
+                value={formData.content}
+                onChange={(event) => setFormData({ ...formData, content: event.target.value })}
+                rows="5"
+                required
+              />
+            </label>
+          </div>
+          <label className="message-pin-toggle">
+            <input
+              type="checkbox"
+              checked={formData.isPinned}
+              onChange={(event) => setFormData({ ...formData, isPinned: event.target.checked })}
+            />
+            <span>Pin this announcement to the top</span>
+          </label>
+          <div className="portal-actions">
+            <button type="button" className="btn-secondary" onClick={resetComposer}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? 'Publishing...' : 'Publish'}
+            </button>
+          </div>
+        </form>
+      )}
 
       <div className="messages-list">
         {filteredAnnouncements.length === 0 ? (
           <div className="no-messages">
-            <p>No messages available</p>
+            <h3>No messages found</h3>
+            <p>Try another filter or clear the search.</p>
           </div>
         ) : (
-          filteredAnnouncements.map(announcement => (
-            <div key={announcement.id} className={`message-card ${announcement.is_pinned ? 'pinned' : ''}`}>
-              <div className="message-header">
-                <div className="message-type" style={{ backgroundColor: getTypeColor(announcement.type) }}>
-                  {getTypeIcon(announcement.type)}
+          filteredAnnouncements.map((announcement) => {
+            const typeKey = TYPE_META[announcement.type] ? announcement.type : 'general';
+            const meta = TYPE_META[typeKey];
+
+            return (
+              <article key={announcement.id} className={`message-card ${announcement.is_pinned ? 'pinned' : ''}`}>
+                <div className="message-header">
+                  <div className="message-meta">
+                    <div className="message-badge-row">
+                      <span className={`message-type-badge ${typeKey}`}>{meta.badge}</span>
+                      <span className="message-type-label">{meta.label}</span>
+                      {announcement.is_pinned && <span className="pinned-badge">Pinned</span>}
+                    </div>
+                    <h3>{announcement.title}</h3>
+                    <div className="message-subline">
+                      <span>{announcement.author_name || 'CampusOS'}</span>
+                      <span>{formatAnnouncementDate(announcement.created_at)}</span>
+                    </div>
+                  </div>
+                  {canManage && (
+                    <div className="message-actions">
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => handleDeleteAnnouncement(announcement.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="message-meta">
-                  <h3>{announcement.title}</h3>
-                  {announcement.is_pinned && <span className="pinned-badge">📌 Pinned</span>}
+                <div className="message-content">
+                  {announcement.content}
                 </div>
-                <div className="message-date">
-                  {new Date(announcement.created_at).toLocaleDateString()}
-                </div>
-              </div>
-              <div className="message-content">
-                {announcement.content}
-              </div>
-            </div>
-          ))
+              </article>
+            );
+          })
         )}
       </div>
     </div>
