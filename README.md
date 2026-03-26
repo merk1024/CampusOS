@@ -1,241 +1,264 @@
 # CampusOS
 
-CampusOS — это веб-система для управления учебным процессом университета.
-Платформа объединяет расписание занятий, экзамены, курсы, оценки и управление пользователями в одной цифровой среде.
+CampusOS — это веб-платформа для управления учебным процессом университета.  
+Проект объединяет курсы, расписание, экзамены, оценки, задания, посещаемость, объявления и управление пользователями в одной системе с ролями для студентов, преподавателей и администрации.
 
-Система предназначена для университетов, колледжей и образовательных центров, которые хотят централизовать управление академическими данными.
+## Что уже умеет платформа
 
----
+- авторизация по email или student ID
+- роли `student`, `teacher`, `admin`, `superadmin`
+- управление курсами и назначение преподавателя на предмет
+- запись студентов на предметы
+- групповое, подгрупповое и индивидуальное расписание
+- экзамены и выставление оценок
+- домашние задания и академические записи
+- attendance management для преподавателя и история посещаемости для студента
+- объявления и сообщения для пользователей
+- профиль, настройки, светлая и тёмная тема
+- админ-панель управления пользователями
 
-# Основные возможности
+## Текущий стек
 
-• управление расписанием занятий
-• управление экзаменами
-• управление курсами и предметами
-• система оценок студентов
-• роли пользователей (студент, преподаватель, администратор)
-• поиск и фильтрация данных
-• импорт и экспорт информации
-• современный адаптивный интерфейс
+**Frontend**
 
----
+- React 19
+- Vite
+- CSS modules / global CSS without UI framework
 
-# Архитектура системы
+**Backend**
 
-CampusOS использует современный стек веб-разработки.
+- Node.js
+- Express
+- JWT authentication
 
-Frontend:
-React + Vite
+**Database**
 
-Backend:
-Node.js + Express
+- SQLite для локальной разработки
+- PostgreSQL для онлайн-развёртывания
 
-Database:
-MongoDB
+**Security / quality**
 
-Authentication:
-JWT (JSON Web Token)
+- `helmet`
+- `cors`
+- `express-rate-limit`
+- `eslint-plugin-security`
+- `npm audit`
+- локальный secret scan
+- OWASP ZAP baseline script
 
----
+## Структура проекта
 
-# Структура проекта
-
-```
+```text
 CampusOS/
-│
-├── backend/        серверная часть (API, база данных, авторизация)
-│
-├── frontend/       React-приложение
-│
+├── backend/                 # API, auth, routes, seed, database adapters
+├── frontend/                # React/Vite client
+├── docs/                    # exported reports and documents
+├── scripts/                 # security and reporting scripts
+├── render.yaml              # Render blueprint
+├── POSTGRES_DEPLOY.md       # краткие заметки по PostgreSQL deploy
+├── ROADMAP.md               # product and technical roadmap
 └── README.md
 ```
 
----
+## Быстрый старт
 
-# Быстрый старт
+### 1. Клонирование
 
-## 1. Клонирование проекта
-
-```
+```bash
 git clone <repository_url>
 cd CampusOS
 ```
 
----
+### 2. Установка зависимостей
 
-# Установка зависимостей
-
-## Backend
-
-```
+```bash
 cd backend
 npm install
-```
-
-## Frontend
-
-```
 cd ../frontend
 npm install
 ```
 
----
+### 3. Настройка backend `.env`
 
-# Запуск системы
+Создайте `backend/.env` на основе `backend/.env.example`.
 
-## Запуск backend
+Минимальный локальный пример:
 
+```env
+PORT=5000
+NODE_ENV=development
+DB_CLIENT=sqlite
+JWT_SECRET=change_me_for_local_dev
+FRONTEND_URL=http://localhost:5173
+
+SUPERADMIN_BOOTSTRAP_PASSWORD=ChangeMe123!
+SEED_ADMIN_PASSWORD=ChangeMe123!
+SEED_TEACHER_PASSWORD=ChangeMe123!
+SEED_STUDENT_PASSWORD=ChangeMe123!
 ```
+
+Важно:
+
+- seed больше не содержит пароли в репозитории
+- все seed-аккаунты создаются только из переменных окружения
+- для production обязательно задайте новый сильный `JWT_SECRET`
+
+### 4. Запуск backend
+
+```bash
 cd backend
 npm run dev
 ```
 
-Сервер будет доступен по адресу:
+API по умолчанию запускается на:
 
+```text
+http://localhost:5000
 ```
-http://localhost:3001
+
+Проверка health endpoint:
+
+```text
+http://localhost:5000/health
 ```
 
----
+### 5. Запуск frontend
 
-## Запуск frontend
-
-```
+```bash
 cd frontend
 npm run dev
 ```
 
-Открыть в браузере:
+Frontend по умолчанию доступен на:
 
-```
+```text
 http://localhost:5173
 ```
 
----
+### 6. Заполнение демо-данных
 
-# База данных
+Перед сидированием задайте пароли в `backend/.env`, затем выполните:
 
-CampusOS использует MongoDB.
-
-Подключение настраивается в backend:
-
-```
-mongoose.connect("mongodb://localhost:27017/campusos")
+```bash
+cd backend
+npm run seed
 ```
 
-Можно использовать:
+Что создаётся:
 
-• локальную MongoDB
-• MongoDB Atlas (облачную)
+- супер-аккаунт владельца
+- admin-аккаунт
+- несколько преподавателей
+- 13 студентов
+- набор предметов
+- записи студентов на курсы
+- расписание для групп, подгрупп и индивидуальных занятий
 
----
+Логин поддерживает:
 
-# Основные коллекции базы данных
+- email
+- student ID
 
-## users
+## Работа с базой данных
 
-```
-{
-  name: "Student Name",
-  login: "student",
-  password: "hashed_password",
-  role: "student",
-  group: "COMSE-25",
-  email: "student@university.edu",
-  createdAt: "2026-01-01"
-}
-```
+### SQLite
 
----
+Используется по умолчанию локально:
 
-## schedule
-
-```
-{
-  day: "Monday",
-  group: "COMSE-25",
-  time: "10:00-10:40",
-  subject: "Calculus",
-  teacher: "Professor Name",
-  room: "B107"
-}
+```env
+DB_CLIENT=sqlite
 ```
 
----
+Файл базы:
 
-## exams
-
-```
-{
-  group: "COMSE-25",
-  subject: "Programming",
-  date: "2026-02-10",
-  time: "10:00",
-  room: "BIGLAB",
-  teacher: "Teacher Name",
-  semester: "Spring 2026",
-  students: [],
-  grades: {}
-}
+```text
+backend/database.db
 ```
 
----
+### PostgreSQL
 
-# Аутентификация
+Для Render или другого онлайн-хостинга переключение идёт через:
 
-Система использует JWT для авторизации пользователей.
-
-Backend использует библиотеки:
-
-```
-jsonwebtoken
-bcrypt
+```env
+DB_CLIENT=postgres
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DBNAME
 ```
 
-Это обеспечивает безопасную авторизацию и хранение паролей.
+При запуске backend автоматически:
 
----
+1. подключается к выбранной базе
+2. применяет схему
+3. добирает отсутствующие колонки миграцией адаптера
 
-# Развертывание (Deployment)
+## Render deploy
 
-Backend можно разместить на:
+В репозитории уже есть `render.yaml` с blueprint-конфигурацией:
 
-• Railway
-• Render
-• VPS сервер
+- `web-table-exam-db` — PostgreSQL
+- `web-table-exam-api` — backend service
+- `web-table-exam-frontend` — static frontend
 
-База данных:
+Что важно перед первым deploy:
 
-• MongoDB Atlas
-• Supabase
-• Firebase
+1. Указать production-пароли для:
+   - `SUPERADMIN_BOOTSTRAP_PASSWORD`
+   - `SEED_ADMIN_PASSWORD`
+   - `SEED_TEACHER_PASSWORD`
+   - `SEED_STUDENT_PASSWORD`
+2. Убедиться, что `FRONTEND_URL` у backend совпадает с frontend domain
+3. Убедиться, что `VITE_API_BASE_URL` у frontend указывает на backend `/api`
 
----
+Blueprint уже использует:
 
-# Будущие функции (Roadmap)
+- `DB_CLIENT=postgres`
+- `DATABASE_URL` из Render database
+- `preDeployCommand: npm run seed`
 
-• мобильное приложение
-• push-уведомления
-• интеграция с университетской почтой
-• аналитика успеваемости студентов
-• система уведомлений о экзаменах
+## Ключевые backend scripts
 
----
+В `backend/package.json` доступны:
 
-# Автор
+- `npm run dev` — локальная разработка
+- `npm start` — production start
+- `npm run seed` — создание демо-данных
+- `npm run cleanup-demo-data` — очистка старых временных данных
+
+## Security scripts
+
+В корневом `package.json` доступны:
+
+- `npm run audit:backend`
+- `npm run audit:frontend`
+- `npm run scan:secrets`
+- `npm run scan:zap`
+- `npm run export:security-docx`
+
+## Product direction
+
+Сейчас CampusOS развивается как **web-first academic portal**.  
+Приоритет — завершить и стабилизировать веб-платформу, а уже после этого делать Android-версию.
+
+Отдельная продуктовая идея проекта — не обязательно заменять существующие университетские системы целиком, а при необходимости выступать как единый удобный интерфейс поверх уже существующих источников данных.
+
+## Ближайшие продуктовые задачи
+
+- импорт реальных университетских данных из CSV / Excel / SQL dump
+- улучшение admin workflow для массового управления пользователями и курсами
+- ускорение сценариев для преподавателя в attendance и schedule
+- стабилизация API и подготовка к staging / pilot launch
+
+Подробный план находится в `ROADMAP.md`.
+
+## Автор
 
 Erbol Abdusaitov
 
-Email: [erbolabdusaito@gmail.com](mailto:erbolabdusaito@gmail.com)
-Telegram: @merk1024
+- Email: [erbolabdusaito@gmail.com](mailto:erbolabdusaito@gmail.com)
+- Telegram: `@merk1024`
 
----
-
-# Лицензия
+## Лицензия
 
 Copyright (c) 2026 Erbol Abdusaitov
 
-All rights reserved.
-
+All rights reserved.  
 Проект CampusOS является интеллектуальной собственностью автора.
-Копирование, распространение или использование исходного кода без разрешения автора запрещено.
