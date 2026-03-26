@@ -293,41 +293,53 @@ function Grades({ user }) {
             </div>
           </div>
           <div className="exam-form-grid">
-            <select
-              value={managerForm.examId}
-              onChange={(event) => handleManagerInput('examId', event.target.value)}
-              required
-            >
-              <option value="">Select exam</option>
-              {exams.map((exam) => (
-                <option key={exam.id} value={exam.id}>
-                  {exam.subject} - {exam.group_name} - {exam.exam_date}
-                </option>
-              ))}
-            </select>
-            <input
-              list="grade-student-ids"
-              type="text"
-              placeholder="Student ID"
-              value={managerForm.studentId}
-              onChange={(event) => handleManagerInput('studentId', event.target.value)}
-              required
-            />
-            <input
-              type="number"
-              min="0"
-              max="100"
-              placeholder="Grade"
-              value={managerForm.grade}
-              onChange={(event) => handleManagerInput('grade', event.target.value)}
-              required
-            />
-            <input
-              type="text"
-              placeholder="Comments"
-              value={managerForm.comments}
-              onChange={(event) => handleManagerInput('comments', event.target.value)}
-            />
+            <label className="exam-form-field">
+              <span className="exam-form-label">Exam</span>
+              <select
+                value={managerForm.examId}
+                onChange={(event) => handleManagerInput('examId', event.target.value)}
+                required
+              >
+                <option value="">Select exam</option>
+                {exams.map((exam) => (
+                  <option key={exam.id} value={exam.id}>
+                    {exam.subject} - {exam.group_name} - {exam.exam_date}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="exam-form-field">
+              <span className="exam-form-label">Student ID</span>
+              <input
+                list="grade-student-ids"
+                type="text"
+                placeholder="Enter student ID"
+                value={managerForm.studentId}
+                onChange={(event) => handleManagerInput('studentId', event.target.value)}
+                required
+              />
+            </label>
+            <label className="exam-form-field">
+              <span className="exam-form-label">Grade</span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                placeholder="0 to 100"
+                value={managerForm.grade}
+                onChange={(event) => handleManagerInput('grade', event.target.value)}
+                required
+              />
+            </label>
+            <label className="exam-form-field">
+              <span className="exam-form-label">Comments</span>
+              <input
+                type="text"
+                placeholder="Optional comment"
+                value={managerForm.comments}
+                onChange={(event) => handleManagerInput('comments', event.target.value)}
+              />
+            </label>
           </div>
           <datalist id="grade-student-ids">
             {students.map((student) => (

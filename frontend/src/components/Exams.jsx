@@ -196,59 +196,83 @@ function Exams({ user }) {
             </div>
           </div>
           <div className="exam-form-grid">
-            <input
-              type="text"
-              placeholder="Group"
-              value={formData.group_name}
-              onChange={(event) => setFormData({ ...formData, group_name: event.target.value })}
-              required
-            />
-            <input
-              type="text"
-              placeholder="Subject"
-              value={formData.subject}
-              onChange={(event) => setFormData({ ...formData, subject: event.target.value })}
-              required
-            />
-            <input
-              type="date"
-              value={formData.exam_date}
-              onChange={(event) => setFormData({ ...formData, exam_date: event.target.value })}
-              required
-            />
-            <input
-              type="time"
-              value={formData.exam_time}
-              onChange={(event) => setFormData({ ...formData, exam_time: event.target.value })}
-              required
-            />
-            <input
-              type="text"
-              placeholder="Room"
-              value={formData.room}
-              onChange={(event) => setFormData({ ...formData, room: event.target.value })}
-            />
-            <input
-              type="text"
-              placeholder="Type"
-              value={formData.type}
-              onChange={(event) => setFormData({ ...formData, type: event.target.value })}
-            />
-            <select
-              value={formData.semester}
-              onChange={(event) => setFormData({ ...formData, semester: event.target.value })}
-            >
-              <option value="">Select semester</option>
-              <option value="Spring 2025-2026">Spring 2025-2026</option>
-              <option value="Fall 2025-2026">Fall 2025-2026</option>
-            </select>
-            <textarea
-              className="exam-students-textarea"
-              placeholder="Student IDs, separated by commas or new lines"
-              value={formData.studentsText}
-              onChange={(event) => setFormData({ ...formData, studentsText: event.target.value })}
-              rows="3"
-            />
+            <label className="exam-form-field">
+              <span className="exam-form-label">Group</span>
+              <input
+                type="text"
+                placeholder="For example CYB-23"
+                value={formData.group_name}
+                onChange={(event) => setFormData({ ...formData, group_name: event.target.value })}
+                required
+              />
+            </label>
+            <label className="exam-form-field">
+              <span className="exam-form-label">Subject</span>
+              <input
+                type="text"
+                placeholder="For example Database Systems"
+                value={formData.subject}
+                onChange={(event) => setFormData({ ...formData, subject: event.target.value })}
+                required
+              />
+            </label>
+            <label className="exam-form-field">
+              <span className="exam-form-label">Exam date</span>
+              <input
+                type="date"
+                value={formData.exam_date}
+                onChange={(event) => setFormData({ ...formData, exam_date: event.target.value })}
+                required
+              />
+            </label>
+            <label className="exam-form-field">
+              <span className="exam-form-label">Exam time</span>
+              <input
+                type="time"
+                value={formData.exam_time}
+                onChange={(event) => setFormData({ ...formData, exam_time: event.target.value })}
+                required
+              />
+            </label>
+            <label className="exam-form-field">
+              <span className="exam-form-label">Room</span>
+              <input
+                type="text"
+                placeholder="For example A-205"
+                value={formData.room}
+                onChange={(event) => setFormData({ ...formData, room: event.target.value })}
+              />
+            </label>
+            <label className="exam-form-field">
+              <span className="exam-form-label">Type</span>
+              <input
+                type="text"
+                placeholder="Exam, Midterm, Quiz"
+                value={formData.type}
+                onChange={(event) => setFormData({ ...formData, type: event.target.value })}
+              />
+            </label>
+            <label className="exam-form-field">
+              <span className="exam-form-label">Semester</span>
+              <select
+                value={formData.semester}
+                onChange={(event) => setFormData({ ...formData, semester: event.target.value })}
+              >
+                <option value="">Select semester</option>
+                <option value="Spring 2025-2026">Spring 2025-2026</option>
+                <option value="Fall 2025-2026">Fall 2025-2026</option>
+              </select>
+            </label>
+            <label className="exam-form-field exam-form-field-wide">
+              <span className="exam-form-label">Students</span>
+              <textarea
+                className="exam-students-textarea"
+                placeholder="Student IDs, separated by commas or new lines"
+                value={formData.studentsText}
+                onChange={(event) => setFormData({ ...formData, studentsText: event.target.value })}
+                rows="3"
+              />
+            </label>
           </div>
           <div className="portal-actions">
             <button type="button" className="btn-secondary" onClick={resetForm}>Cancel</button>
