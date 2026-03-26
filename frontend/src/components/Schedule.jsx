@@ -18,11 +18,21 @@ const timeSlots = [
   '14:00-14:40', '14:45-15:25', '15:30-16:10', '16:15-16:55',
   '17:00-17:40', '17:45-18:25'
 ];
+const legacyTimeSlotMap = {
+  '09:00': ['08:45-09:25', '09:30-10:10'],
+  '10:30': ['10:15-10:55', '11:00-11:40'],
+  '12:00': ['11:45-12:25', '12:30-13:10'],
+  '13:30': ['13:10-13:55', '14:00-14:40'],
+  '15:00': ['14:45-15:25', '15:30-16:10'],
+  '16:30': ['16:15-16:55', '17:00-17:40']
+};
 
 const emptyForm = {
   id: null,
   day: '',
   time_slot: '',
+  original_time_slot: '',
+  legacy_slots: [],
   group_name: '',
   audience_type: 'group',
   subgroup_name: '',
@@ -44,12 +54,21 @@ const normalizeDay = (value) => {
 };
 
 const normalizeEntries = (entries) => (
-  (entries || []).map((item) => ({
-    ...item,
-    day: normalizeDay(item.day),
-    student_user_id: item.student_user_id ?? '',
-    course_id: item.course_id ?? ''
-  }))
+  (entries || []).flatMap((item) => {
+    const originalTimeSlot = String(item.time_slot || '').trim();
+    const mappedSlots = legacyTimeSlotMap[originalTimeSlot]
+      || (timeSlots.includes(originalTimeSlot) ? [originalTimeSlot] : [originalTimeSlot]);
+
+    return mappedSlots.map((renderedSlot) => ({
+      ...item,
+      day: normalizeDay(item.day),
+      time_slot: renderedSlot,
+      original_time_slot: originalTimeSlot,
+      legacy_slots: mappedSlots,
+      student_user_id: item.student_user_id ?? '',
+      course_id: item.course_id ?? ''
+    }));
+  })
 );
 
 const getStudentLabel = (student) => {
@@ -351,6 +370,8 @@ function Schedule() {
         id: existing.id,
         day: existing.day,
         time_slot: existing.time_slot,
+        original_time_slot: existing.original_time_slot || existing.time_slot,
+        legacy_slots: Array.isArray(existing.legacy_slots) ? existing.legacy_slots : [existing.time_slot],
         group_name: existing.group_name || '',
         audience_type: existing.audience_type || 'group',
         subgroup_name: existing.subgroup_name || '',
@@ -367,6 +388,8 @@ function Schedule() {
         id: null,
         day,
         time_slot: timeSlot,
+        original_time_slot: timeSlot,
+        legacy_slots: [timeSlot],
         group_name: isStudent ? studentGroup : (selectedGroup || student?.group_name || ''),
         audience_type: selectedAudienceView,
         subgroup_name: selectedAudienceView === 'subgroup' ? selectedSubgroup : '',
@@ -502,7 +525,13 @@ function Schedule() {
 
     try {
       if (formData.id) {
-        await api.updateScheduleEntry(formData.id, payload);
+        const legacySlots = Array.isArray(formData.legacy_slots) ? formData.legacy_slots : [];
+        if (legacySlots.length > 1) {
+          await api.deleteScheduleEntry(formData.id);
+          await Promise.all(legacySlots.map((slot) => api.createScheduleEntry({ ...payload, time_slot: slot })));
+        } else {
+          await api.updateScheduleEntry(formData.id, payload);
+        }
       } else {
         await Promise.all(slots.map((slot) => api.createScheduleEntry({ ...payload, time_slot: slot })));
       }
