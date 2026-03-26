@@ -9,7 +9,7 @@ const FACULTY = 'School of Engineering and Applied Sciences';
 const ACCOUNTS = [
   {
     email: process.env.SUPERADMIN_EMAIL || SUPERADMIN_EMAIL,
-    password: process.env.SUPERADMIN_BOOTSTRAP_PASSWORD || 'ChangeMe123!',
+    password_env: 'SUPERADMIN_BOOTSTRAP_PASSWORD',
     name: process.env.SUPERADMIN_NAME || 'Erbol Abdusatov',
     role: 'admin',
     avatar: 'EA',
@@ -17,14 +17,14 @@ const ACCOUNTS = [
   },
   {
     email: 'admin@alatoo.edu.kg',
-    password: 'admin',
+    password_env: 'SEED_ADMIN_PASSWORD',
     name: 'CampusOS Admin',
     role: 'admin',
     avatar: 'CA'
   },
   {
     email: 'teacher@alatoo.edu.kg',
-    password: 'teacher',
+    password_env: 'SEED_TEACHER_PASSWORD',
     name: 'Azhar Kazakbaeva',
     role: 'teacher',
     avatar: 'AK',
@@ -33,7 +33,7 @@ const ACCOUNTS = [
   },
   {
     email: 'askar.eskendirov@alatoo.edu.kg',
-    password: 'teacher',
+    password_env: 'SEED_TEACHER_PASSWORD',
     name: 'Askar Eskendirov',
     role: 'teacher',
     avatar: 'AE',
@@ -42,7 +42,7 @@ const ACCOUNTS = [
   },
   {
     email: 'diana.sadykova@alatoo.edu.kg',
-    password: 'teacher',
+    password_env: 'SEED_TEACHER_PASSWORD',
     name: 'Diana Sadykova',
     role: 'teacher',
     avatar: 'DS',
@@ -51,7 +51,7 @@ const ACCOUNTS = [
   },
   {
     email: 'nurlan.toktonaliev@alatoo.edu.kg',
-    password: 'teacher',
+    password_env: 'SEED_TEACHER_PASSWORD',
     name: 'Nurlan Toktonaliev',
     role: 'teacher',
     avatar: 'NT',
@@ -61,7 +61,7 @@ const ACCOUNTS = [
   {
     student_id: '240141052',
     email: 'erbol.abdusaitov1@alatoo.edu.kg',
-    password: 'student',
+    password_env: 'SEED_STUDENT_PASSWORD',
     name: 'Erbol Abdusaitov',
     role: 'student',
     group_name: 'CYB-23',
@@ -74,7 +74,7 @@ const ACCOUNTS = [
   {
     student_id: '240141053',
     email: 'aida.bekmuratova@alatoo.edu.kg',
-    password: 'student',
+    password_env: 'SEED_STUDENT_PASSWORD',
     name: 'Aida Bekmuratova',
     role: 'student',
     group_name: 'CYB-23',
@@ -87,7 +87,7 @@ const ACCOUNTS = [
   {
     student_id: '240141054',
     email: 'nursultan.omurzakov@alatoo.edu.kg',
-    password: 'student',
+    password_env: 'SEED_STUDENT_PASSWORD',
     name: 'Nursultan Omurzakov',
     role: 'student',
     group_name: 'CYB-23',
@@ -100,7 +100,7 @@ const ACCOUNTS = [
   {
     student_id: '240141055',
     email: 'elina.toktosunova@alatoo.edu.kg',
-    password: 'student',
+    password_env: 'SEED_STUDENT_PASSWORD',
     name: 'Elina Toktosunova',
     role: 'student',
     group_name: 'CYB-23',
@@ -113,7 +113,7 @@ const ACCOUNTS = [
   {
     student_id: '240141056',
     email: 'timur.asanov@alatoo.edu.kg',
-    password: 'student',
+    password_env: 'SEED_STUDENT_PASSWORD',
     name: 'Timur Asanov',
     role: 'student',
     group_name: 'CYB-23',
@@ -126,7 +126,7 @@ const ACCOUNTS = [
   {
     student_id: '240141057',
     email: 'madina.saparova@alatoo.edu.kg',
-    password: 'student',
+    password_env: 'SEED_STUDENT_PASSWORD',
     name: 'Madina Saparova',
     role: 'student',
     group_name: 'CYB-23',
@@ -139,7 +139,7 @@ const ACCOUNTS = [
   {
     student_id: '240141058',
     email: 'daniyar.kasymov@alatoo.edu.kg',
-    password: 'student',
+    password_env: 'SEED_STUDENT_PASSWORD',
     name: 'Daniyar Kasymov',
     role: 'student',
     group_name: 'CYB-23',
@@ -152,7 +152,7 @@ const ACCOUNTS = [
   {
     student_id: '240141059',
     email: 'aizirek.iskakova@alatoo.edu.kg',
-    password: 'student',
+    password_env: 'SEED_STUDENT_PASSWORD',
     name: 'Aizirek Iskakova',
     role: 'student',
     group_name: 'CYB-23',
@@ -165,7 +165,7 @@ const ACCOUNTS = [
   {
     student_id: '240141060',
     email: 'bekzat.umetaliev@alatoo.edu.kg',
-    password: 'student',
+    password_env: 'SEED_STUDENT_PASSWORD',
     name: 'Bekzat Umetaliev',
     role: 'student',
     group_name: 'SE-23',
@@ -178,7 +178,7 @@ const ACCOUNTS = [
   {
     student_id: '240141061',
     email: 'alina.janybekova@alatoo.edu.kg',
-    password: 'student',
+    password_env: 'SEED_STUDENT_PASSWORD',
     name: 'Alina Janybekova',
     role: 'student',
     group_name: 'SE-23',
@@ -191,7 +191,7 @@ const ACCOUNTS = [
   {
     student_id: '240141062',
     email: 'ruslan.kudaibergenov@alatoo.edu.kg',
-    password: 'student',
+    password_env: 'SEED_STUDENT_PASSWORD',
     name: 'Ruslan Kudaibergenov',
     role: 'student',
     group_name: 'SE-23',
@@ -204,7 +204,7 @@ const ACCOUNTS = [
   {
     student_id: '240141063',
     email: 'meerim.ryskulova@alatoo.edu.kg',
-    password: 'student',
+    password_env: 'SEED_STUDENT_PASSWORD',
     name: 'Meerim Ryskulova',
     role: 'student',
     group_name: 'SE-23',
@@ -217,7 +217,7 @@ const ACCOUNTS = [
   {
     student_id: '240141064',
     email: 'adilet.turgunbaev@alatoo.edu.kg',
-    password: 'student',
+    password_env: 'SEED_STUDENT_PASSWORD',
     name: 'Adilet Turgunbaev',
     role: 'student',
     group_name: 'SE-23',
@@ -381,6 +381,19 @@ async function findUserByEmail(email) {
 
 async function findCourseByCode(code) {
   return db.get('SELECT * FROM courses WHERE code = ?', [code]);
+}
+
+function getSeedPassword(account) {
+  const envKey = account.password_env;
+  const password = String(process.env[envKey] || '').trim();
+
+  if (!password) {
+    throw new Error(
+      `Missing required environment variable ${envKey} for seeded account ${account.email}.`
+    );
+  }
+
+  return password;
 }
 
 async function ensureUser(user, hashedPassword) {
@@ -580,7 +593,10 @@ async function seedUsers() {
   const usersByEmail = new Map();
 
   for (const account of ACCOUNTS) {
-    const hashedPassword = await bcrypt.hash(account.password, salt);
+    const existing = await findUserByEmail(account.email);
+    const hashedPassword = existing
+      ? existing.password
+      : await bcrypt.hash(getSeedPassword(account), salt);
     const user = await ensureUser(account, hashedPassword);
     usersByEmail.set(user.email, user);
   }
@@ -668,11 +684,9 @@ async function seed() {
     console.log(`Teachers: ${teachersCount}`);
     console.log(`Courses: ${coursesByCode.size}`);
     console.log('');
-    console.log('Main accounts:');
-    console.log(`  Super Admin: ${process.env.SUPERADMIN_EMAIL || SUPERADMIN_EMAIL} / ${process.env.SUPERADMIN_BOOTSTRAP_PASSWORD || 'ChangeMe123!'}`);
-    console.log('  Admin:       admin@alatoo.edu.kg / admin');
-    console.log('  Teachers:    any seeded teacher email / teacher');
-    console.log('  Students:    any seeded student email / student');
+    console.log('Seeded account summary:');
+    console.log(`  Super Admin: ${process.env.SUPERADMIN_EMAIL || SUPERADMIN_EMAIL}`);
+    console.log('  Admin, teacher, and student passwords are loaded from environment variables only.');
   } catch (error) {
     console.error('Error seeding demo data:', error);
     throw error;

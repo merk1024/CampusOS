@@ -2236,18 +2236,32 @@ body {
 }
 
 .exam-form-card {
-  background: #ffffff !important;
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
   color: var(--text);
   border-radius: var(--radius-lg);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  padding: 1.5rem;
+  padding: 1.6rem;
   margin-bottom: 1.5rem;
   opacity: 1;
   backdrop-filter: none;
 }
 
+.exam-form-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, #1596ee 0%, #22c55e 52%, #f59e0b 100%);
+}
+
 .exam-form-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 1rem;
 }
 
@@ -2265,6 +2279,10 @@ body {
   color: var(--text);
 }
 
+.exam-form-card > h3 {
+  margin-bottom: 1rem;
+}
+
 .exam-form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -2272,17 +2290,26 @@ body {
   margin-bottom: 1rem;
 }
 
+.exam-form-grid > label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
 .exam-form-grid input,
 .exam-form-grid textarea,
 .exam-form-grid select {
   width: 100%;
   padding: 0.85rem 1rem;
-  border: 1px solid #d8e0ef;
+  border: 1px solid var(--border);
   border-radius: 12px;
   font-family: inherit;
   font-size: 0.95rem;
-  background: #ffffff;
+  background: var(--input-bg);
   color: var(--text);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .exam-form-grid input::placeholder,
@@ -2296,6 +2323,29 @@ body {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+}
+
+.exam-form-grid textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.exam-students-textarea {
+  grid-column: 1 / -1;
+}
+
+.exam-form-card .portal-actions,
+.exam-form-card .form-actions {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+}
+
+.exam-form-card .portal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
 }
 
 .exam-list {

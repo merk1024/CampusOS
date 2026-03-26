@@ -1,4 +1,11 @@
 {
+  "scripts": {
+    "audit:backend": "npm --prefix backend audit --omit=dev",
+    "audit:frontend": "npm --prefix frontend audit --production",
+    "scan:secrets": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/security/scan-secrets.ps1",
+    "scan:zap": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/security/run-zap-baseline.ps1",
+    "export:security-docx": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/reporting/export-security-report-docx.ps1"
+  },
   "dependencies": {
     "@vercel/speed-insights": "^2.0.0"
   }
