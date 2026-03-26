@@ -56,7 +56,9 @@
 .att-rate-card span,
 .att-save-hint,
 .att-student-current small,
-.att-status-select span {
+.att-status-select span,
+.att-search span,
+.att-filter span {
   color: var(--muted);
   font-size: 0.82rem;
   letter-spacing: 0.02em;
@@ -66,7 +68,8 @@
 .att-date-card input,
 .att-toolbar input,
 .att-status-select select,
-.att-panel-head select {
+.att-panel-head select,
+.att-filter select {
   width: 100%;
   min-height: 48px;
   border-radius: 14px;
@@ -80,7 +83,8 @@
 .att-date-card input:focus,
 .att-toolbar input:focus,
 .att-status-select select:focus,
-.att-panel-head select:focus {
+.att-panel-head select:focus,
+.att-filter select:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 4px var(--accent-bg);
@@ -133,6 +137,21 @@
   box-shadow: var(--sh);
 }
 
+.att-session-panel {
+  position: sticky;
+  top: 1.25rem;
+}
+
+.att-session-panel,
+.att-roster-panel {
+  min-height: 72vh;
+}
+
+.att-roster-panel {
+  display: flex;
+  flex-direction: column;
+}
+
 .att-panel-head,
 .att-roster-head {
   display: flex;
@@ -155,7 +174,15 @@
   font-size: 0.95rem;
 }
 
-.att-session-list,
+.att-session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-height: calc(72vh - 84px);
+  overflow: auto;
+  padding-right: 0.2rem;
+}
+
 .att-roster-list,
 .att-history-list {
   display: flex;
@@ -172,6 +199,7 @@
   text-align: left;
   transition: var(--transition);
   box-shadow: none;
+  font: inherit;
 }
 
 .att-session-card:hover {
@@ -204,7 +232,8 @@
 .att-session-main span,
 .att-history-main span,
 .att-student-info span,
-.att-history-meta span {
+.att-history-meta span,
+.att-roster-meta span {
   color: var(--muted);
   font-size: 0.92rem;
   line-height: 1.45;
@@ -284,20 +313,28 @@
   justify-content: space-between;
   align-items: end;
   gap: 1rem;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1rem;
 }
 
-.att-search {
+.att-toolbar-main {
+  display: flex;
+  gap: 1rem;
+  flex: 1 1 360px;
+}
+
+.att-search,
+.att-filter {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+}
+
+.att-search {
   flex: 1 1 260px;
 }
 
-.att-search span {
-  color: var(--muted);
-  font-size: 0.88rem;
-  font-weight: 600;
+.att-filter {
+  flex: 0 0 180px;
 }
 
 .att-quick-actions {
@@ -307,7 +344,6 @@
 }
 
 .att-quick-actions button,
-.att-session-card,
 .att-save-btn {
   font: inherit;
 }
@@ -325,6 +361,24 @@
 .att-quick-actions button:hover {
   transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--accent) 42%, var(--border) 58%);
+}
+
+.att-roster-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: calc(72vh - 295px);
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
+.att-roster-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 82%, transparent 18%);
 }
 
 .att-student-row,
@@ -404,7 +458,15 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  margin-top: 1.35rem;
+  margin-top: 1rem;
+}
+
+.att-actions-sticky {
+  position: sticky;
+  bottom: 0;
+  padding-top: 1rem;
+  background: linear-gradient(180deg, color-mix(in srgb, transparent 20%, var(--surface) 80%), var(--surface) 36%);
+  border-top: 1px solid color-mix(in srgb, var(--border) 84%, transparent 16%);
 }
 
 .att-save-btn {
@@ -442,9 +504,51 @@
   background: color-mix(in srgb, var(--surface) 92%, var(--accent) 8%);
 }
 
+.att-roster-panel.compact .att-summary-grid {
+  gap: 0.7rem;
+}
+
+.att-roster-panel.compact .att-summary-card {
+  padding: 0.85rem 0.95rem;
+}
+
+.att-roster-panel.compact .att-student-row {
+  padding: 0.8rem 0.9rem;
+  grid-template-columns: minmax(0, 1.5fr) auto minmax(150px, 190px);
+}
+
+.att-roster-panel.compact .att-student-info strong {
+  font-size: 0.95rem;
+}
+
+.att-roster-panel.compact .att-student-info span,
+.att-roster-panel.compact .att-student-current small,
+.att-roster-panel.compact .att-status-select span {
+  font-size: 0.78rem;
+}
+
+.att-roster-panel.compact .att-status-select select {
+  min-height: 42px;
+  padding: 0.65rem 0.8rem;
+}
+
 @media (max-width: 1080px) {
   .att-management-grid {
     grid-template-columns: 1fr;
+  }
+
+  .att-session-panel {
+    position: static;
+  }
+
+  .att-session-panel,
+  .att-roster-panel {
+    min-height: auto;
+  }
+
+  .att-session-list,
+  .att-roster-scroll {
+    max-height: none;
   }
 }
 
@@ -457,7 +561,8 @@
   .att-panel-head,
   .att-roster-head,
   .att-toolbar,
-  .att-actions {
+  .att-actions,
+  .att-roster-meta {
     flex-direction: column;
     align-items: stretch;
   }
@@ -467,8 +572,17 @@
     min-width: 0;
   }
 
+  .att-toolbar-main {
+    flex-direction: column;
+  }
+
+  .att-filter {
+    flex: 1 1 auto;
+  }
+
   .att-student-row,
-  .att-history-card {
+  .att-history-card,
+  .att-roster-panel.compact .att-student-row {
     grid-template-columns: 1fr;
   }
 
@@ -482,5 +596,12 @@
 
   .att-quick-actions button {
     flex: 1 1 150px;
+  }
+
+  .att-actions-sticky {
+    position: static;
+    background: transparent;
+    border-top: none;
+    padding-top: 0;
   }
 }

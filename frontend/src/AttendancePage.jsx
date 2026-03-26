@@ -4,6 +4,7 @@ import './AttendancePage.css';
 import { api } from './api';
 import { canManageAcademicRecords, hasAdminAccess } from './roles';
 
+const ATTENDANCE_UI_KEY = 'attendance_ui_preferences';
 const STATUS_OPTIONS = [
   { value: 'present', label: 'Present' },
   { value: 'late', label: 'Late' },
@@ -27,6 +28,30 @@ const EMPTY_SUMMARY = {
   excused: 0,
   marked: 0,
   unmarked: 0
+};
+
+const readAttendancePreferences = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(ATTENDANCE_UI_KEY));
+    return {
+      compactMode: Boolean(stored?.compactMode),
+      rosterFilter: stored?.rosterFilter || 'all'
+    };
+  } catch {
+    return {
+      compactMode: false,
+      rosterFilter: 'all'
+    };
+  }
+};
+
+const writeAttendancePreferences = (patch) => {
+  const nextValue = {
+    ...readAttendancePreferences(),
+    ...patch
+  };
+  localStorage.setItem(ATTENDANCE_UI_KEY, JSON.stringify(nextValue));
+  return nextValue;
 };
 
 const getTodayDate = () => {
@@ -118,6 +143,7 @@ function AttendanceSummary({ summary }) {
 }
 
 function TeacherAttendance({ user }) {
+  const initialPreferences = readAttendancePreferences();
   const [selectedDate, setSelectedDate] = useState(getTodayDate);
   const [sessions, setSessions] = useState([]);
   const [selectedSessionId, setSelectedSessionId] = useState(null);
@@ -131,6 +157,16 @@ function TeacherAttendance({ user }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [compactMode, setCompactMode] = useState(initialPreferences.compactMode);
+  const [rosterFilter, setRosterFilter] = useState(initialPreferences.rosterFilter);
+
+  useEffect(() => {
+    writeAttendancePreferences({ compactMode });
+  }, [compactMode]);
+
+  useEffect(() => {
+    writeAttendancePreferences({ rosterFilter });
+  }, [rosterFilter]);
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -207,16 +243,21 @@ function TeacherAttendance({ user }) {
       .join(' ')
       .toLowerCase();
 
-    return haystack.includes(search.trim().toLowerCase());
+    const matchesSearch = haystack.includes(search.trim().toLowerCase());
+    const currentStatus = draftStatuses[student.student_id] || 'unmarked';
+    const matchesFilter = rosterFilter === 'all' || currentStatus === rosterFilter;
+
+    return matchesSearch && matchesFilter;
   });
 
   const draftSummary = buildDraftSummary(students, draftStatuses);
   const isAdmin = hasAdminAccess(user);
 
-  const applyStatusToAll = (status) => {
-    setDraftStatuses(
-      Object.fromEntries(students.map((student) => [student.student_id, status]))
-    );
+  const applyStatusToVisible = (status) => {
+    setDraftStatuses((current) => ({
+      ...current,
+      ...Object.fromEntries(filteredStudents.map((student) => [student.student_id, status]))
+    }));
   };
 
   const resetDraftToSaved = () => {
@@ -314,7 +355,7 @@ function TeacherAttendance({ user }) {
                   >
                     <div className="att-session-main">
                       <strong>{session.course_name || session.subject}</strong>
-                      <span>{session.day} · {session.time_slot}</span>
+                      <span>{session.day} | {session.time_slot}</span>
                     </div>
                     <div className="att-session-meta">
                       <span>{session.group_name}</span>
@@ -334,7 +375,7 @@ function TeacherAttendance({ user }) {
           )}
         </section>
 
-        <section className="att-panel att-roster-panel">
+        <section className={`att-panel att-roster-panel ${compactMode ? 'compact' : ''}`}>
           {!selectedSessionId ? (
             <div className="att-empty-state">Choose a class from the left to open its attendance roster.</div>
           ) : loadingRoster ? (
@@ -345,8 +386,8 @@ function TeacherAttendance({ user }) {
                 <div>
                   <h3>{selectedSession?.course_name || selectedSession?.subject || 'Roster'}</h3>
                   <p>
-                    {selectedSession?.day} · {selectedSession?.time_slot}
-                    {selectedSession?.room ? ` · ${selectedSession.room}` : ''}
+                    {selectedSession?.day} | {selectedSession?.time_slot}
+                    {selectedSession?.room ? ` | ${selectedSession.room}` : ''}
                   </p>
                 </div>
                 <div className="att-roster-tags">
@@ -358,19 +399,35 @@ function TeacherAttendance({ user }) {
               <AttendanceSummary summary={draftSummary} />
 
               <div className="att-toolbar">
-                <label className="att-search">
-                  <span>Search student</span>
-                  <input
-                    type="search"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Name, student ID, group"
-                  />
-                </label>
+                <div className="att-toolbar-main">
+                  <label className="att-search">
+                    <span>Search student</span>
+                    <input
+                      type="search"
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder="Name, student ID, group"
+                    />
+                  </label>
+
+                  <label className="att-filter">
+                    <span>Show rows</span>
+                    <select value={rosterFilter} onChange={(event) => setRosterFilter(event.target.value)}>
+                      <option value="all">All rows</option>
+                      <option value="unmarked">Only pending</option>
+                      {STATUS_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
 
                 <div className="att-quick-actions">
-                  <button type="button" onClick={() => applyStatusToAll('present')}>Mark all present</button>
-                  <button type="button" onClick={() => applyStatusToAll('absent')}>Mark all absent</button>
+                  <button type="button" onClick={() => applyStatusToVisible('present')}>Visible present</button>
+                  <button type="button" onClick={() => applyStatusToVisible('absent')}>Visible absent</button>
+                  <button type="button" onClick={() => setCompactMode((value) => !value)}>
+                    {compactMode ? 'Comfort view' : 'Compact view'}
+                  </button>
                   <button type="button" onClick={resetDraftToSaved}>Reset</button>
                 </div>
               </div>
@@ -378,46 +435,52 @@ function TeacherAttendance({ user }) {
               {filteredStudents.length === 0 ? (
                 <div className="att-empty-state">No students match the current filter.</div>
               ) : (
-                <div className="att-roster-list">
-                  {filteredStudents.map((student) => (
-                    <article key={student.student_id} className="att-student-row">
-                      <div className="att-student-info">
-                        <strong>{student.name}</strong>
-                        <span>
-                          {student.student_id}
-                          {student.group_name ? ` · ${student.group_name}` : ''}
-                          {student.subgroup_name ? ` · ${student.subgroup_name}` : ''}
-                        </span>
-                      </div>
+                <div className="att-roster-scroll">
+                  <div className="att-roster-meta">
+                    <span>Showing {filteredStudents.length} of {students.length} students</span>
+                    <span>Only the roster scrolls, not the save action</span>
+                  </div>
+                  <div className="att-roster-list">
+                    {filteredStudents.map((student) => (
+                      <article key={student.student_id} className="att-student-row">
+                        <div className="att-student-info">
+                          <strong>{student.name}</strong>
+                          <span>
+                            {student.student_id}
+                            {student.group_name ? ` | ${student.group_name}` : ''}
+                            {student.subgroup_name ? ` | ${student.subgroup_name}` : ''}
+                          </span>
+                        </div>
 
-                      <div className="att-student-current">
-                        <small>Saved</small>
-                        <StatusBadge status={student.status} />
-                      </div>
+                        <div className="att-student-current">
+                          <small>Saved</small>
+                          <StatusBadge status={student.status} />
+                        </div>
 
-                      <label className="att-status-select">
-                        <span>Set status</span>
-                        <select
-                          value={draftStatuses[student.student_id] || ''}
-                          onChange={(event) => setDraftStatuses((current) => ({
-                            ...current,
-                            [student.student_id]: event.target.value
-                          }))}
-                        >
-                          <option value="">Unmarked</option>
-                          {STATUS_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
-                          ))}
-                        </select>
-                      </label>
-                    </article>
-                  ))}
+                        <label className="att-status-select">
+                          <span>Set status</span>
+                          <select
+                            value={draftStatuses[student.student_id] || ''}
+                            onChange={(event) => setDraftStatuses((current) => ({
+                              ...current,
+                              [student.student_id]: event.target.value
+                            }))}
+                          >
+                            <option value="">Unmarked</option>
+                            {STATUS_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </select>
+                        </label>
+                      </article>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              <div className="att-actions">
+              <div className="att-actions att-actions-sticky">
                 <div className="att-save-hint">
-                  Saved entries: {savedSummary.marked} of {savedSummary.total}
+                  Saved: {savedSummary.marked} of {savedSummary.total} | Visible now: {filteredStudents.length}
                 </div>
                 <button
                   type="button"
@@ -529,8 +592,8 @@ function StudentAttendance({ user }) {
                   <strong>{item.course_name || item.subject || 'Class session'}</strong>
                   <span>
                     {formatDate(item.date)}
-                    {item.day ? ` · ${item.day}` : ''}
-                    {item.time_slot ? ` · ${item.time_slot}` : ''}
+                    {item.day ? ` | ${item.day}` : ''}
+                    {item.time_slot ? ` | ${item.time_slot}` : ''}
                   </span>
                 </div>
                 <div className="att-history-meta">
