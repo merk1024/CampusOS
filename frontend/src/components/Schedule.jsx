@@ -46,6 +46,60 @@ const emptyForm = {
 const normalizeId = (value) => (value === '' || value === null || value === undefined ? '' : String(value));
 const getRangeSlots = (startIndex, span = 1) => timeSlots.slice(startIndex, startIndex + span);
 const getCourseTeacher = (course) => course?.teacher_name || course?.teacher || 'Teacher not assigned';
+const getSlotStart = (slot) => String(slot || '').split('-')[0] || slot;
+const scheduleCardPalette = [
+  {
+    bg: 'linear-gradient(135deg, rgba(56, 189, 248, 0.18) 0%, rgba(14, 165, 233, 0.28) 100%)',
+    border: 'rgba(14, 165, 233, 0.42)',
+    roomBg: 'rgba(2, 132, 199, 0.16)',
+    roomText: '#0369a1'
+  },
+  {
+    bg: 'linear-gradient(135deg, rgba(52, 211, 153, 0.16) 0%, rgba(16, 185, 129, 0.28) 100%)',
+    border: 'rgba(16, 185, 129, 0.42)',
+    roomBg: 'rgba(5, 150, 105, 0.16)',
+    roomText: '#047857'
+  },
+  {
+    bg: 'linear-gradient(135deg, rgba(167, 139, 250, 0.16) 0%, rgba(139, 92, 246, 0.28) 100%)',
+    border: 'rgba(139, 92, 246, 0.42)',
+    roomBg: 'rgba(124, 58, 237, 0.16)',
+    roomText: '#6d28d9'
+  },
+  {
+    bg: 'linear-gradient(135deg, rgba(251, 191, 36, 0.16) 0%, rgba(245, 158, 11, 0.28) 100%)',
+    border: 'rgba(245, 158, 11, 0.42)',
+    roomBg: 'rgba(217, 119, 6, 0.16)',
+    roomText: '#b45309'
+  },
+  {
+    bg: 'linear-gradient(135deg, rgba(244, 114, 182, 0.16) 0%, rgba(236, 72, 153, 0.26) 100%)',
+    border: 'rgba(236, 72, 153, 0.38)',
+    roomBg: 'rgba(219, 39, 119, 0.14)',
+    roomText: '#be185d'
+  },
+  {
+    bg: 'linear-gradient(135deg, rgba(129, 140, 248, 0.16) 0%, rgba(99, 102, 241, 0.28) 100%)',
+    border: 'rgba(99, 102, 241, 0.4)',
+    roomBg: 'rgba(79, 70, 229, 0.14)',
+    roomText: '#4338ca'
+  }
+];
+
+const getScheduleCardTheme = (entry) => {
+  const key = `${entry.course_id || ''}${entry.subject || ''}${entry.room || ''}`;
+  const hash = key.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return scheduleCardPalette[hash % scheduleCardPalette.length];
+};
+const getScheduleCardStyle = (entry) => {
+  const theme = getScheduleCardTheme(entry);
+  return {
+    '--schedule-card-bg': theme.bg,
+    '--schedule-card-border': theme.border,
+    '--schedule-room-bg': theme.roomBg,
+    '--schedule-room-text': theme.roomText
+  };
+};
 
 const normalizeDay = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
@@ -701,24 +755,29 @@ function Schedule() {
                 <span>{section.items.length} class{section.items.length === 1 ? '' : 'es'}</span>
               </div>
               <div className="schedule-overview-body">
-                {section.items.slice(0, 4).map((item) => (
-                  canEdit ? (
+                {section.items.slice(0, 4).map((item) => {
+                  const overviewStyle = getScheduleCardStyle(item);
+
+                  return canEdit ? (
                     <button
                       key={`${item.id}-${item.time_slot}`}
                       type="button"
                       className="schedule-overview-item"
+                      style={overviewStyle}
                       onClick={() => handleCellClick(item.day, item.time_slot)}
                     >
-                      <span>{item.time_slot}</span>
+                      <span>{getSlotStart(item.time_slot)}</span>
                       <strong>{item.subject}</strong>
+                      <small>{item.room || 'Room TBD'}</small>
                     </button>
                   ) : (
-                    <div key={`${item.id}-${item.time_slot}`} className="schedule-overview-item">
-                      <span>{item.time_slot}</span>
+                    <div key={`${item.id}-${item.time_slot}`} className="schedule-overview-item" style={overviewStyle}>
+                      <span>{getSlotStart(item.time_slot)}</span>
                       <strong>{item.subject}</strong>
+                      <small>{item.room || 'Room TBD'}</small>
                     </div>
-                  )
-                ))}
+                  );
+                })}
                 {section.items.length > 4 && <div className="schedule-overview-more">+{section.items.length - 4} more</div>}
               </div>
             </div>
@@ -737,12 +796,16 @@ function Schedule() {
           <div className="schedule-grid-board" style={{ gridTemplateColumns: '80px repeat(6, minmax(150px, 1fr))', gridTemplateRows: `52px repeat(${timeSlots.length}, 56px)` }}>
             <div className="schedule-board-corner"></div>
             {days.map((day, index) => <div key={day} className="day-column schedule-grid-day" style={{ gridColumn: index + 2, gridRow: 1 }}>{day}</div>)}
-            {timeSlots.map((slot, index) => <div key={slot} className="time-column schedule-grid-time" style={{ gridColumn: 1, gridRow: index + 2 }}>{slot}</div>)}
+            {timeSlots.map((slot, index) => <div key={slot} className="time-column schedule-grid-time" style={{ gridColumn: 1, gridRow: index + 2 }}>{getSlotStart(slot)}</div>)}
             {mergedBlocks.map((block) => (
               <div
                 key={`${block.day}-${block.startSlot}-${block.type}`}
                 className={`schedule-cell schedule-grid-item ${block.type === 'occupied' ? 'occupied merged-block' : 'empty'} ${canEdit ? 'editable' : ''} ${draggedBlock?.day === block.day && draggedBlock?.startSlot === block.startSlot ? 'drag-source' : ''} ${dropTarget?.day === block.day && dropTarget?.startSlot === block.startSlot ? 'drop-target' : ''}`}
-                style={{ gridColumn: block.dayIndex + 2, gridRow: `${block.startIndex + 2} / span ${block.span}` }}
+                style={{
+                  gridColumn: block.dayIndex + 2,
+                  gridRow: `${block.startIndex + 2} / span ${block.span}`,
+                  ...(block.type === 'occupied' ? getScheduleCardStyle(block.entry) : {})
+                }}
                 onClick={() => handleCellClick(block.day, block.startSlot)}
                 draggable={canEdit && block.type === 'occupied'}
                 onDragStart={block.type === 'occupied' ? handleDragStart(block) : undefined}
@@ -754,18 +817,7 @@ function Schedule() {
                 {block.type === 'occupied' ? (
                   <div className="class-info">
                     <div className="class-subject">{block.entry.subject}</div>
-                    {block.entry.course_code && <div className="class-teacher">{block.entry.course_code}</div>}
-                    <div className="class-teacher">{block.entry.teacher}</div>
-                    <div className="class-room">Room: {block.entry.room || 'TBD'}</div>
-                    <div className="class-group">
-                      Group: {block.entry.group_name}
-                      {block.entry.subgroup_name ? ` / ${block.entry.subgroup_name}` : ''}
-                      {(block.entry.audience_type || 'group') === 'individual' && block.entry.student_user_id
-                        ? ` / ${getStudentLabel(students.find((item) => String(item.id) === String(block.entry.student_user_id)) || (Number(block.entry.student_user_id) === Number(user?.id) ? user : null))}`
-                        : ''}
-                    </div>
-                    {canEdit && <div className="class-copy-hint">Drag to copy</div>}
-                    {block.span > 1 && <div className="class-duration">{block.span} slots | {block.startSlot} to {block.endSlot}</div>}
+                    <div className="class-room-chip">{block.entry.room || 'Room TBD'}</div>
                   </div>
                 ) : canEdit ? <div className="empty-slot"><span>{dropTarget?.day === block.day && dropTarget?.startSlot === block.startSlot ? 'Drop to copy' : '+ Add Class'}</span></div> : null}
               </div>

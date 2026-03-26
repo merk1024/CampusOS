@@ -89,7 +89,6 @@ body {
 :root[data-theme='dark'] .schedule-group-field input,
 :root[data-theme='dark'] .schedule-group-hint,
 :root[data-theme='dark'] .schedule-slot-chip,
-:root[data-theme='dark'] .schedule-cell,
 :root[data-theme='dark'] .time-column,
 :root[data-theme='dark'] .portal-records,
 :root[data-theme='dark'] .portal-value input,
@@ -135,8 +134,9 @@ body {
 }
 
 :root[data-theme='dark'] .schedule-cell.occupied {
-  background: linear-gradient(135deg, rgba(6, 78, 59, 0.52) 0%, rgba(4, 120, 87, 0.36) 100%);
-  border-color: rgba(16, 185, 129, 0.3);
+  color: var(--text);
+  background: var(--schedule-card-bg, linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(59, 130, 246, 0.24) 100%));
+  border-color: var(--schedule-card-border, rgba(56, 189, 248, 0.3));
   box-shadow: inset 0 0 0 1px rgba(167, 243, 208, 0.08);
 }
 
@@ -1690,9 +1690,10 @@ body {
 
 .time-column {
   padding: 0.65rem 0.5rem;
-  font-weight: 600;
-  font-size: 0.82rem;
-  line-height: 1.25;
+  font-weight: 700;
+  font-size: 0.86rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
   text-align: center;
   background: var(--surface-glass);
   display: flex;
@@ -1728,8 +1729,8 @@ body {
 }
 
 .schedule-cell.occupied {
-  background: linear-gradient(135deg, #effcf8 0%, #d8f7ee 100%);
-  border: 1px solid rgba(16, 185, 129, 0.28);
+  background: var(--schedule-card-bg, linear-gradient(135deg, #eef8ff 0%, #dceefe 100%));
+  border: 1px solid var(--schedule-card-border, rgba(59, 130, 246, 0.26));
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
 }
 
@@ -1765,53 +1766,33 @@ body {
 
 .class-info {
   width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.4rem;
 }
 
 .class-subject {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
-  font-size: 0.86rem;
-  line-height: 1.25;
-  margin-bottom: 0.15rem;
+  font-size: 0.92rem;
+  line-height: 1.2;
+  margin: 0;
+  word-break: break-word;
 }
 
-.class-teacher {
-  font-size: 0.74rem;
-  color: var(--text-light);
-  margin-bottom: 0.1rem;
-}
-
-.class-room {
-  font-size: 0.72rem;
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.class-group {
-  margin-top: 0.2rem;
-  font-size: 0.68rem;
-  color: var(--text-light);
-  font-weight: 600;
-}
-
-.class-duration {
-  margin-top: 0.28rem;
-  font-size: 0.68rem;
-  color: var(--accent);
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.class-copy-hint {
-  margin-top: 0.35rem;
+.class-room-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.66rem;
+  align-self: flex-start;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  background: var(--schedule-room-bg, rgba(37, 99, 235, 0.14));
+  color: var(--schedule-room-text, #1d4ed8);
+  font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--accent);
+  line-height: 1;
 }
 /* ══════════════════════════════════════════════════════════
    GRADES TABLE
@@ -2802,7 +2783,8 @@ body {
   padding: 10px 12px;
   border: 1px solid var(--border-color, rgba(148, 163, 184, 0.24));
   border-radius: 14px;
-  background: color-mix(in srgb, var(--surface, #fff) 84%, var(--accent-color, #2563eb) 16%);
+  background: var(--schedule-card-bg, color-mix(in srgb, var(--surface, #fff) 84%, var(--accent-color, #2563eb) 16%));
+  border-color: var(--schedule-card-border, var(--border-color, rgba(148, 163, 184, 0.24)));
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -2821,6 +2803,18 @@ body {
 
 .schedule-overview-item strong {
   font-size: 0.95rem;
+}
+
+.schedule-overview-item small {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  background: var(--schedule-room-bg, rgba(37, 99, 235, 0.14));
+  color: var(--schedule-room-text, #1d4ed8);
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .schedule-overview-more {
