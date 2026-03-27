@@ -4,6 +4,7 @@ const router = express.Router();
 const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const { hasAdminAccess } = require('../utils/access');
 const db = require('../config/database');
+const { logAttendanceChange } = require('../utils/auditTrail');
 
 const VALID_STATUSES = new Set(['present', 'absent', 'late', 'excused']);
 const DAY_ORDER_SQL = `
@@ -311,12 +312,16 @@ router.post('/bulk', auth, isTeacherOrAdmin, async (req, res) => {
     const allowedStudentIds = new Set(
       roster.map((student) => String(student.student_id || '').trim()).filter(Boolean)
     );
+    const previousStatusByStudentId = new Map(
+      roster.map((student) => [String(student.student_id || '').trim(), student.status || null])
+    );
 
     let savedCount = 0;
 
     for (const record of records) {
       const studentId = String(record.studentId || '').trim();
       const status = normalizeStatus(record.status);
+      const previousStatus = previousStatusByStudentId.get(studentId) || null;
 
       if (!studentId || !status || !allowedStudentIds.has(studentId)) {
         continue;
@@ -329,6 +334,27 @@ router.post('/bulk', auth, isTeacherOrAdmin, async (req, res) => {
         status,
         markedBy: req.user.id
       });
+
+      const attendanceRecord = await db.get(
+        `SELECT *
+         FROM attendance
+         WHERE schedule_id = ?
+           AND student_id = ?
+           AND date = ?`,
+        [scheduleId, studentId, date]
+      );
+
+      await logAttendanceChange({
+        attendanceId: attendanceRecord?.id,
+        scheduleId,
+        studentId,
+        date,
+        previousStatus,
+        newStatus: status,
+        changedBy: req.user.id
+      });
+
+      previousStatusByStudentId.set(studentId, status);
       savedCount += 1;
     }
 
@@ -368,7 +394,8 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
     }
 
     const roster = await getRosterForSchedule(session, date);
-    const isAllowedStudent = roster.some((student) => student.student_id === studentId);
+    const selectedStudent = roster.find((student) => student.student_id === studentId);
+    const isAllowedStudent = Boolean(selectedStudent);
     if (!isAllowedStudent) {
       return res.status(400).json({ error: 'Student does not belong to this schedule' });
     }
@@ -390,9 +417,90 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
       [scheduleId, studentId, date]
     );
 
+    await logAttendanceChange({
+      attendanceId: attendance?.id,
+      scheduleId,
+      studentId,
+      date,
+      previousStatus: selectedStudent?.status || null,
+      newStatus: status,
+      changedBy: req.user.id
+    });
+
     res.json({ attendance });
   } catch (error) {
     console.error('Mark attendance error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/audit', auth, isTeacherOrAdmin, async (req, res) => {
+  try {
+    const conditions = [];
+    const params = [];
+    const limit = Math.min(Math.max(Number(req.query.limit || 100), 1), 300);
+
+    if (req.query.scheduleId) {
+      const scheduleId = Number(req.query.scheduleId);
+      if (!Number.isFinite(scheduleId) || scheduleId <= 0) {
+        return res.status(400).json({ error: 'Valid scheduleId is required' });
+      }
+
+      conditions.push('aal.schedule_id = ?');
+      params.push(scheduleId);
+    }
+
+    if (req.query.studentId) {
+      conditions.push('aal.student_id = ?');
+      params.push(String(req.query.studentId).trim());
+    }
+
+    if (req.query.date) {
+      const date = normalizeDateInput(req.query.date);
+      if (!date) {
+        return res.status(400).json({ error: 'Valid date is required' });
+      }
+
+      conditions.push('aal.date = ?');
+      params.push(date);
+    }
+
+    if (!hasAdminAccess(req.user)) {
+      conditions.push(`(
+        c.teacher_id = ?
+        OR COALESCE(s.teacher, '') = ?
+        OR COALESCE(s.teacher, '') = ?
+      )`);
+      params.push(req.user.id, req.user.name, req.user.email);
+    }
+
+    const whereClause = conditions.length > 0
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
+
+    const audit = await db.all(
+      `SELECT
+         aal.*,
+         u.name AS changed_by_name,
+         s.day,
+         s.time_slot,
+         s.subject,
+         s.room,
+         c.code AS course_code,
+         c.name AS course_name
+       FROM attendance_audit_log aal
+       LEFT JOIN users u ON u.id = aal.changed_by
+       LEFT JOIN schedule s ON s.id = aal.schedule_id
+       LEFT JOIN courses c ON c.id = s.course_id
+       ${whereClause}
+       ORDER BY aal.changed_at DESC
+       LIMIT ?`,
+      [...params, limit]
+    );
+
+    res.json({ audit });
+  } catch (error) {
+    console.error('Get attendance audit error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

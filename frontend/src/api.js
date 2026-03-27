@@ -309,6 +309,14 @@ export const api = {
     return request('/assignments', { headers: getHeaders() });
   },
 
+  async createAssignment(assignmentData) {
+    return request('/assignments', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(assignmentData)
+    });
+  },
+
   async getStudentAttendance(studentId) {
     return request(`/attendance/student/${studentId}`, { headers: getHeaders() });
   },

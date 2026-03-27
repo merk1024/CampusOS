@@ -343,6 +343,30 @@
   gap: 0.7rem;
 }
 
+.att-layout-switch {
+  display: inline-flex;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 52%, var(--surf2) 48%);
+  border: 1px solid var(--border);
+}
+
+.att-layout-switch button {
+  min-height: 38px;
+  padding: 0.55rem 0.95rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+}
+
+.att-layout-switch button.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: #fff;
+}
+
 .att-quick-actions button,
 .att-save-btn {
   font: inherit;
@@ -408,6 +432,70 @@
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+}
+
+.att-status-matrix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.att-status-matrix.compact {
+  gap: 0.35rem;
+}
+
+.att-status-quick {
+  min-width: 42px;
+  min-height: 40px;
+  padding: 0.55rem 0.72rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+  transition: var(--transition);
+}
+
+.att-status-quick:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border) 55%);
+}
+
+.att-status-quick.present.active {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.28);
+  color: #065f46;
+}
+
+.att-status-quick.late.active {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.28);
+  color: #9a6700;
+}
+
+.att-status-quick.excused.active {
+  background: rgba(99, 102, 241, 0.16);
+  border-color: rgba(99, 102, 241, 0.28);
+  color: #4338ca;
+}
+
+.att-status-quick.absent.active {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.28);
+  color: #991b1b;
+}
+
+.att-status-quick.clear {
+  min-width: 68px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.att-status-quick.clear.active {
+  background: color-mix(in srgb, var(--surface) 42%, var(--surf2) 58%);
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border) 76%);
 }
 
 .att-status-badge {
@@ -492,6 +580,55 @@
   box-shadow: none;
 }
 
+.att-roster-table-shell {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--surf2);
+}
+
+.att-roster-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.att-roster-table thead th {
+  padding: 0.9rem 1rem;
+  text-align: left;
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--surface) 90%, var(--accent) 10%);
+  border-bottom: 1px solid var(--border);
+}
+
+.att-roster-table tbody tr + tr td {
+  border-top: 1px solid color-mix(in srgb, var(--border) 82%, transparent 18%);
+}
+
+.att-roster-table td {
+  padding: 0.9rem 1rem;
+  vertical-align: middle;
+}
+
+.att-table-student {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.att-table-student strong {
+  color: var(--text);
+  font-size: 0.97rem;
+}
+
+.att-table-student span {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
 .att-empty-state {
   min-height: 160px;
   border: 1px dashed color-mix(in srgb, var(--border) 70%, var(--accent) 30%);
@@ -530,6 +667,16 @@
 .att-roster-panel.compact .att-status-select select {
   min-height: 42px;
   padding: 0.65rem 0.8rem;
+}
+
+.att-roster-panel.compact .att-status-quick {
+  min-width: 38px;
+  min-height: 36px;
+  padding: 0.45rem 0.6rem;
+}
+
+.att-roster-panel.compact .att-status-quick.clear {
+  min-width: 58px;
 }
 
 @media (max-width: 1080px) {
@@ -578,6 +725,22 @@
 
   .att-filter {
     flex: 1 1 auto;
+  }
+
+  .att-roster-table thead {
+    display: none;
+  }
+
+  .att-roster-table,
+  .att-roster-table tbody,
+  .att-roster-table tr,
+  .att-roster-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .att-roster-table td {
+    padding: 0.75rem 0.9rem;
   }
 
   .att-student-row,

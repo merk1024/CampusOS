@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const db = require('../config/database');
+const { logGradeChange } = require('../utils/auditTrail');
 
 // @route   POST /api/grades
 // @desc    Add or update grade
@@ -12,7 +13,7 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
 
     // Check if grade exists
     const existing = await db.query(
-      'SELECT id FROM grades WHERE exam_id = $1 AND student_id = $2',
+      'SELECT id, grade, comments FROM grades WHERE exam_id = $1 AND student_id = $2',
       [examId, studentId]
     );
 
@@ -36,12 +37,74 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
       );
     }
 
+    await logGradeChange({
+      gradeId: result.rows[0]?.id,
+      examId,
+      studentId,
+      previousGrade: existing.rows[0]?.grade,
+      newGrade: result.rows[0]?.grade,
+      previousComments: existing.rows[0]?.comments,
+      newComments: result.rows[0]?.comments,
+      changedBy: req.user.id
+    });
+
     res.json({
       message: 'Grade saved successfully',
       grade: result.rows[0]
     });
   } catch (error) {
     console.error('Save grade error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// @route   GET /api/grades/audit
+// @desc    Get grade audit trail
+// @access  Private (Teacher/Admin)
+router.get('/audit', auth, isTeacherOrAdmin, async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 200);
+    const conditions = [];
+    const params = [];
+
+    if (req.query.studentId) {
+      conditions.push('gal.student_id = ?');
+      params.push(String(req.query.studentId).trim());
+    }
+
+    if (req.query.examId) {
+      const examId = Number(req.query.examId);
+      if (!Number.isFinite(examId) || examId <= 0) {
+        return res.status(400).json({ error: 'Valid examId is required' });
+      }
+
+      conditions.push('gal.exam_id = ?');
+      params.push(examId);
+    }
+
+    const whereClause = conditions.length > 0
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
+
+    const audit = await db.all(
+      `SELECT
+         gal.*,
+         u.name AS changed_by_name,
+         e.subject,
+         e.type,
+         e.group_name
+       FROM grade_audit_log gal
+       LEFT JOIN users u ON u.id = gal.changed_by
+       LEFT JOIN exams e ON e.id = gal.exam_id
+       ${whereClause}
+       ORDER BY gal.changed_at DESC
+       LIMIT ?`,
+      [...params, limit]
+    );
+
+    res.json({ audit });
+  } catch (error) {
+    console.error('Get grade audit error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

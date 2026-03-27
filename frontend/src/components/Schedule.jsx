@@ -42,6 +42,12 @@ const emptyForm = {
   teacher: '',
   room: ''
 };
+const emptyBatchForm = {
+  course_id: '',
+  subject: '',
+  teacher: '',
+  room: ''
+};
 
 const normalizeId = (value) => (value === '' || value === null || value === undefined ? '' : String(value));
 const getRangeSlots = (startIndex, span = 1) => timeSlots.slice(startIndex, startIndex + span);
@@ -160,6 +166,10 @@ function Schedule() {
   const [draggedBlock, setDraggedBlock] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
   const [copyFeedback, setCopyFeedback] = useState({ type: '', message: '' });
+  const [batchSelectMode, setBatchSelectMode] = useState(false);
+  const [selectedBatchIds, setSelectedBatchIds] = useState([]);
+  const [showBatchEditor, setShowBatchEditor] = useState(false);
+  const [batchForm, setBatchForm] = useState(emptyBatchForm);
 
   const canEdit = canManageAcademicRecords(user);
   const isAdmin = hasAdminAccess(user);
@@ -248,6 +258,9 @@ function Schedule() {
           if (!next || signature(next) !== signature(current)) break;
           span += 1;
         }
+        const entryIds = getRangeSlots(slotIndex, span)
+          .map((slot) => scheduleMap.get(`${day}__${slot}`)?.id)
+          .filter(Boolean);
         blocks.push({
           type: 'occupied',
           day,
@@ -256,7 +269,8 @@ function Schedule() {
           span,
           startSlot: timeSlots[slotIndex],
           endSlot: timeSlots[slotIndex + span - 1],
-          entry: current
+          entry: current,
+          entryIds
         });
         slotIndex += span;
       }
@@ -345,8 +359,13 @@ function Schedule() {
     }
   }, [courseOptions, filteredSchedule, selectedCourseFilter]);
 
+  useEffect(() => {
+    setSelectedBatchIds((current) => current.filter((id) => filteredSchedule.some((item) => String(item.id) === String(id))));
+  }, [filteredSchedule]);
+
   const reloadSchedule = async (nextGroup = selectedGroup) => {
     const entries = await loadSchedule();
+    setSelectedBatchIds((current) => current.filter((id) => entries.some((item) => String(item.id) === String(id))));
     if (isStudent) {
       setSelectedGroup(studentGroup);
       return;
@@ -412,9 +431,48 @@ function Schedule() {
     }));
   };
 
+  const handleBatchCoursePick = (courseId) => {
+    const course = courseOptions.find((item) => String(item.id) === String(courseId));
+    setBatchForm((current) => ({
+      ...current,
+      course_id: courseId,
+      subject: course ? course.name : current.subject,
+      teacher: course ? getCourseTeacher(course) : current.teacher
+    }));
+  };
+
+  const toggleBatchSelection = (entryIds = []) => {
+    setSelectedBatchIds((current) => {
+      const allSelected = entryIds.every((id) => current.includes(id));
+      if (allSelected) {
+        return current.filter((id) => !entryIds.includes(id));
+      }
+
+      return [...new Set([...current, ...entryIds])];
+    });
+  };
+
+  const resetBatchEditor = () => {
+    setShowBatchEditor(false);
+    setBatchForm(emptyBatchForm);
+  };
+
+  const clearBatchSelection = () => {
+    setSelectedBatchIds([]);
+    resetBatchEditor();
+  };
+
   const handleCellClick = (day, timeSlot) => {
     if (!canEdit) return;
     const existing = visibleSchedule.find((item) => item.day === day && item.time_slot === timeSlot);
+    if (existing && batchSelectMode) {
+      const linkedIds = filteredSchedule
+        .filter((item) => item.day === day && item.subject === existing.subject && item.teacher === existing.teacher && item.room === existing.room && item.group_name === existing.group_name && (item.audience_type || 'group') === (existing.audience_type || 'group') && (item.subgroup_name || '') === (existing.subgroup_name || '') && String(item.student_user_id || '') === String(existing.student_user_id || '') && String(item.course_id || '') === String(existing.course_id || ''))
+        .map((item) => item.id)
+        .filter(Boolean);
+      toggleBatchSelection(linkedIds.length ? linkedIds : [existing.id]);
+      return;
+    }
     if (!existing && selectedAudienceView === 'individual' && isAdmin && !selectedStudentId) {
       window.alert('Choose a student first to create an individual slot.');
       return;
@@ -456,6 +514,15 @@ function Schedule() {
       setSelectedTimeSlots([timeSlot]);
     }
     setShowEditForm(true);
+  };
+
+  const handleBlockClick = (block) => {
+    if (block.type === 'occupied' && batchSelectMode) {
+      toggleBatchSelection(block.entryIds?.length ? block.entryIds : [block.entry.id]);
+      return;
+    }
+
+    handleCellClick(block.day, block.startSlot);
   };
 
   const handleDragStart = (block) => (event) => {
@@ -607,6 +674,73 @@ function Schedule() {
     }
   };
 
+  const selectedBatchEntries = useMemo(
+    () => filteredSchedule.filter((item) => selectedBatchIds.includes(item.id)),
+    [filteredSchedule, selectedBatchIds]
+  );
+  const selectedBatchSummary = useMemo(() => {
+    const groups = new Set(selectedBatchEntries.map((item) => item.group_name).filter(Boolean));
+    const coursesInSelection = new Set(selectedBatchEntries.map((item) => item.course_id).filter(Boolean));
+    return {
+      count: selectedBatchEntries.length,
+      groups: groups.size,
+      courses: coursesInSelection.size
+    };
+  }, [selectedBatchEntries]);
+
+  const openBatchEditor = () => {
+    if (!selectedBatchEntries.length) return;
+    const [firstEntry] = selectedBatchEntries;
+    setBatchForm({
+      course_id: normalizeId(firstEntry.course_id),
+      subject: '',
+      teacher: '',
+      room: ''
+    });
+    setShowBatchEditor(true);
+  };
+
+  const handleBatchSave = async () => {
+    if (!selectedBatchEntries.length) return;
+
+    try {
+      await Promise.all(selectedBatchEntries.map((entry) => {
+        const nextCourseId = batchForm.course_id ? Number(batchForm.course_id) : entry.course_id || null;
+        return api.updateScheduleEntry(entry.id, {
+          day: entry.day,
+          time_slot: entry.original_time_slot || entry.time_slot,
+          group_name: entry.group_name,
+          audience_type: entry.audience_type || 'group',
+          subgroup_name: entry.subgroup_name || null,
+          student_user_id: entry.student_user_id || null,
+          course_id: nextCourseId,
+          subject: batchForm.subject.trim() || entry.subject,
+          teacher: batchForm.teacher.trim() || entry.teacher || '',
+          room: batchForm.room.trim() || entry.room || ''
+        });
+      }));
+
+      await reloadSchedule(selectedGroup);
+      setCopyFeedback({ type: 'success', message: `Updated ${selectedBatchEntries.length} selected slot${selectedBatchEntries.length === 1 ? '' : 's'}.` });
+      clearBatchSelection();
+    } catch (batchError) {
+      window.alert(batchError.message || 'Failed to update selected schedule entries.');
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (!selectedBatchEntries.length) return;
+
+    try {
+      await Promise.all(selectedBatchEntries.map((entry) => api.deleteScheduleEntry(entry.id)));
+      await reloadSchedule(selectedGroup);
+      setCopyFeedback({ type: 'success', message: `Deleted ${selectedBatchEntries.length} selected slot${selectedBatchEntries.length === 1 ? '' : 's'}.` });
+      clearBatchSelection();
+    } catch (batchError) {
+      window.alert(batchError.message || 'Failed to delete selected schedule entries.');
+    }
+  };
+
   const totalEntries = schedule.length;
   const usesCustomGroup = showCustomGroupInput || (!!selectedGroup && !groupOptions.includes(selectedGroup));
 
@@ -629,7 +763,7 @@ function Schedule() {
               : 'Manage course schedules for groups, subgroups, and individual students.'}
           </p>
         </div>
-        {canEdit && <div className="page-actions"><p className="edit-hint">Pick a scope, click any cell to edit it, or drag a class onto an empty slot to copy it.</p></div>}
+        {canEdit && <div className="page-actions"><p className="edit-hint">Pick a scope, click any cell to edit it, drag a class onto an empty slot to copy it, or switch on batch mode for mass updates.</p></div>}
       </div>
 
       <div className="schedule-admin-bar">
@@ -651,6 +785,60 @@ function Schedule() {
           {canEdit && <span className="schedule-legend-item"><span className="schedule-dot editable"></span> Click to manage or drag to copy</span>}
         </div>
       </div>
+
+      {canEdit && (
+        <div className="schedule-batch-toolbar">
+          <div className="schedule-batch-copy">
+            <strong>Batch workflow</strong>
+            <span>
+              {selectedBatchEntries.length
+                ? `${selectedBatchSummary.count} slot${selectedBatchSummary.count === 1 ? '' : 's'} selected across ${selectedBatchSummary.groups} group${selectedBatchSummary.groups === 1 ? '' : 's'}.`
+                : 'Turn on batch mode and click occupied slots to queue them for a shared update.'}
+            </span>
+          </div>
+          <div className="schedule-batch-actions">
+            <button
+              type="button"
+              className={`management-filter-chip ${batchSelectMode ? 'active' : ''}`}
+              onClick={() => setBatchSelectMode((value) => !value)}
+            >
+              {batchSelectMode ? 'Exit batch mode' : 'Batch select'}
+            </button>
+            <button
+              type="button"
+              className="management-filter-chip"
+              onClick={() => setSelectedBatchIds(Array.from(new Set(filteredSchedule.map((item) => item.id).filter(Boolean))))}
+              disabled={!filteredSchedule.length}
+            >
+              Select visible
+            </button>
+            <button
+              type="button"
+              className="management-filter-chip"
+              onClick={openBatchEditor}
+              disabled={!selectedBatchEntries.length}
+            >
+              Batch edit
+            </button>
+            <button
+              type="button"
+              className="management-filter-chip"
+              onClick={handleBatchDelete}
+              disabled={!selectedBatchEntries.length}
+            >
+              Delete selected
+            </button>
+            <button
+              type="button"
+              className="management-filter-chip"
+              onClick={clearBatchSelection}
+              disabled={!selectedBatchEntries.length && !showBatchEditor}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
 
       {copyFeedback.message && <div className={copyFeedback.type === 'error' ? 'error-message' : 'success-message'}>{copyFeedback.message}</div>}
 
@@ -800,19 +988,19 @@ function Schedule() {
             {mergedBlocks.map((block) => (
               <div
                 key={`${block.day}-${block.startSlot}-${block.type}`}
-                className={`schedule-cell schedule-grid-item ${block.type === 'occupied' ? 'occupied merged-block' : 'empty'} ${canEdit ? 'editable' : ''} ${draggedBlock?.day === block.day && draggedBlock?.startSlot === block.startSlot ? 'drag-source' : ''} ${dropTarget?.day === block.day && dropTarget?.startSlot === block.startSlot ? 'drop-target' : ''}`}
+                className={`schedule-cell schedule-grid-item ${block.type === 'occupied' ? 'occupied merged-block' : 'empty'} ${canEdit ? 'editable' : ''} ${block.type === 'occupied' && block.entryIds?.some((id) => selectedBatchIds.includes(id)) ? 'batch-selected' : ''} ${draggedBlock?.day === block.day && draggedBlock?.startSlot === block.startSlot ? 'drag-source' : ''} ${dropTarget?.day === block.day && dropTarget?.startSlot === block.startSlot ? 'drop-target' : ''}`}
                 style={{
                   gridColumn: block.dayIndex + 2,
                   gridRow: `${block.startIndex + 2} / span ${block.span}`,
                   ...(block.type === 'occupied' ? getScheduleCardStyle(block.entry) : {})
                 }}
-                onClick={() => handleCellClick(block.day, block.startSlot)}
-                draggable={canEdit && block.type === 'occupied'}
-                onDragStart={block.type === 'occupied' ? handleDragStart(block) : undefined}
-                onDragEnd={block.type === 'occupied' ? handleDragEnd : undefined}
-                onDragOver={canEdit ? handleDragOver(block) : undefined}
-                onDragLeave={canEdit ? handleDragLeave(block) : undefined}
-                onDrop={canEdit ? handleDrop(block) : undefined}
+                onClick={() => handleBlockClick(block)}
+                draggable={canEdit && !batchSelectMode && block.type === 'occupied'}
+                onDragStart={block.type === 'occupied' && !batchSelectMode ? handleDragStart(block) : undefined}
+                onDragEnd={block.type === 'occupied' && !batchSelectMode ? handleDragEnd : undefined}
+                onDragOver={canEdit && !batchSelectMode ? handleDragOver(block) : undefined}
+                onDragLeave={canEdit && !batchSelectMode ? handleDragLeave(block) : undefined}
+                onDrop={canEdit && !batchSelectMode ? handleDrop(block) : undefined}
               >
                 {block.type === 'occupied' ? (
                   <div className="class-info">
@@ -850,6 +1038,47 @@ function Schedule() {
                 {formData.id && <button type="button" className="btn-danger" onClick={handleDelete}>Delete</button>}
                 <button type="button" className="btn-secondary" onClick={closeModal}>Cancel</button>
                 <button type="submit" className="btn-primary">{formData.id ? 'Update' : `Create for ${selectedTimeSlots.length || 1} slot${selectedTimeSlots.length === 1 ? '' : 's'}`}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showBatchEditor && (
+        <div className="modal-overlay" onClick={clearBatchSelection}>
+          <div className="modal-content" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Batch Edit Schedule</h3>
+              <button className="modal-close" onClick={clearBatchSelection}>x</button>
+            </div>
+            <div className="schedule-modal-copy">
+              <p>Update shared fields for the currently selected schedule slots. Leave a field blank to keep the existing value.</p>
+            </div>
+            <form onSubmit={(event) => { event.preventDefault(); handleBatchSave(); }}>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Linked course</label>
+                  <select value={batchForm.course_id} onChange={(event) => handleBatchCoursePick(event.target.value)}>
+                    <option value="">Keep each current course</option>
+                    {courseOptions.map((course) => <option key={course.id} value={course.id}>{course.code} - {course.name}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Subject override</label>
+                  <input value={batchForm.subject} onChange={(event) => setBatchForm((current) => ({ ...current, subject: event.target.value }))} placeholder="Keep current subject if empty" />
+                </div>
+                <div className="form-group">
+                  <label>Teacher override</label>
+                  <input value={batchForm.teacher} onChange={(event) => setBatchForm((current) => ({ ...current, teacher: event.target.value }))} placeholder="Keep current teacher if empty" />
+                </div>
+                <div className="form-group">
+                  <label>Room override</label>
+                  <input value={batchForm.room} onChange={(event) => setBatchForm((current) => ({ ...current, room: event.target.value }))} placeholder="Keep current room if empty" />
+                </div>
+              </div>
+              <div className="form-actions">
+                <button type="button" className="btn-secondary" onClick={clearBatchSelection}>Cancel</button>
+                <button type="submit" className="btn-primary">Update {selectedBatchEntries.length} slot{selectedBatchEntries.length === 1 ? '' : 's'}</button>
               </div>
             </form>
           </div>

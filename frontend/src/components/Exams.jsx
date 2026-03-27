@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api';
 import { canManageAcademicRecords } from '../roles';
@@ -14,6 +14,34 @@ const EMPTY_FORM = {
   studentsText: ''
 };
 
+function formatExamDate(value) {
+  if (!value) return 'Not set';
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString();
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleDateString();
+}
+
+function toLocalDateValue(value) {
+  if (!value) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function Exams({ user }) {
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +51,7 @@ function Exams({ user }) {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [searchTerm, setSearchTerm] = useState('');
   const [groupFilter, setGroupFilter] = useState('all');
+  const [ownershipFilter, setOwnershipFilter] = useState('all');
 
   const canManage = canManageAcademicRecords(user);
 
@@ -48,6 +77,12 @@ function Exams({ user }) {
     setFormData(EMPTY_FORM);
     setEditingId(null);
     setShowForm(false);
+  };
+
+  const openCreateForm = () => {
+    setFormData(EMPTY_FORM);
+    setEditingId(null);
+    setShowForm(true);
   };
 
   const handleSubmit = async (event) => {
@@ -99,6 +134,21 @@ function Exams({ user }) {
     setShowForm(true);
   };
 
+  const handleDuplicate = (exam) => {
+    setEditingId(null);
+    setFormData({
+      group_name: exam.group_name || '',
+      subject: exam.subject || '',
+      exam_date: exam.exam_date || '',
+      exam_time: exam.exam_time || '',
+      room: exam.room || '',
+      type: exam.type || 'Exam',
+      semester: exam.semester || '',
+      studentsText: (exam.students || []).join(', ')
+    });
+    setShowForm(true);
+  };
+
   const handleDelete = async (id) => {
     try {
       await api.deleteExam(id);
@@ -109,17 +159,37 @@ function Exams({ user }) {
     }
   };
 
-  const groups = ['all', ...new Set(exams.map((exam) => exam.group_name).filter(Boolean))];
-  const filteredExams = exams.filter((exam) => {
-    const matchesGroup = groupFilter === 'all' || exam.group_name === groupFilter;
-    const haystack = [exam.subject, exam.group_name, exam.teacher_name, exam.room, exam.type]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
+  const groups = useMemo(
+    () => ['all', ...new Set(exams.map((exam) => exam.group_name).filter(Boolean))],
+    [exams]
+  );
 
-    return matchesGroup && haystack.includes(searchTerm.toLowerCase());
-  });
-  const upcomingCount = exams.filter((exam) => exam.exam_date && new Date(exam.exam_date) >= new Date(new Date().toDateString())).length;
+  const filteredExams = useMemo(() => (
+    exams.filter((exam) => {
+      const matchesGroup = groupFilter === 'all' || exam.group_name === groupFilter;
+      const isOwnedByCurrentUser = canManage && (
+        Number(exam.created_by) === Number(user?.id)
+        || exam.teacher_name === user?.name
+      );
+      const matchesOwnership = ownershipFilter === 'all' || isOwnedByCurrentUser;
+      const haystack = [exam.subject, exam.group_name, exam.teacher_name, exam.room, exam.type]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return matchesGroup && matchesOwnership && haystack.includes(searchTerm.toLowerCase());
+    })
+  ), [canManage, exams, groupFilter, ownershipFilter, searchTerm, user?.id, user?.name]);
+
+  const today = new Date(new Date().toDateString());
+  const upcomingCount = exams.filter((exam) => {
+    const examDate = toLocalDateValue(exam.exam_date);
+    return examDate && examDate >= today;
+  }).length;
+  const mineCount = exams.filter((exam) => (
+    Number(exam.created_by) === Number(user?.id)
+    || exam.teacher_name === user?.name
+  )).length;
 
   if (loading) {
     return (
@@ -138,11 +208,11 @@ function Exams({ user }) {
       <div className="page-header">
         <div>
           <h1>Exams</h1>
-          <p>{canManage ? 'Create and manage exams for groups' : 'Your scheduled exams'}</p>
+          <p>{canManage ? 'Create and manage exams for groups.' : 'Your scheduled exams.'}</p>
         </div>
         {canManage && (
-          <button className="btn-primary" onClick={() => setShowForm(true)}>
-            Add Exam
+          <button className="btn-primary" onClick={() => (showForm ? resetForm() : openCreateForm())}>
+            {showForm ? 'Close Composer' : 'Add Exam'}
           </button>
         )}
       </div>
@@ -162,6 +232,12 @@ function Exams({ user }) {
           <span className="management-summary-label">Groups</span>
           <strong>{groups.length - 1}</strong>
         </div>
+        {canManage && (
+          <div className="management-summary-card">
+            <span className="management-summary-label">My exams</span>
+            <strong>{mineCount}</strong>
+          </div>
+        )}
       </div>
 
       <div className="management-toolbar">
@@ -184,6 +260,24 @@ function Exams({ user }) {
               {group === 'all' ? 'All groups' : group}
             </button>
           ))}
+          {canManage && (
+            <>
+              <button
+                type="button"
+                className={`management-filter-chip ${ownershipFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setOwnershipFilter('all')}
+              >
+                All exams
+              </button>
+              <button
+                type="button"
+                className={`management-filter-chip ${ownershipFilter === 'mine' ? 'active' : ''}`}
+                onClick={() => setOwnershipFilter('mine')}
+              >
+                My exams
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -192,7 +286,7 @@ function Exams({ user }) {
           <div className="exam-form-header">
             <div>
               <h3>{editingId ? 'Update exam' : 'Create new exam'}</h3>
-              <p>Use one place to assign date, group and students.</p>
+              <p>Use one place to assign date, group and students. Duplicate similar sessions when the structure repeats.</p>
             </div>
           </div>
           <div className="exam-form-grid">
@@ -287,18 +381,19 @@ function Exams({ user }) {
             <div className="exam-card-header">
               <div>
                 <h3>{exam.subject}</h3>
-                <p>{exam.group_name} • {exam.type || 'Exam'}</p>
+                <p>{exam.group_name} | {exam.type || 'Exam'}</p>
               </div>
               {canManage && (
                 <div className="exam-card-actions">
+                  <button className="btn-secondary" onClick={() => handleDuplicate(exam)}>Duplicate</button>
                   <button className="btn-secondary" onClick={() => handleEdit(exam)}>Edit</button>
                   <button className="btn-secondary" onClick={() => handleDelete(exam.id)}>Delete</button>
                 </div>
               )}
             </div>
             <div className="exam-meta-grid">
-              <div><strong>Date:</strong> {exam.exam_date}</div>
-              <div><strong>Time:</strong> {exam.exam_time}</div>
+              <div><strong>Date:</strong> {formatExamDate(exam.exam_date)}</div>
+              <div><strong>Time:</strong> {exam.exam_time || 'Not set'}</div>
               <div><strong>Room:</strong> {exam.room || 'Not set'}</div>
               <div><strong>Teacher:</strong> {exam.teacher_name || 'Not set'}</div>
               <div><strong>Semester:</strong> {exam.semester || 'Not set'}</div>
@@ -309,7 +404,7 @@ function Exams({ user }) {
 
         {filteredExams.length === 0 && (
           <div className="schedule-placeholder">
-            <p>No exams found for the current filters</p>
+            <p>No exams found for the current filters.</p>
           </div>
         )}
       </div>

@@ -83,6 +83,20 @@ CREATE TABLE IF NOT EXISTS grades (
     UNIQUE(exam_id, student_id)
 );
 
+CREATE TABLE IF NOT EXISTS grade_audit_log (
+    id SERIAL PRIMARY KEY,
+    grade_id INTEGER REFERENCES grades(id) ON DELETE SET NULL,
+    exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+    student_id TEXT NOT NULL,
+    action TEXT NOT NULL CHECK (action IN ('created', 'updated')),
+    previous_grade INTEGER,
+    new_grade INTEGER,
+    previous_comments TEXT,
+    new_comments TEXT,
+    changed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    changed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS schedule (
     id SERIAL PRIMARY KEY,
     day TEXT NOT NULL,
@@ -145,12 +159,27 @@ CREATE TABLE IF NOT EXISTS attendance (
     UNIQUE(schedule_id, student_id, date)
 );
 
+CREATE TABLE IF NOT EXISTS attendance_audit_log (
+    id SERIAL PRIMARY KEY,
+    attendance_id INTEGER REFERENCES attendance(id) ON DELETE SET NULL,
+    schedule_id INTEGER NOT NULL REFERENCES schedule(id) ON DELETE CASCADE,
+    student_id TEXT NOT NULL,
+    date DATE NOT NULL,
+    action TEXT NOT NULL CHECK (action IN ('created', 'updated')),
+    previous_status TEXT,
+    new_status TEXT NOT NULL,
+    changed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    changed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_student_id ON users(student_id);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_exams_date ON exams(exam_date);
 CREATE INDEX IF NOT EXISTS idx_grades_student ON grades(student_id);
+CREATE INDEX IF NOT EXISTS idx_grade_audit_student ON grade_audit_log(student_id);
 CREATE INDEX IF NOT EXISTS idx_schedule_group ON schedule(group_name);
 CREATE INDEX IF NOT EXISTS idx_assignments_due ON assignments(due_date);
 CREATE INDEX IF NOT EXISTS idx_attendance_student ON attendance(student_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
+CREATE INDEX IF NOT EXISTS idx_attendance_audit_student ON attendance_audit_log(student_id);

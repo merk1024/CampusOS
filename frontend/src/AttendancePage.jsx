@@ -11,6 +11,12 @@ const STATUS_OPTIONS = [
   { value: 'excused', label: 'Excused' },
   { value: 'absent', label: 'Absent' }
 ];
+const STATUS_SHORTCUTS = {
+  present: 'P',
+  late: 'L',
+  excused: 'E',
+  absent: 'A'
+};
 
 const STATUS_LABELS = {
   present: 'Present',
@@ -35,12 +41,14 @@ const readAttendancePreferences = () => {
     const stored = JSON.parse(localStorage.getItem(ATTENDANCE_UI_KEY));
     return {
       compactMode: Boolean(stored?.compactMode),
-      rosterFilter: stored?.rosterFilter || 'all'
+      rosterFilter: stored?.rosterFilter || 'all',
+      layoutMode: stored?.layoutMode === 'table' ? 'table' : 'cards'
     };
   } catch {
     return {
       compactMode: false,
-      rosterFilter: 'all'
+      rosterFilter: 'all',
+      layoutMode: 'cards'
     };
   }
 };
@@ -120,6 +128,32 @@ function StatusBadge({ status }) {
   );
 }
 
+function AttendanceQuickStatusButtons({ value, onChange, compact = false }) {
+  return (
+    <div className={`att-status-matrix ${compact ? 'compact' : ''}`}>
+      {STATUS_OPTIONS.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className={`att-status-quick ${value === option.value ? 'active' : ''} ${option.value}`}
+          onClick={() => onChange(option.value)}
+          title={option.label}
+        >
+          {STATUS_SHORTCUTS[option.value]}
+        </button>
+      ))}
+      <button
+        type="button"
+        className={`att-status-quick clear ${!value ? 'active' : ''}`}
+        onClick={() => onChange('')}
+        title="Clear draft status"
+      >
+        Clear
+      </button>
+    </div>
+  );
+}
+
 function AttendanceSummary({ summary }) {
   const cards = [
     { label: 'Marked', value: summary.marked },
@@ -159,6 +193,7 @@ function TeacherAttendance({ user }) {
   const [notice, setNotice] = useState('');
   const [compactMode, setCompactMode] = useState(initialPreferences.compactMode);
   const [rosterFilter, setRosterFilter] = useState(initialPreferences.rosterFilter);
+  const [layoutMode, setLayoutMode] = useState(initialPreferences.layoutMode);
 
   useEffect(() => {
     writeAttendancePreferences({ compactMode });
@@ -167,6 +202,10 @@ function TeacherAttendance({ user }) {
   useEffect(() => {
     writeAttendancePreferences({ rosterFilter });
   }, [rosterFilter]);
+
+  useEffect(() => {
+    writeAttendancePreferences({ layoutMode });
+  }, [layoutMode]);
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -252,6 +291,12 @@ function TeacherAttendance({ user }) {
 
   const draftSummary = buildDraftSummary(students, draftStatuses);
   const isAdmin = hasAdminAccess(user);
+  const setStudentDraftStatus = (studentId, status) => {
+    setDraftStatuses((current) => ({
+      ...current,
+      [studentId]: status
+    }));
+  };
 
   const applyStatusToVisible = (status) => {
     setDraftStatuses((current) => ({
@@ -423,11 +468,31 @@ function TeacherAttendance({ user }) {
                 </div>
 
                 <div className="att-quick-actions">
-                  <button type="button" onClick={() => applyStatusToVisible('present')}>Visible present</button>
-                  <button type="button" onClick={() => applyStatusToVisible('absent')}>Visible absent</button>
+                  {STATUS_OPTIONS.map((option) => (
+                    <button key={option.value} type="button" onClick={() => applyStatusToVisible(option.value)}>
+                      Visible {option.label.toLowerCase()}
+                    </button>
+                  ))}
+                  <button type="button" onClick={() => applyStatusToVisible('')}>Clear visible</button>
                   <button type="button" onClick={() => setCompactMode((value) => !value)}>
                     {compactMode ? 'Comfort view' : 'Compact view'}
                   </button>
+                  <div className="att-layout-switch" role="tablist" aria-label="Attendance layout">
+                    <button
+                      type="button"
+                      className={layoutMode === 'cards' ? 'active' : ''}
+                      onClick={() => setLayoutMode('cards')}
+                    >
+                      Cards
+                    </button>
+                    <button
+                      type="button"
+                      className={layoutMode === 'table' ? 'active' : ''}
+                      onClick={() => setLayoutMode('table')}
+                    >
+                      Table
+                    </button>
+                  </div>
                   <button type="button" onClick={resetDraftToSaved}>Reset</button>
                 </div>
               </div>
@@ -438,43 +503,79 @@ function TeacherAttendance({ user }) {
                 <div className="att-roster-scroll">
                   <div className="att-roster-meta">
                     <span>Showing {filteredStudents.length} of {students.length} students</span>
-                    <span>Only the roster scrolls, not the save action</span>
+                    <span>{layoutMode === 'table' ? 'Table mode is optimized for quick roster marking' : 'Only the roster scrolls, not the save action'}</span>
                   </div>
-                  <div className="att-roster-list">
-                    {filteredStudents.map((student) => (
-                      <article key={student.student_id} className="att-student-row">
-                        <div className="att-student-info">
-                          <strong>{student.name}</strong>
-                          <span>
-                            {student.student_id}
-                            {student.group_name ? ` | ${student.group_name}` : ''}
-                            {student.subgroup_name ? ` | ${student.subgroup_name}` : ''}
-                          </span>
-                        </div>
+                  {layoutMode === 'table' ? (
+                    <div className="att-roster-table-shell">
+                      <table className="att-roster-table">
+                        <thead>
+                          <tr>
+                            <th>Student</th>
+                            <th>Saved</th>
+                            <th>Draft</th>
+                            <th>Quick set</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredStudents.map((student) => {
+                            const draftValue = draftStatuses[student.student_id] || '';
 
-                        <div className="att-student-current">
-                          <small>Saved</small>
-                          <StatusBadge status={student.status} />
-                        </div>
+                            return (
+                              <tr key={student.student_id}>
+                                <td>
+                                  <div className="att-table-student">
+                                    <strong>{student.name}</strong>
+                                    <span>
+                                      {student.student_id}
+                                      {student.group_name ? ` | ${student.group_name}` : ''}
+                                      {student.subgroup_name ? ` | ${student.subgroup_name}` : ''}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td><StatusBadge status={student.status} /></td>
+                                <td><StatusBadge status={draftValue || 'unmarked'} /></td>
+                                <td>
+                                  <AttendanceQuickStatusButtons
+                                    compact
+                                    value={draftValue}
+                                    onChange={(status) => setStudentDraftStatus(student.student_id, status)}
+                                  />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="att-roster-list">
+                      {filteredStudents.map((student) => (
+                        <article key={student.student_id} className="att-student-row">
+                          <div className="att-student-info">
+                            <strong>{student.name}</strong>
+                            <span>
+                              {student.student_id}
+                              {student.group_name ? ` | ${student.group_name}` : ''}
+                              {student.subgroup_name ? ` | ${student.subgroup_name}` : ''}
+                            </span>
+                          </div>
 
-                        <label className="att-status-select">
-                          <span>Set status</span>
-                          <select
-                            value={draftStatuses[student.student_id] || ''}
-                            onChange={(event) => setDraftStatuses((current) => ({
-                              ...current,
-                              [student.student_id]: event.target.value
-                            }))}
-                          >
-                            <option value="">Unmarked</option>
-                            {STATUS_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>{option.label}</option>
-                            ))}
-                          </select>
-                        </label>
-                      </article>
-                    ))}
-                  </div>
+                          <div className="att-student-current">
+                            <small>Saved</small>
+                            <StatusBadge status={student.status} />
+                          </div>
+
+                          <div className="att-status-select">
+                            <span>Set status</span>
+                            <AttendanceQuickStatusButtons
+                              value={draftStatuses[student.student_id] || ''}
+                              onChange={(status) => setStudentDraftStatus(student.student_id, status)}
+                            />
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

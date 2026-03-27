@@ -1,10 +1,12 @@
 -- Alatoo University LMS Database Schema (SQLite)
 
 -- Drop existing tables if they exist
+DROP TABLE IF EXISTS attendance_audit_log;
 DROP TABLE IF EXISTS attendance;
 DROP TABLE IF EXISTS assignment_submissions;
 DROP TABLE IF EXISTS assignments;
 DROP TABLE IF EXISTS announcements;
+DROP TABLE IF EXISTS grade_audit_log;
 DROP TABLE IF EXISTS grades;
 DROP TABLE IF EXISTS exam_students;
 DROP TABLE IF EXISTS exams;
@@ -104,6 +106,20 @@ CREATE TABLE grades (
     UNIQUE(exam_id, student_id)
 );
 
+CREATE TABLE grade_audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    grade_id INTEGER REFERENCES grades(id) ON DELETE SET NULL,
+    exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+    student_id TEXT NOT NULL,
+    action TEXT NOT NULL CHECK (action IN ('created', 'updated')),
+    previous_grade INTEGER,
+    new_grade INTEGER,
+    previous_comments TEXT,
+    new_comments TEXT,
+    changed_by INTEGER REFERENCES users(id),
+    changed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Schedule table
 CREATE TABLE schedule (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -171,13 +187,28 @@ CREATE TABLE attendance (
     UNIQUE(schedule_id, student_id, date)
 );
 
+CREATE TABLE attendance_audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    attendance_id INTEGER REFERENCES attendance(id) ON DELETE SET NULL,
+    schedule_id INTEGER NOT NULL REFERENCES schedule(id) ON DELETE CASCADE,
+    student_id TEXT NOT NULL,
+    date DATE NOT NULL,
+    action TEXT NOT NULL CHECK (action IN ('created', 'updated')),
+    previous_status TEXT,
+    new_status TEXT NOT NULL,
+    changed_by INTEGER REFERENCES users(id),
+    changed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_student_id ON users(student_id);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_exams_date ON exams(exam_date);
 CREATE INDEX idx_grades_student ON grades(student_id);
+CREATE INDEX idx_grade_audit_student ON grade_audit_log(student_id);
 CREATE INDEX idx_schedule_group ON schedule(group_name);
 CREATE INDEX idx_assignments_due ON assignments(due_date);
 CREATE INDEX idx_attendance_student ON attendance(student_id);
 CREATE INDEX idx_attendance_date ON attendance(date);
+CREATE INDEX idx_attendance_audit_student ON attendance_audit_log(student_id);

@@ -7,7 +7,15 @@ const db = require('../config/database');
 router.get('/', auth, async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT * FROM assignments ORDER BY due_date DESC'
+      `SELECT
+         a.*,
+         u.name AS created_by_name,
+         c.name AS course_name,
+         c.code AS course_code
+       FROM assignments a
+       LEFT JOIN users u ON u.id = a.created_by
+       LEFT JOIN courses c ON c.id = a.course_id
+       ORDER BY a.due_date DESC`
     );
     res.json({ assignments: result.rows });
   } catch (error) {
