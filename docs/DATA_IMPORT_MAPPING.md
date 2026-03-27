@@ -14,6 +14,8 @@ The current import pipeline is intentionally limited to:
 
 It does **not** delete existing rows and does **not** import grades, attendance, or assignments yet.
 
+Alongside import preview/apply, CampusOS now supports a read-only reconciliation report for the same export files. This helps compare external data against the current database before deciding whether to import or override anything manually.
+
 ## Import safety model
 
 - Preview is the default mode.

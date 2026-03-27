@@ -228,6 +228,7 @@ Blueprint уже использует:
 - `npm run import:pilot` — preview/import студентов, преподавателей, курсов, записей на предметы и расписания из CSV / Excel
 - `npm run import:pilot:apply` — применение импорта к текущей БД
 - `npm run import:pilot:preview` — read-only preview файлов из `backend/imports/inbox`, включая enrollments и schedule
+- `npm run reconcile:pilot` — read-only reconciliation отчёт по внешним выгрузкам против текущей БД CampusOS
 
 ## Security scripts
 

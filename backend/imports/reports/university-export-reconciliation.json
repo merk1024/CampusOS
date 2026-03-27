@@ -1,0 +1,1215 @@
+{
+  "generatedAt": "2026-03-27T11:34:29.765Z",
+  "mode": "reconciliation",
+  "sourceLabel": "manual-reconciliation",
+  "files": {
+    "students": {
+      "path": "C:\\Users\\admin\\Desktop\\CampusOS\\backend\\imports\\templates\\students.sample.csv",
+      "sheetName": null
+    },
+    "teachers": {
+      "path": "C:\\Users\\admin\\Desktop\\CampusOS\\backend\\imports\\templates\\teachers.sample.csv",
+      "sheetName": null
+    },
+    "courses": {
+      "path": "C:\\Users\\admin\\Desktop\\CampusOS\\backend\\imports\\templates\\courses.sample.csv",
+      "sheetName": null
+    },
+    "enrollments": {
+      "path": "C:\\Users\\admin\\Desktop\\CampusOS\\backend\\imports\\templates\\enrollments.sample.csv",
+      "sheetName": null
+    },
+    "schedule": {
+      "path": "C:\\Users\\admin\\Desktop\\CampusOS\\backend\\imports\\templates\\schedule.sample.csv",
+      "sheetName": null
+    }
+  },
+  "summary": {
+    "students": {
+      "label": "Students",
+      "rowsInExport": 2,
+      "rowsInCampusOS": 1,
+      "matched": 0,
+      "mismatched": 0,
+      "onlyInExport": 2,
+      "onlyInCampusOS": 1,
+      "invalid": 0,
+      "duplicateExport": 0,
+      "duplicateCampusOS": 0
+    },
+    "teachers": {
+      "label": "Teachers",
+      "rowsInExport": 2,
+      "rowsInCampusOS": 1,
+      "matched": 0,
+      "mismatched": 0,
+      "onlyInExport": 2,
+      "onlyInCampusOS": 1,
+      "invalid": 0,
+      "duplicateExport": 0,
+      "duplicateCampusOS": 0
+    },
+    "courses": {
+      "label": "Courses",
+      "rowsInExport": 2,
+      "rowsInCampusOS": 3,
+      "matched": 0,
+      "mismatched": 0,
+      "onlyInExport": 2,
+      "onlyInCampusOS": 3,
+      "invalid": 0,
+      "duplicateExport": 0,
+      "duplicateCampusOS": 0
+    },
+    "enrollments": {
+      "label": "Enrollments",
+      "rowsInExport": 2,
+      "rowsInCampusOS": 2,
+      "matched": 0,
+      "mismatched": 0,
+      "onlyInExport": 2,
+      "onlyInCampusOS": 2,
+      "invalid": 0,
+      "duplicateExport": 0,
+      "duplicateCampusOS": 0
+    },
+    "schedule": {
+      "label": "Schedule",
+      "rowsInExport": 2,
+      "rowsInCampusOS": 47,
+      "matched": 0,
+      "mismatched": 0,
+      "onlyInExport": 2,
+      "onlyInCampusOS": 47,
+      "invalid": 0,
+      "duplicateExport": 0,
+      "duplicateCampusOS": 0
+    }
+  },
+  "issues": [],
+  "findings": [
+    {
+      "entity": "students",
+      "key": "240151001",
+      "status": "only_in_export",
+      "record": {
+        "student_id": "240151001",
+        "name": "Ainura Ismailova",
+        "email": "ainura.ismailova@alatoo.edu.kg",
+        "role": "student",
+        "group_name": "CYB-24",
+        "subgroup_name": "1-Group",
+        "faculty": "School of Engineering and Applied Sciences",
+        "major": "Cybersecurity",
+        "year_of_study": 2,
+        "phone": "+996700111001",
+        "advisor": "Azhar Kazakbaeva",
+        "study_status": "active",
+        "grant_type": "grant",
+        "program_class": "CYB-24A",
+        "registration_date": "2024-09-01",
+        "date_of_birth": "2006-04-12",
+        "address": "Bishkek",
+        "father_name": "Ismail Ismailov",
+        "avatar": "AI",
+        "is_active": 1
+      }
+    },
+    {
+      "entity": "students",
+      "key": "240151002",
+      "status": "only_in_export",
+      "record": {
+        "student_id": "240151002",
+        "name": "Temirlan Baialiev",
+        "email": "temirlan.baialiev@alatoo.edu.kg",
+        "role": "student",
+        "group_name": "CYB-24",
+        "subgroup_name": "2-Group",
+        "faculty": "School of Engineering and Applied Sciences",
+        "major": "Cybersecurity",
+        "year_of_study": 2,
+        "phone": "+996700111002",
+        "advisor": "Azhar Kazakbaeva",
+        "study_status": "active",
+        "grant_type": "contract",
+        "program_class": "CYB-24B",
+        "registration_date": "2024-09-01",
+        "date_of_birth": "2005-11-02",
+        "address": "Kant",
+        "father_name": "Baiali Baialiev",
+        "avatar": "TB",
+        "is_active": 1
+      }
+    },
+    {
+      "entity": "students",
+      "key": "240141052",
+      "status": "only_in_campusos",
+      "record": {
+        "student_id": "240141052",
+        "name": "Erbol Abdusaitov",
+        "email": "erbol.abdusaitov1@alatoo.edu.kg",
+        "role": "student",
+        "group_name": "CYB-23",
+        "subgroup_name": "1-Group",
+        "faculty": "Faculty of Engineering and Informatics",
+        "major": "Cybersecurity and Ethical Hacking",
+        "year_of_study": 3,
+        "phone": "+996555123456",
+        "advisor": "Нурайым Кулетова",
+        "study_status": "Studying",
+        "grant_type": "Not available",
+        "program_class": "Киберкоопсуздук жана этикалык хакердик - Бкл.-EN - 3",
+        "registration_date": "2024-08-15",
+        "date_of_birth": "2005-12-25",
+        "address": null,
+        "father_name": "Iliiaz",
+        "avatar": "EA",
+        "is_active": 1
+      }
+    },
+    {
+      "entity": "teachers",
+      "key": "mirlan.abdraimov@alatoo.edu.kg",
+      "status": "only_in_export",
+      "record": {
+        "name": "Mirlan Abdraimov",
+        "email": "mirlan.abdraimov@alatoo.edu.kg",
+        "role": "teacher",
+        "faculty": "School of Engineering and Applied Sciences",
+        "major": "Applied Security",
+        "phone": "+996700211001",
+        "advisor": null,
+        "address": "Office C-203",
+        "avatar": "MA",
+        "is_active": 1
+      }
+    },
+    {
+      "entity": "teachers",
+      "key": "aizada.ryskulbekova@alatoo.edu.kg",
+      "status": "only_in_export",
+      "record": {
+        "name": "Aizada Ryskulbekova",
+        "email": "aizada.ryskulbekova@alatoo.edu.kg",
+        "role": "teacher",
+        "faculty": "School of Engineering and Applied Sciences",
+        "major": "Software Architecture",
+        "phone": "+996700211002",
+        "advisor": null,
+        "address": "Office B-114",
+        "avatar": "AR",
+        "is_active": 1
+      }
+    },
+    {
+      "entity": "teachers",
+      "key": "teacher@alatoo.edu.kg",
+      "status": "only_in_campusos",
+      "record": {
+        "name": "Azhar Kazakbaeva",
+        "email": "teacher@alatoo.edu.kg",
+        "role": "teacher",
+        "faculty": null,
+        "major": null,
+        "phone": "+996555123458",
+        "advisor": null,
+        "address": null,
+        "avatar": "AK",
+        "is_active": 1
+      }
+    },
+    {
+      "entity": "courses",
+      "key": "CYB240",
+      "status": "only_in_export",
+      "record": {
+        "code": "CYB240",
+        "name": "Security Operations Center Lab",
+        "description": "Hands-on blue team workflows and alert triage",
+        "credits": 4,
+        "semester": "Fall 2026",
+        "teacher_email": "mirlan.abdraimov@alatoo.edu.kg"
+      }
+    },
+    {
+      "entity": "courses",
+      "key": "SE260",
+      "status": "only_in_export",
+      "record": {
+        "code": "SE260",
+        "name": "Architecture and Testing Studio",
+        "description": "Service design patterns with practical QA checkpoints",
+        "credits": 3,
+        "semester": "Fall 2026",
+        "teacher_email": "aizada.ryskulbekova@alatoo.edu.kg"
+      }
+    },
+    {
+      "entity": "courses",
+      "key": "CS101",
+      "status": "only_in_campusos",
+      "record": {
+        "code": "CS101",
+        "name": "Programming Language 2",
+        "description": "Advanced programming concepts",
+        "credits": 3,
+        "semester": "Spring 2025-2026",
+        "teacher_email": "teacher@alatoo.edu.kg"
+      }
+    },
+    {
+      "entity": "courses",
+      "key": "MATH201",
+      "status": "only_in_campusos",
+      "record": {
+        "code": "MATH201",
+        "name": "Calculus 2",
+        "description": "Integral calculus and series",
+        "credits": 4,
+        "semester": "Spring 2025-2026",
+        "teacher_email": "teacher@alatoo.edu.kg"
+      }
+    },
+    {
+      "entity": "courses",
+      "key": "WEB101",
+      "status": "only_in_campusos",
+      "record": {
+        "code": "WEB101",
+        "name": "Web Development",
+        "description": "Modern web technologies",
+        "credits": 3,
+        "semester": "Spring 2025-2026",
+        "teacher_email": "teacher@alatoo.edu.kg"
+      }
+    },
+    {
+      "entity": "enrollments",
+      "key": "240151001|CYB240",
+      "status": "only_in_export",
+      "record": {
+        "student_id": "240151001",
+        "student_email": "ainura.ismailova@alatoo.edu.kg",
+        "course_code": "CYB240",
+        "enrolled_at": "2026-02-01 00:00:00"
+      }
+    },
+    {
+      "entity": "enrollments",
+      "key": "240151002|SE260",
+      "status": "only_in_export",
+      "record": {
+        "student_id": "240151002",
+        "student_email": "temirlan.baialiev@alatoo.edu.kg",
+        "course_code": "SE260",
+        "enrolled_at": "2026-02-02 00:00:00"
+      }
+    },
+    {
+      "entity": "enrollments",
+      "key": "240141052|CS101",
+      "status": "only_in_campusos",
+      "record": {
+        "student_id": "240141052",
+        "student_email": "erbol.abdusaitov1@alatoo.edu.kg",
+        "course_code": "CS101",
+        "enrolled_at": "2026-03-18 10:47:13"
+      }
+    },
+    {
+      "entity": "enrollments",
+      "key": "240141052|MATH201",
+      "status": "only_in_campusos",
+      "record": {
+        "student_id": "240141052",
+        "student_email": "erbol.abdusaitov1@alatoo.edu.kg",
+        "course_code": "MATH201",
+        "enrolled_at": "2026-03-18 10:47:17"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Monday|08:00-08:40|CYB240|group|CYB-24||",
+      "status": "only_in_export",
+      "record": {
+        "course_code": "CYB240",
+        "day": "Monday",
+        "time_slot": "08:00-08:40",
+        "group_name": "CYB-24",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "SOC-Lab",
+        "subject": "Security Operations Center Lab",
+        "teacher": null
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Friday|15:30-16:10|SE260|individual|||temirlan.baialiev@alatoo.edu.kg",
+      "status": "only_in_export",
+      "record": {
+        "course_code": "SE260",
+        "day": "Friday",
+        "time_slot": "15:30-16:10",
+        "group_name": null,
+        "audience_type": "individual",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": "temirlan.baialiev@alatoo.edu.kg",
+        "room": "Studio-4",
+        "subject": null,
+        "teacher": null
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|09:00||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "09:00",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "BIGLAB",
+        "subject": "Programming Language 2",
+        "teacher": "Azhar Kazakbaeva"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|10:30||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "10:30",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B107",
+        "subject": "Calculus 2",
+        "teacher": "Hussien Chebsi"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|12:00||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "12:00",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "A201",
+        "subject": "English for Engineers",
+        "teacher": "Aizada Asanbekova"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|13:30||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "13:30",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "BIGLAB",
+        "subject": "Data Structures",
+        "teacher": "Azhar Kazakbaeva"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|15:00||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "15:00",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B205",
+        "subject": "Web Development",
+        "teacher": "Maria Johnson"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Вторник|09:00||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Вторник",
+        "time_slot": "09:00",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "A105",
+        "subject": "Algorithms",
+        "teacher": "John Smith"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Вторник|10:30||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Вторник",
+        "time_slot": "10:30",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B301",
+        "subject": "Database Systems",
+        "teacher": "Sarah Wilson"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Вторник|12:00||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Вторник",
+        "time_slot": "12:00",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "C102",
+        "subject": "Computer Networks",
+        "teacher": "David Brown"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Вторник|13:30||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Вторник",
+        "time_slot": "13:30",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "A203",
+        "subject": "Software Engineering",
+        "teacher": "Lisa Davis"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Вторник|15:00||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Вторник",
+        "time_slot": "15:00",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "BIGLAB",
+        "subject": "Mobile Development",
+        "teacher": "Mike Johnson"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Среда|09:00||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Среда",
+        "time_slot": "09:00",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "BIGLAB",
+        "subject": "Programming Language 2 Lab",
+        "teacher": "Azhar Kazakbaeva"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Среда|10:30||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Среда",
+        "time_slot": "10:30",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B107",
+        "subject": "Calculus 2",
+        "teacher": "Hussien Chebsi"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Среда|12:00||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Среда",
+        "time_slot": "12:00",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "BIGLAB",
+        "subject": "Data Structures Lab",
+        "teacher": "Azhar Kazakbaeva"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Среда|13:30||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Среда",
+        "time_slot": "13:30",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B205",
+        "subject": "Web Development Lab",
+        "teacher": "Maria Johnson"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Четверг|09:00||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Четверг",
+        "time_slot": "09:00",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "A105",
+        "subject": "Algorithms",
+        "teacher": "John Smith"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Четверг|10:30||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Четверг",
+        "time_slot": "10:30",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B301",
+        "subject": "Database Systems",
+        "teacher": "Sarah Wilson"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Четверг|12:00||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Четверг",
+        "time_slot": "12:00",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "C102",
+        "subject": "Computer Networks Lab",
+        "teacher": "David Brown"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Четверг|13:30||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Четверг",
+        "time_slot": "13:30",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "A203",
+        "subject": "Software Engineering",
+        "teacher": "Lisa Davis"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Пятница|09:00||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Пятница",
+        "time_slot": "09:00",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "BIGLAB",
+        "subject": "Mobile Development Lab",
+        "teacher": "Mike Johnson"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Пятница|10:30||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Пятница",
+        "time_slot": "10:30",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "A201",
+        "subject": "English for Engineers",
+        "teacher": "Aizada Asanbekova"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Пятница|12:00||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Пятница",
+        "time_slot": "12:00",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "BIGLAB",
+        "subject": "Project Work",
+        "teacher": "Various"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|08:00-08:40||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "08:00-08:40",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B110 LAB",
+        "subject": "Digital and mobile forensics",
+        "teacher": "Dr. Daniiar Satybaldiev"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|08:45-09:25||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "08:45-09:25",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B110 LAB",
+        "subject": "Digital and mobile forensics",
+        "teacher": "Dr. Daniiar Satybaldiev"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|09:30-10:10||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "09:30-10:10",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B110 LAB",
+        "subject": "Digital and mobile forensics",
+        "teacher": "Dr. Daniiar Satybaldiev"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|10:15-10:55||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "10:15-10:55",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B211 LAB",
+        "subject": "Computer Networks and Telecommunication",
+        "teacher": "Mr.Imtiyaz Gulbarga"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|11:00-11:40||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "11:00-11:40",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B211 LAB",
+        "subject": "Computer Networks and Telecommunication",
+        "teacher": "Mr.Imtiyaz Gulbarga"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|11:45-12:25||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "11:45-12:25",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B211 LAB",
+        "subject": "Computer Networks and Telecommunication",
+        "teacher": "Mr.Imtiyaz Gulbarga"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Вторник|08:00-08:40||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Вторник",
+        "time_slot": "08:00-08:40",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B110 LAB",
+        "subject": "Digital and mobile forensics",
+        "teacher": "Dr. Daniiar Satybaldiev"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Вторник|08:45-09:25||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Вторник",
+        "time_slot": "08:45-09:25",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B110 LAB",
+        "subject": "Digital and mobile forensics",
+        "teacher": "Dr. Daniiar Satybaldiev"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Вторник|09:30-10:10||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Вторник",
+        "time_slot": "09:30-10:10",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B110 LAB",
+        "subject": "Digital and mobile forensics",
+        "teacher": "Dr. Daniiar Satybaldiev"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Вторник|10:15-10:55||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Вторник",
+        "time_slot": "10:15-10:55",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B111 LAB",
+        "subject": "Computer Networks and Telecommunication",
+        "teacher": "Mr.Imtiyaz Gulbarga"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Вторник|11:00-11:40||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Вторник",
+        "time_slot": "11:00-11:40",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B111 LAB",
+        "subject": "Computer Networks and Telecommunication",
+        "teacher": "Mr.Imtiyaz Gulbarga"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Вторник|11:45-12:25||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Вторник",
+        "time_slot": "11:45-12:25",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B111 LAB",
+        "subject": "Computer Networks and Telecommunication",
+        "teacher": "Mr.Imtiyaz Gulbarga"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Среда|10:15-10:55||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Среда",
+        "time_slot": "10:15-10:55",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B211 LAB",
+        "subject": "Computer Networks and Telecommunication",
+        "teacher": "Mr.Imtiyaz Gulbarga"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Среда|11:00-11:40||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Среда",
+        "time_slot": "11:00-11:40",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B211 LAB",
+        "subject": "Computer Networks and Telecommunication",
+        "teacher": "Mr.Imtiyaz Gulbarga"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Среда|11:45-12:25||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Среда",
+        "time_slot": "11:45-12:25",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B211 LAB",
+        "subject": "Computer Networks and Telecommunication",
+        "teacher": "Mr.Imtiyaz Gulbarga"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Среда|08:00-08:40||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Среда",
+        "time_slot": "08:00-08:40",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B110 LAB",
+        "subject": "Digital and mobile forensics",
+        "teacher": "Dr. Daniiar Satybaldiev"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Среда|08:45-09:25||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Среда",
+        "time_slot": "08:45-09:25",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B110 LAB",
+        "subject": "Digital and mobile forensics",
+        "teacher": "Dr. Daniiar Satybaldiev"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Среда|09:30-10:10||group|COMCEH-23||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Среда",
+        "time_slot": "09:30-10:10",
+        "group_name": "COMCEH-23",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "B110 LAB",
+        "subject": "Digital and mobile forensics",
+        "teacher": "Dr. Daniiar Satybaldiev"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|08:00-08:40||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "08:00-08:40",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "123",
+        "subject": "123",
+        "teacher": "123"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|09:30-10:10||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "09:30-10:10",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "123",
+        "subject": "123",
+        "teacher": "123"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|08:45-09:25||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "08:45-09:25",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "123",
+        "subject": "123",
+        "teacher": "123"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|11:45-12:25||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "11:45-12:25",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "123",
+        "subject": "123",
+        "teacher": "123"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|11:00-11:40||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "11:00-11:40",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "123",
+        "subject": "123",
+        "teacher": "123"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|10:15-10:55||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "10:15-10:55",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "123",
+        "subject": "123",
+        "teacher": "123"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|12:30-13:10||group|COMSE-25||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "12:30-13:10",
+        "group_name": "COMSE-25",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "123",
+        "subject": "123",
+        "teacher": "123"
+      }
+    },
+    {
+      "entity": "schedule",
+      "key": "Понедельник|08:00-08:40||group|COMSE-26||",
+      "status": "only_in_campusos",
+      "record": {
+        "course_code": "",
+        "day": "Понедельник",
+        "time_slot": "08:00-08:40",
+        "group_name": "COMSE-26",
+        "audience_type": "group",
+        "subgroup_name": null,
+        "student_id": "",
+        "student_email": null,
+        "room": "12",
+        "subject": "21",
+        "teacher": "122"
+      }
+    }
+  ]
+}

@@ -76,6 +76,9 @@ CampusOS уже вышел за рамки учебного каркаса и с
 
 ### Phase 3 — Integration layer
 
+Current progress:
+- [x] initial read-only reconciliation reports for CSV / Excel university exports
+
 Цель: превратить CampusOS в удобный единый портал поверх существующих систем университета.
 
 - [ ] read-only integration с системами выбора предметов

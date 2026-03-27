@@ -1681,6 +1681,506 @@ const detectInboxFiles = (directoryPath = INBOX_DIR) => {
   return files;
 };
 
+const RECONCILIATION_FIELDS = {
+  students: [
+    'student_id',
+    'name',
+    'email',
+    'group_name',
+    'subgroup_name',
+    'faculty',
+    'major',
+    'year_of_study',
+    'phone',
+    'advisor',
+    'study_status',
+    'grant_type',
+    'program_class',
+    'registration_date',
+    'date_of_birth',
+    'address',
+    'father_name'
+  ],
+  teachers: [
+    'name',
+    'email',
+    'faculty',
+    'major',
+    'phone',
+    'advisor',
+    'address'
+  ],
+  courses: [
+    'code',
+    'name',
+    'description',
+    'credits',
+    'semester',
+    'teacher_email'
+  ],
+  enrollments: [
+    'student_id',
+    'student_email',
+    'course_code',
+    'enrolled_at'
+  ],
+  schedule: [
+    'course_code',
+    'day',
+    'time_slot',
+    'group_name',
+    'audience_type',
+    'subgroup_name',
+    'student_id',
+    'student_email',
+    'room',
+    'subject',
+    'teacher'
+  ]
+};
+
+const buildReconciliationSummaryBucket = (label) => ({
+  label,
+  rowsInExport: 0,
+  rowsInCampusOS: 0,
+  matched: 0,
+  mismatched: 0,
+  onlyInExport: 0,
+  onlyInCampusOS: 0,
+  invalid: 0,
+  duplicateExport: 0,
+  duplicateCampusOS: 0
+});
+
+const getReconciliationKey = (entityKey, record) => {
+  if (entityKey === 'students') {
+    return record.student_id || record.email || '';
+  }
+
+  if (entityKey === 'teachers') {
+    return record.email || '';
+  }
+
+  if (entityKey === 'courses') {
+    return record.code || '';
+  }
+
+  if (entityKey === 'enrollments') {
+    return `${record.student_id || record.student_email || ''}|${record.course_code || ''}`;
+  }
+
+  return [
+    record.day || '',
+    record.time_slot || '',
+    record.course_code || '',
+    record.audience_type || 'group',
+    record.group_name || '',
+    record.subgroup_name || '',
+    record.student_id || record.student_email || ''
+  ].join('|');
+};
+
+const buildRecordIndex = (items, entityKey, getRecord) => {
+  const index = new Map();
+
+  items.forEach((item) => {
+    const record = getRecord(item);
+    const key = getReconciliationKey(entityKey, record);
+    if (!key) {
+      return;
+    }
+
+    if (!index.has(key)) {
+      index.set(key, []);
+    }
+
+    index.get(key).push(item);
+  });
+
+  return index;
+};
+
+const getComparableReconciliationValue = (field, value) => {
+  const cleaned = sanitizeCell(value);
+  if (!cleaned) {
+    return '';
+  }
+
+  if (field === 'enrolled_at') {
+    return cleaned.replace(/ 00:00:00$/, '');
+  }
+
+  return cleaned;
+};
+
+const collectReconciliationDifferences = (entityKey, exportRecord, campusRecord) => (
+  RECONCILIATION_FIELDS[entityKey].reduce((differences, field) => {
+    const exportValue = getComparableReconciliationValue(field, exportRecord[field]);
+
+    if (!exportValue) {
+      return differences;
+    }
+
+    const campusValue = getComparableReconciliationValue(field, campusRecord[field]);
+    if (exportValue !== campusValue) {
+      differences.push({
+        field,
+        exportValue: exportRecord[field] ?? null,
+        campusValue: campusRecord[field] ?? null
+      });
+    }
+
+    return differences;
+  }, [])
+);
+
+const loadCampusRecords = async (entityKey) => {
+  if (entityKey === 'students') {
+    const rows = await db.all(
+      `SELECT
+         student_id, name, email, group_name, subgroup_name, faculty, major, year_of_study,
+         phone, advisor, study_status, grant_type, program_class, registration_date,
+         date_of_birth, address, father_name
+       FROM users
+       WHERE role = ?`,
+      ['student']
+    );
+
+    return rows.map((row) => normalizeStudentRecord(row));
+  }
+
+  if (entityKey === 'teachers') {
+    const rows = await db.all(
+      `SELECT
+         name, email, faculty, major, phone, advisor, address
+       FROM users
+       WHERE role = ?`,
+      ['teacher']
+    );
+
+    return rows.map((row) => normalizeTeacherRecord(row));
+  }
+
+  if (entityKey === 'courses') {
+    const rows = await db.all(
+      `SELECT
+         c.code,
+         c.name,
+         c.description,
+         c.credits,
+         c.semester,
+         u.email AS teacher_email
+       FROM courses c
+       LEFT JOIN users u ON u.id = c.teacher_id`
+    );
+
+    return rows.map((row) => normalizeCourseRecord(row));
+  }
+
+  if (entityKey === 'enrollments') {
+    const rows = await db.all(
+      `SELECT
+         u.student_id,
+         u.email AS student_email,
+         c.code AS course_code,
+         ce.enrolled_at
+       FROM course_enrollments ce
+       JOIN users u ON u.id = ce.student_id
+       JOIN courses c ON c.id = ce.course_id`
+    );
+
+    return rows.map((row) => normalizeEnrollmentRecord(row));
+  }
+
+  const rows = await db.all(
+    `SELECT
+       c.code AS course_code,
+       s.day,
+       s.time_slot,
+       s.group_name,
+       s.audience_type,
+       s.subgroup_name,
+       u.student_id,
+       u.email AS student_email,
+       s.room,
+       s.subject,
+       s.teacher
+     FROM schedule s
+     LEFT JOIN users u ON u.id = s.student_user_id
+     LEFT JOIN courses c ON c.id = s.course_id`
+  );
+
+  return rows.map((row) => normalizeScheduleRecord(row));
+};
+
+const formatReconciliationFinding = (finding) => {
+  if (finding.status === 'duplicate_export') {
+    return `${finding.entity} ${finding.key}: duplicate rows in export (${finding.count}).`;
+  }
+
+  if (finding.status === 'duplicate_campusos') {
+    return `${finding.entity} ${finding.key}: duplicate rows already exist in CampusOS (${finding.count}).`;
+  }
+
+  if (finding.status === 'only_in_export') {
+    return `${finding.entity} ${finding.key}: present in export but missing in CampusOS.`;
+  }
+
+  if (finding.status === 'only_in_campusos') {
+    return `${finding.entity} ${finding.key}: present in CampusOS but missing in export.`;
+  }
+
+  const diffSummary = finding.differences
+    .slice(0, 4)
+    .map((diff) => `${diff.field}: export="${diff.exportValue ?? ''}" vs campus="${diff.campusValue ?? ''}"`)
+    .join('; ');
+
+  return `${finding.entity} ${finding.key}: field mismatches -> ${diffSummary}`;
+};
+
+const writeReconciliationMarkdownReport = (report, reportStem) => {
+  const lines = [
+    '# CampusOS Reconciliation Report',
+    '',
+    `Generated: ${report.generatedAt}`,
+    `Source: ${report.sourceLabel}`,
+    '',
+    '## Files',
+    ''
+  ];
+
+  Object.entries(report.files).forEach(([entityKey, fileInfo]) => {
+    lines.push(`- ${entityKey}: ${fileInfo.path}${fileInfo.sheetName ? ` (sheet: ${fileInfo.sheetName})` : ''}`);
+  });
+
+  lines.push('', '## Summary', '');
+
+  Object.values(report.summary).forEach((bucket) => {
+    lines.push(`### ${bucket.label}`);
+    lines.push(`- rows in export: ${bucket.rowsInExport}`);
+    lines.push(`- rows in CampusOS: ${bucket.rowsInCampusOS}`);
+    lines.push(`- matched: ${bucket.matched}`);
+    lines.push(`- mismatched: ${bucket.mismatched}`);
+    lines.push(`- only in export: ${bucket.onlyInExport}`);
+    lines.push(`- only in CampusOS: ${bucket.onlyInCampusOS}`);
+    lines.push(`- invalid: ${bucket.invalid}`);
+    lines.push(`- duplicate export rows: ${bucket.duplicateExport}`);
+    lines.push(`- duplicate CampusOS rows: ${bucket.duplicateCampusOS}`);
+    lines.push('');
+  });
+
+  lines.push('## Validation Issues', '');
+
+  if (!report.issues.length) {
+    lines.push('- No validation issues found.');
+  } else {
+    report.issues.slice(0, 40).forEach((issue) => {
+      lines.push(`- [${issue.severity}] ${issue.entity} row ${issue.rowNumber}: ${issue.message}`);
+    });
+  }
+
+  lines.push('', '## Findings', '');
+
+  if (!report.findings.length) {
+    lines.push('- No reconciliation mismatches found.');
+  } else {
+    report.findings.slice(0, 60).forEach((finding) => {
+      lines.push(`- [${finding.status}] ${formatReconciliationFinding(finding)}`);
+    });
+  }
+
+  const markdownPath = `${reportStem}.md`;
+  fs.writeFileSync(markdownPath, lines.join('\n'));
+  return markdownPath;
+};
+
+const writeReconciliationArtifacts = (report, preferredStem) => {
+  ensureDirectory(REPORTS_DIR);
+  const reportStem = preferredStem
+    ? path.resolve(preferredStem.replace(/\.(json|md)$/i, ''))
+    : path.join(REPORTS_DIR, `reconciliation-${timestampToken()}`);
+
+  return {
+    jsonPath: writeJsonReport(report, reportStem),
+    markdownPath: writeReconciliationMarkdownReport(report, reportStem)
+  };
+};
+
+const reconcileEntityRecords = (entityKey, exportItems, campusRecords, issues) => {
+  const summary = buildReconciliationSummaryBucket(ENTITY_CONFIG[entityKey].label);
+  const findings = [];
+  const validExportItems = [];
+
+  summary.rowsInExport = exportItems.length;
+  summary.rowsInCampusOS = campusRecords.length;
+
+  exportItems.forEach((item) => {
+    item.errors.forEach((message) => issues.push(createIssue('error', entityKey, item.rowNumber, message)));
+    item.warnings.forEach((message) => issues.push(createIssue('warning', entityKey, item.rowNumber, message)));
+
+    if (item.errors.length) {
+      summary.invalid += 1;
+      return;
+    }
+
+    validExportItems.push(item);
+  });
+
+  const exportIndex = buildRecordIndex(validExportItems, entityKey, (item) => item.record);
+  const campusIndex = buildRecordIndex(campusRecords, entityKey, (item) => item);
+
+  exportIndex.forEach((records, key) => {
+    if (records.length > 1) {
+      summary.duplicateExport += records.length;
+      findings.push({
+        entity: entityKey,
+        key,
+        status: 'duplicate_export',
+        count: records.length
+      });
+    }
+  });
+
+  campusIndex.forEach((records, key) => {
+    if (records.length > 1) {
+      summary.duplicateCampusOS += records.length;
+      findings.push({
+        entity: entityKey,
+        key,
+        status: 'duplicate_campusos',
+        count: records.length
+      });
+    }
+  });
+
+  exportIndex.forEach((records, key) => {
+    if (records.length !== 1) {
+      return;
+    }
+
+    const campusMatches = campusIndex.get(key) || [];
+    if (campusMatches.length !== 1) {
+      if (!campusMatches.length) {
+        summary.onlyInExport += 1;
+        findings.push({
+          entity: entityKey,
+          key,
+          status: 'only_in_export',
+          record: records[0].record
+        });
+      }
+      return;
+    }
+
+    const differences = collectReconciliationDifferences(entityKey, records[0].record, campusMatches[0]);
+    if (differences.length) {
+      summary.mismatched += 1;
+      findings.push({
+        entity: entityKey,
+        key,
+        status: 'mismatch',
+        differences
+      });
+      return;
+    }
+
+    summary.matched += 1;
+  });
+
+  campusIndex.forEach((records, key) => {
+    if (records.length !== 1) {
+      return;
+    }
+
+    if (!exportIndex.has(key)) {
+      summary.onlyInCampusOS += 1;
+      findings.push({
+        entity: entityKey,
+        key,
+        status: 'only_in_campusos',
+        record: records[0]
+      });
+    }
+  });
+
+  return { summary, findings };
+};
+
+const runReconciliationWorkflow = async (options = {}) => {
+  const {
+    studentsFile,
+    teachersFile,
+    coursesFile,
+    enrollmentsFile,
+    scheduleFile,
+    studentsSheet,
+    teachersSheet,
+    coursesSheet,
+    enrollmentsSheet,
+    scheduleSheet,
+    sourceLabel = 'university-export-reconciliation',
+    reportStem = null
+  } = options;
+
+  const files = {};
+  if (studentsFile) {
+    files.students = { path: path.resolve(studentsFile), sheetName: studentsSheet || null };
+  }
+  if (teachersFile) {
+    files.teachers = { path: path.resolve(teachersFile), sheetName: teachersSheet || null };
+  }
+  if (coursesFile) {
+    files.courses = { path: path.resolve(coursesFile), sheetName: coursesSheet || null };
+  }
+  if (enrollmentsFile) {
+    files.enrollments = { path: path.resolve(enrollmentsFile), sheetName: enrollmentsSheet || null };
+  }
+  if (scheduleFile) {
+    files.schedule = { path: path.resolve(scheduleFile), sheetName: scheduleSheet || null };
+  }
+
+  if (!Object.keys(files).length) {
+    throw new Error('No reconciliation files were provided.');
+  }
+
+  Object.values(files).forEach((fileInfo) => {
+    if (!fs.existsSync(fileInfo.path)) {
+      throw new Error(`Reconciliation file was not found: ${fileInfo.path}`);
+    }
+  });
+
+  await db.migrate();
+
+  const issues = [];
+  const summary = {};
+  const findings = [];
+
+  for (const [entityKey, fileInfo] of Object.entries(files)) {
+    const exportItems = await parseEntityRows(entityKey, fileInfo.path, fileInfo.sheetName);
+    const campusRecords = await loadCampusRecords(entityKey);
+    const entityReport = reconcileEntityRecords(entityKey, exportItems, campusRecords, issues);
+
+    summary[entityKey] = entityReport.summary;
+    findings.push(...entityReport.findings);
+  }
+
+  const report = {
+    generatedAt: new Date().toISOString(),
+    mode: 'reconciliation',
+    sourceLabel,
+    files,
+    summary,
+    issues,
+    findings
+  };
+
+  const artifacts = writeReconciliationArtifacts(report, reportStem);
+  return {
+    report,
+    artifacts
+  };
+};
+
 const runImportWorkflow = async (options = {}) => {
   const {
     studentsFile,
@@ -1813,5 +2313,6 @@ module.exports = {
   REPORTS_DIR,
   SUPPORTED_IMPORT_EXTENSIONS,
   detectInboxFiles,
-  runImportWorkflow
+  runImportWorkflow,
+  runReconciliationWorkflow
 };
