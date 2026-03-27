@@ -225,6 +225,9 @@ Blueprint уже использует:
 - `npm start` — production start
 - `npm run seed` — создание демо-данных
 - `npm run cleanup-demo-data` — очистка старых временных данных
+- `npm run import:pilot` — preview/import студентов, преподавателей и курсов из CSV / Excel
+- `npm run import:pilot:apply` — применение импорта к текущей БД
+- `npm run import:pilot:preview` — read-only preview файлов из `backend/imports/inbox`
 
 ## Security scripts
 

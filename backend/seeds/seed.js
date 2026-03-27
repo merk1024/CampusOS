@@ -5,6 +5,200 @@ const { SUPERADMIN_EMAIL } = require('../utils/access');
 
 const ACTIVE_STATUS = db.client === 'postgres' ? true : 1;
 const FACULTY = 'School of Engineering and Applied Sciences';
+const DEFAULT_STUDY_STATUS = 'active';
+
+const STAFF_PILOT_PROFILE = {
+  [process.env.SUPERADMIN_EMAIL || SUPERADMIN_EMAIL]: {
+    phone: '+996700000001',
+    address: 'CampusOS Owner Desk',
+    registration_date: '2024-09-01'
+  },
+  'admin@alatoo.edu.kg': {
+    phone: '+996700000002',
+    address: 'Academic Operations Office',
+    registration_date: '2024-09-01'
+  },
+  'teacher@alatoo.edu.kg': {
+    phone: '+996700210001',
+    address: 'Office A-301',
+    registration_date: '2021-09-01'
+  },
+  'askar.eskendirov@alatoo.edu.kg': {
+    phone: '+996700210002',
+    address: 'Office A-204',
+    registration_date: '2020-09-01'
+  },
+  'diana.sadykova@alatoo.edu.kg': {
+    phone: '+996700210003',
+    address: 'Data Lab 2',
+    registration_date: '2022-09-01'
+  },
+  'nurlan.toktonaliev@alatoo.edu.kg': {
+    phone: '+996700210004',
+    address: 'Office B-110',
+    registration_date: '2021-09-01'
+  }
+};
+
+const STUDENT_PILOT_PROFILE = {
+  'erbol.abdusaitov1@alatoo.edu.kg': {
+    phone: '+996700310001',
+    advisor: 'Azhar Kazakbaeva',
+    grant_type: 'contract',
+    program_class: 'CYB-23-A',
+    registration_date: '2023-09-01',
+    date_of_birth: '2004-05-12',
+    address: 'Bishkek',
+    father_name: 'Abdusait Abdusaitov'
+  },
+  'aida.bekmuratova@alatoo.edu.kg': {
+    phone: '+996700310002',
+    advisor: 'Azhar Kazakbaeva',
+    grant_type: 'grant',
+    program_class: 'CYB-23-A',
+    registration_date: '2023-09-01',
+    date_of_birth: '2005-02-18',
+    address: 'Bishkek',
+    father_name: 'Bekmurat Bekmuratov'
+  },
+  'nursultan.omurzakov@alatoo.edu.kg': {
+    phone: '+996700310003',
+    advisor: 'Azhar Kazakbaeva',
+    grant_type: 'contract',
+    program_class: 'CYB-23-A',
+    registration_date: '2023-09-01',
+    date_of_birth: '2004-11-03',
+    address: 'Tokmok',
+    father_name: 'Omurzak Omurzakov'
+  },
+  'elina.toktosunova@alatoo.edu.kg': {
+    phone: '+996700310004',
+    advisor: 'Azhar Kazakbaeva',
+    grant_type: 'grant',
+    program_class: 'CYB-23-A',
+    registration_date: '2023-09-01',
+    date_of_birth: '2005-07-21',
+    address: 'Karakol',
+    father_name: 'Toktosun Toktosunov'
+  },
+  'timur.asanov@alatoo.edu.kg': {
+    phone: '+996700310005',
+    advisor: 'Askar Eskendirov',
+    grant_type: 'contract',
+    program_class: 'CYB-23-B',
+    registration_date: '2023-09-01',
+    date_of_birth: '2004-09-15',
+    address: 'Kant',
+    father_name: 'Asan Asanov'
+  },
+  'madina.saparova@alatoo.edu.kg': {
+    phone: '+996700310006',
+    advisor: 'Askar Eskendirov',
+    grant_type: 'grant',
+    program_class: 'CYB-23-B',
+    registration_date: '2023-09-01',
+    date_of_birth: '2005-01-29',
+    address: 'Balykchy',
+    father_name: 'Sapar Saparov'
+  },
+  'daniyar.kasymov@alatoo.edu.kg': {
+    phone: '+996700310007',
+    advisor: 'Askar Eskendirov',
+    grant_type: 'contract',
+    program_class: 'CYB-23-B',
+    registration_date: '2023-09-01',
+    date_of_birth: '2004-03-07',
+    address: 'Bishkek',
+    father_name: 'Kasym Kasymov'
+  },
+  'aizirek.iskakova@alatoo.edu.kg': {
+    phone: '+996700310008',
+    advisor: 'Askar Eskendirov',
+    grant_type: 'grant',
+    program_class: 'CYB-23-B',
+    registration_date: '2023-09-01',
+    date_of_birth: '2005-06-30',
+    address: 'Naryn',
+    father_name: 'Iskak Iskakov'
+  },
+  'bekzat.umetaliev@alatoo.edu.kg': {
+    phone: '+996700320001',
+    advisor: 'Nurlan Toktonaliev',
+    grant_type: 'contract',
+    program_class: 'SE-23-A',
+    registration_date: '2023-09-01',
+    date_of_birth: '2004-08-11',
+    address: 'Bishkek',
+    father_name: 'Umetal Umetaliev'
+  },
+  'alina.janybekova@alatoo.edu.kg': {
+    phone: '+996700320002',
+    advisor: 'Diana Sadykova',
+    grant_type: 'grant',
+    program_class: 'SE-23-A',
+    registration_date: '2023-09-01',
+    date_of_birth: '2005-04-26',
+    address: 'Bishkek',
+    father_name: 'Janybek Janybekov'
+  },
+  'ruslan.kudaibergenov@alatoo.edu.kg': {
+    phone: '+996700320003',
+    advisor: 'Nurlan Toktonaliev',
+    grant_type: 'contract',
+    program_class: 'SE-23-A',
+    registration_date: '2023-09-01',
+    date_of_birth: '2004-10-09',
+    address: 'Osh',
+    father_name: 'Kudaibergen Kudaibergenov'
+  },
+  'meerim.ryskulova@alatoo.edu.kg': {
+    phone: '+996700320004',
+    advisor: 'Diana Sadykova',
+    grant_type: 'grant',
+    program_class: 'SE-23-B',
+    registration_date: '2023-09-01',
+    date_of_birth: '2005-12-01',
+    address: 'Talas',
+    father_name: 'Ryskul Ryskulov'
+  },
+  'adilet.turgunbaev@alatoo.edu.kg': {
+    phone: '+996700320005',
+    advisor: 'Nurlan Toktonaliev',
+    grant_type: 'contract',
+    program_class: 'SE-23-B',
+    registration_date: '2023-09-01',
+    date_of_birth: '2004-02-14',
+    address: 'Jalal-Abad',
+    father_name: 'Turgun Turgunbaev'
+  }
+};
+
+const enrichPilotAccount = (account) => {
+  if (account.role === 'student') {
+    const profile = STUDENT_PILOT_PROFILE[account.email] || {};
+    return {
+      ...account,
+      study_status: DEFAULT_STUDY_STATUS,
+      registration_date: profile.registration_date || '2023-09-01',
+      program_class: profile.program_class || account.group_name || null,
+      phone: profile.phone || null,
+      advisor: profile.advisor || null,
+      grant_type: profile.grant_type || null,
+      date_of_birth: profile.date_of_birth || null,
+      address: profile.address || null,
+      father_name: profile.father_name || null
+    };
+  }
+
+  const profile = STAFF_PILOT_PROFILE[account.email] || {};
+  return {
+    ...account,
+    study_status: DEFAULT_STUDY_STATUS,
+    phone: profile.phone || null,
+    address: profile.address || null,
+    registration_date: profile.registration_date || '2024-09-01'
+  };
+};
 
 const ACCOUNTS = [
   {
@@ -227,7 +421,7 @@ const ACCOUNTS = [
     major: 'Software Engineering',
     year_of_study: 3
   }
-];
+].map(enrichPilotAccount);
 
 const COURSES = [
   {
@@ -406,10 +600,19 @@ async function ensureUser(user, hashedPassword) {
       'role = ?',
       'group_name = ?',
       'subgroup_name = ?',
+      'phone = ?',
       'avatar = ?',
+      'date_of_birth = ?',
       'faculty = ?',
       'major = ?',
       'year_of_study = ?',
+      'address = ?',
+      'father_name = ?',
+      'program_class = ?',
+      'advisor = ?',
+      'study_status = ?',
+      'grant_type = ?',
+      'registration_date = ?',
       'is_active = ?',
       'updated_at = CURRENT_TIMESTAMP'
     ];
@@ -419,10 +622,19 @@ async function ensureUser(user, hashedPassword) {
       user.role,
       user.group_name || null,
       user.subgroup_name || null,
+      user.phone || null,
       user.avatar || null,
+      user.date_of_birth || null,
       user.faculty || null,
       user.major || null,
       user.year_of_study || null,
+      user.address || null,
+      user.father_name || null,
+      user.program_class || null,
+      user.advisor || null,
+      user.study_status || null,
+      user.grant_type || null,
+      user.registration_date || null,
       ACTIVE_STATUS
     ];
 
@@ -442,9 +654,10 @@ async function ensureUser(user, hashedPassword) {
 
   await db.run(
     `INSERT INTO users (
-      student_id, email, password, name, role, group_name, subgroup_name, avatar,
-      faculty, major, year_of_study, is_superadmin
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      student_id, email, password, name, role, group_name, subgroup_name, phone, avatar,
+      date_of_birth, faculty, major, year_of_study, address, father_name, program_class,
+      advisor, study_status, grant_type, registration_date, is_superadmin
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       user.student_id || null,
       user.email,
@@ -453,10 +666,19 @@ async function ensureUser(user, hashedPassword) {
       user.role,
       user.group_name || null,
       user.subgroup_name || null,
+      user.phone || null,
       user.avatar || null,
+      user.date_of_birth || null,
       user.faculty || null,
       user.major || null,
       user.year_of_study || null,
+      user.address || null,
+      user.father_name || null,
+      user.program_class || null,
+      user.advisor || null,
+      user.study_status || null,
+      user.grant_type || null,
+      user.registration_date || null,
       user.is_superadmin || 0
     ]
   );
@@ -667,7 +889,7 @@ async function seedSchedule(usersByEmail, coursesByCode) {
 
 async function seed() {
   try {
-    console.log('Starting CampusOS demo seed...');
+    console.log('Starting CampusOS pilot seed...');
     await db.migrate();
 
     const usersByEmail = await seedUsers();
@@ -678,7 +900,7 @@ async function seed() {
     const studentsCount = [...usersByEmail.values()].filter((user) => user.role === 'student').length;
     const teachersCount = [...usersByEmail.values()].filter((user) => user.role === 'teacher').length;
 
-    console.log('CampusOS demo seed completed successfully.');
+    console.log('CampusOS pilot seed completed successfully.');
     console.log('');
     console.log(`Students: ${studentsCount}`);
     console.log(`Teachers: ${teachersCount}`);

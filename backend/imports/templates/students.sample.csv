@@ -1,0 +1,4 @@
+student_id,name,email,group_name,subgroup_name,faculty,major,year_of_study,phone,advisor,study_status,grant_type,program_class,registration_date,date_of_birth,address,father_name
+240151001,Ainura Ismailova,ainura.ismailova@alatoo.edu.kg,CYB-24,1-Group,School of Engineering and Applied Sciences,Cybersecurity,2,+996700111001,Azhar Kazakbaeva,active,grant,CYB-24A,2024-09-01,2006-04-12,Bishkek,Ismail Ismailov
+240151002,Temirlan Baialiev,temirlan.baialiev@alatoo.edu.kg,CYB-24,2-Group,School of Engineering and Applied Sciences,Cybersecurity,2,+996700111002,Azhar Kazakbaeva,active,contract,CYB-24B,2024-09-01,2005-11-02,Kant,Baiali Baialiev
+
