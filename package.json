@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "test:backend": "npm --prefix backend test",
     "audit:backend": "npm --prefix backend audit --omit=dev",
     "audit:frontend": "npm --prefix frontend audit --production",
     "scan:secrets": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/security/scan-secrets.ps1",

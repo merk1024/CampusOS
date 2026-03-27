@@ -192,11 +192,14 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DBNAME
 
 ## Render deploy
 
-В репозитории уже есть `render.yaml` с blueprint-конфигурацией:
+В репозитории уже есть `render.yaml` для production и `render.staging.yaml` для staging:
 
 - `web-table-exam-db` — PostgreSQL
 - `web-table-exam-api` — backend service
 - `web-table-exam-frontend` — static frontend
+- `campusos-staging-db` — staging PostgreSQL
+- `campusos-staging-api` — staging backend service
+- `campusos-staging-frontend` — staging static frontend
 
 Что важно перед первым deploy:
 
@@ -227,6 +230,7 @@ Blueprint уже использует:
 
 В корневом `package.json` доступны:
 
+- `npm run test:backend`
 - `npm run audit:backend`
 - `npm run audit:frontend`
 - `npm run scan:secrets`

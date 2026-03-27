@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 
-const SQLITE_DB_PATH = path.join(__dirname, '..', 'database.db');
+const SQLITE_DB_PATH = process.env.SQLITE_DB_PATH || path.join(__dirname, '..', 'database.db');
+const SQLITE_SCHEMA_PATH = path.join(__dirname, '..', 'database', 'schema.sql');
 const POSTGRES_SCHEMA_PATH = path.join(__dirname, '..', 'database', 'schema.postgres.sql');
 
 const USER_PROFILE_COLUMNS = [
@@ -92,6 +93,19 @@ const createSqliteAdapter = () => {
 
   sqlite.run('PRAGMA foreign_keys = ON');
 
+  const execSqlite = (sql) => (
+    new Promise((resolve, reject) => {
+      sqlite.exec(sql, (error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      });
+    })
+  );
+
   const adapter = {
     client: 'sqlite',
 
@@ -157,6 +171,17 @@ const createSqliteAdapter = () => {
   adapter.migrate = async () => {
     if (!migrationPromise) {
       migrationPromise = (async () => {
+        const usersTable = await adapter.get(
+          `SELECT name
+           FROM sqlite_master
+           WHERE type = 'table' AND name = 'users'`
+        );
+
+        if (!usersTable) {
+          const schemaContents = fs.readFileSync(SQLITE_SCHEMA_PATH, 'utf8');
+          await execSqlite(schemaContents);
+        }
+
         const columns = await adapter.all('PRAGMA table_info(users)');
         const existingColumns = new Set(columns.map((column) => column.name));
 

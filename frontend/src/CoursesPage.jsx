@@ -883,7 +883,7 @@ export default function CoursesPage({ user }) {
           onBack={() => setDetailId(null)}
           onCourseChange={updateCourseInState}
         />
-        {toast && <div className={`toast ${toast.type}`}>{toast.message}</div>}
+        {toast && <div className={`lms-toast lms-toast-${toast.type}`}>{toast.message}</div>}
       </>
     );
   }
@@ -1045,7 +1045,7 @@ export default function CoursesPage({ user }) {
         </div>
       )}
 
-      {toast && <div className={`toast ${toast.type}`}>{toast.message}</div>}
+      {toast && <div className={`lms-toast lms-toast-${toast.type}`}>{toast.message}</div>}
     </div>
   );
 }

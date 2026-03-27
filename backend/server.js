@@ -9,6 +9,7 @@ require('dotenv').config();
 const db = require('./config/database');
 
 const app = express();
+const appEnvironment = process.env.APP_ENV || process.env.NODE_ENV || 'development';
 const allowedOriginPatterns = [
   /^http:\/\/localhost(?::\d+)?$/i,
   /^http:\/\/127\.0\.0\.1(?::\d+)?$/i,
@@ -70,11 +71,35 @@ app.get('/health', (req, res) => {
   });
 });
 
+app.get('/api', (req, res) => {
+  res.json({
+    name: 'CampusOS API',
+    version: '1.0.0',
+    environment: appEnvironment,
+    status: 'online',
+    health: '/health',
+    resources: [
+      '/api/auth',
+      '/api/users',
+      '/api/courses',
+      '/api/exams',
+      '/api/schedule',
+      '/api/grades',
+      '/api/assignments',
+      '/api/attendance',
+      '/api/announcements'
+    ]
+  });
+});
+
 app.get('/', (req, res) => {
   res.json({
-    message: 'Alatoo University LMS API',
+    message: 'CampusOS API',
     version: '1.0.0',
-    documentation: '/api/docs'
+    environment: appEnvironment,
+    status: 'online',
+    api: '/api',
+    health: '/health'
   });
 });
 
@@ -90,25 +115,36 @@ app.use((err, req, res, next) => {
 
 app.use((req, res) => {
   res.status(404).json({
-    error: 'Route not found'
+    error: 'CampusOS API route not found'
   });
 });
 
 const PORT = process.env.PORT || 5000;
 
-async function startServer() {
+async function startServer(port = PORT) {
   try {
     await db.migrate();
 
-    app.listen(PORT, () => {
-      console.log(`LMS API running on port ${PORT}`);
+    return await new Promise((resolve, reject) => {
+      const server = app.listen(port, () => {
+        const resolvedPort = server.address()?.port || port;
+        console.log(`CampusOS API running on port ${resolvedPort}`);
+        resolve(server);
+      });
+
+      server.on('error', reject);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
-    process.exit(1);
+    throw error;
   }
 }
 
-startServer();
+if (require.main === module) {
+  startServer().catch((error) => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  });
+}
 
-module.exports = app;
+module.exports = { app, startServer };
