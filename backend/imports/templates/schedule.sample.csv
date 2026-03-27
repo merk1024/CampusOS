@@ -1,0 +1,3 @@
+course_code,day,time_slot,group_name,audience_type,subgroup_name,student_email,room,subject,teacher
+CYB240,Monday,08:00-08:40,CYB-24,group,,,SOC-Lab,Security Operations Center Lab,
+SE260,Friday,15:30-16:10,,individual,,temirlan.baialiev@alatoo.edu.kg,Studio-4,,

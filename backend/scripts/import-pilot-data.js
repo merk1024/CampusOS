@@ -19,16 +19,24 @@ const hasFlag = (args, flagName) => args.includes(flagName);
 
 async function main() {
   const args = process.argv.slice(2);
-  const useInbox = hasFlag(args, '--from-inbox') || !args.some((arg) => arg.startsWith('--students') || arg.startsWith('--teachers') || arg.startsWith('--courses'));
+  const useInbox = hasFlag(args, '--from-inbox') || !args.some(
+    (arg) => arg.startsWith('--students')
+      || arg.startsWith('--teachers')
+      || arg.startsWith('--courses')
+      || arg.startsWith('--enrollments')
+      || arg.startsWith('--schedule')
+  );
   const inboxFiles = useInbox ? detectInboxFiles() : {};
 
   const studentsFile = getFlagValue(args, '--students') || inboxFiles.students?.path || null;
   const teachersFile = getFlagValue(args, '--teachers') || inboxFiles.teachers?.path || null;
   const coursesFile = getFlagValue(args, '--courses') || inboxFiles.courses?.path || null;
+  const enrollmentsFile = getFlagValue(args, '--enrollments') || inboxFiles.enrollments?.path || null;
+  const scheduleFile = getFlagValue(args, '--schedule') || inboxFiles.schedule?.path || null;
 
-  if (!studentsFile && !teachersFile && !coursesFile) {
+  if (!studentsFile && !teachersFile && !coursesFile && !enrollmentsFile && !scheduleFile) {
     throw new Error(
-      `No import files were found. Pass --students/--teachers/--courses or place files into ${INBOX_DIR}.`
+      `No import files were found. Pass --students/--teachers/--courses/--enrollments/--schedule or place files into ${INBOX_DIR}.`
     );
   }
 
@@ -40,9 +48,13 @@ async function main() {
     studentsFile,
     teachersFile,
     coursesFile,
+    enrollmentsFile,
+    scheduleFile,
     studentsSheet: getFlagValue(args, '--students-sheet'),
     teachersSheet: getFlagValue(args, '--teachers-sheet'),
     coursesSheet: getFlagValue(args, '--courses-sheet'),
+    enrollmentsSheet: getFlagValue(args, '--enrollments-sheet'),
+    scheduleSheet: getFlagValue(args, '--schedule-sheet'),
     apply,
     sourceLabel,
     reportStem: reportStem ? path.resolve(reportStem) : null

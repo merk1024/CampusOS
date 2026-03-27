@@ -12,7 +12,7 @@ async function main() {
 
   if (!Object.keys(inboxFiles).length) {
     throw new Error(
-      `No test export files were found in ${INBOX_DIR}. Add students/teachers/courses files and try again.`
+      `No test export files were found in ${INBOX_DIR}. Add students/teachers/courses/enrollments/schedule files and try again.`
     );
   }
 
@@ -20,6 +20,8 @@ async function main() {
     studentsFile: inboxFiles.students?.path || null,
     teachersFile: inboxFiles.teachers?.path || null,
     coursesFile: inboxFiles.courses?.path || null,
+    enrollmentsFile: inboxFiles.enrollments?.path || null,
+    scheduleFile: inboxFiles.schedule?.path || null,
     apply: false,
     sourceLabel: 'university-export-read-only-preview',
     reportStem: path.join(REPORTS_DIR, 'university-export-preview')

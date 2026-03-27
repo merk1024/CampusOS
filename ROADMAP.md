@@ -36,6 +36,8 @@ CampusOS уже вышел за рамки учебного каркаса и с
 
 ### 2. Data readiness
 
+- [x] добавить import `course_enrollments + schedule` в pilot pipeline
+
 - [√] добавить безопасный импорт студентов, преподавателей и предметов из CSV / Excel
 - [√] подготовить read-only pipeline для тестовых университетских выгрузок
 - [√] нормализовать сиды под более реалистичный pilot dataset

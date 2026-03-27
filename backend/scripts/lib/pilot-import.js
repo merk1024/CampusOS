@@ -64,6 +64,35 @@ const ENTITY_CONFIG = {
       semester: ['semester', 'term'],
       teacher_email: ['teacher_email', 'teacher_mail', 'assigned_teacher_email', 'lecturer_email']
     }
+  },
+  enrollments: {
+    label: 'Enrollments',
+    filenameBase: 'enrollments',
+    required: ['course_code'],
+    aliases: {
+      student_id: ['student_id', 'studentid', 'student_number'],
+      student_email: ['student_email', 'email', 'student_mail'],
+      course_code: ['course_code', 'code', 'subject_code'],
+      enrolled_at: ['enrolled_at', 'enrollment_date', 'date']
+    }
+  },
+  schedule: {
+    label: 'Schedule',
+    filenameBase: 'schedule',
+    required: ['course_code', 'day', 'time_slot'],
+    aliases: {
+      course_code: ['course_code', 'code', 'subject_code'],
+      day: ['day', 'weekday'],
+      time_slot: ['time_slot', 'slot', 'time'],
+      group_name: ['group_name', 'group', 'group_code'],
+      audience_type: ['audience_type', 'audience', 'type'],
+      subgroup_name: ['subgroup_name', 'subgroup', 'section'],
+      student_id: ['student_id', 'studentid', 'student_number'],
+      student_email: ['student_email', 'email', 'student_mail'],
+      room: ['room', 'classroom', 'auditorium'],
+      subject: ['subject', 'subject_name', 'course_name'],
+      teacher: ['teacher', 'teacher_name', 'lecturer_name']
+    }
   }
 };
 
@@ -108,9 +137,38 @@ const COURSE_IMPORT_FIELDS = [
   'teacher_id'
 ];
 
+const ENROLLMENT_IMPORT_FIELDS = [
+  'student_id',
+  'course_id'
+];
+
+const SCHEDULE_IMPORT_FIELDS = [
+  'day',
+  'time_slot',
+  'group_name',
+  'audience_type',
+  'subgroup_name',
+  'student_user_id',
+  'subject',
+  'teacher',
+  'room',
+  'course_id'
+];
+
 const ensureDirectory = (directoryPath) => {
   fs.mkdirSync(directoryPath, { recursive: true });
 };
+
+const formatDateParts = (value) => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const formatDateTimeParts = (value) => (
+  `${formatDateParts(value)} ${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}:${String(value.getSeconds()).padStart(2, '0')}`
+);
 
 const sanitizeCell = (value) => {
   if (value === null || value === undefined) {
@@ -118,7 +176,16 @@ const sanitizeCell = (value) => {
   }
 
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toISOString().slice(0, 10);
+    const datePart = formatDateParts(value);
+    const hours = value.getHours();
+    const minutes = value.getMinutes();
+    const seconds = value.getSeconds();
+
+    if (!hours && !minutes && !seconds) {
+      return datePart;
+    }
+
+    return `${datePart} ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
 
   return String(value).trim();
@@ -132,6 +199,18 @@ const normalizeHeaderKey = (value) => (
 );
 
 const normalizeEmail = (value) => sanitizeCell(value).toLowerCase();
+const normalizeCourseCode = (value) => sanitizeCell(value).toUpperCase();
+
+const AUDIENCE_TYPES = new Set(['group', 'subgroup', 'individual']);
+const DAY_NAME_MAP = new Map([
+  ['monday', 'Monday'],
+  ['tuesday', 'Tuesday'],
+  ['wednesday', 'Wednesday'],
+  ['thursday', 'Thursday'],
+  ['friday', 'Friday'],
+  ['saturday', 'Saturday'],
+  ['sunday', 'Sunday']
+]);
 
 const parsePositiveInteger = (value) => {
   const cleaned = sanitizeCell(value);
@@ -162,7 +241,45 @@ const normalizeDate = (value) => {
     return null;
   }
 
-  return parsed.toISOString().slice(0, 10);
+  return formatDateParts(parsed);
+};
+
+const normalizeTimestamp = (value) => {
+  const cleaned = sanitizeCell(value);
+  if (!cleaned) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+    return cleaned;
+  }
+
+  const normalized = cleaned.replace('T', ' ');
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(normalized)) {
+    return normalized;
+  }
+
+  const parsed = new Date(cleaned);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return formatDateTimeParts(parsed);
+};
+
+const normalizeAudienceType = (value) => {
+  const cleaned = sanitizeCell(value).toLowerCase() || 'group';
+  return AUDIENCE_TYPES.has(cleaned) ? cleaned : 'group';
+};
+
+const normalizeDay = (value) => {
+  const cleaned = sanitizeCell(value);
+  if (!cleaned) {
+    return '';
+  }
+
+  const mapped = DAY_NAME_MAP.get(cleaned.toLowerCase());
+  return mapped || cleaned;
 };
 
 const buildAvatar = (name) => {
@@ -259,12 +376,33 @@ const normalizeTeacherRecord = (record) => ({
 });
 
 const normalizeCourseRecord = (record) => ({
-  code: sanitizeCell(record.code).toUpperCase(),
+  code: normalizeCourseCode(record.code),
   name: sanitizeCell(record.name),
   description: sanitizeCell(record.description) || null,
   credits: parsePositiveInteger(record.credits),
   semester: sanitizeCell(record.semester) || null,
   teacher_email: normalizeEmail(record.teacher_email) || null
+});
+
+const normalizeEnrollmentRecord = (record) => ({
+  student_id: sanitizeCell(record.student_id),
+  student_email: normalizeEmail(record.student_email) || null,
+  course_code: normalizeCourseCode(record.course_code),
+  enrolled_at: normalizeTimestamp(record.enrolled_at)
+});
+
+const normalizeScheduleRecord = (record) => ({
+  course_code: normalizeCourseCode(record.course_code),
+  day: normalizeDay(record.day),
+  time_slot: sanitizeCell(record.time_slot),
+  group_name: sanitizeCell(record.group_name) || null,
+  audience_type: normalizeAudienceType(record.audience_type),
+  subgroup_name: sanitizeCell(record.subgroup_name) || null,
+  student_id: sanitizeCell(record.student_id),
+  student_email: normalizeEmail(record.student_email) || null,
+  room: sanitizeCell(record.room) || null,
+  subject: sanitizeCell(record.subject) || null,
+  teacher: sanitizeCell(record.teacher) || null
 });
 
 const validateRecord = (entityKey, record, rowNumber) => {
@@ -280,6 +418,14 @@ const validateRecord = (entityKey, record, rowNumber) => {
 
   if (record.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(record.email)) {
     errors.push(`${config.label.slice(0, -1)} row ${rowNumber}: invalid email "${record.email}".`);
+  }
+
+  if (record.student_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(record.student_email)) {
+    errors.push(`${config.label.slice(0, -1)} row ${rowNumber}: invalid student_email "${record.student_email}".`);
+  }
+
+  if (record.teacher_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(record.teacher_email)) {
+    errors.push(`${config.label.slice(0, -1)} row ${rowNumber}: invalid teacher_email "${record.teacher_email}".`);
   }
 
   if (entityKey === 'students') {
@@ -298,6 +444,30 @@ const validateRecord = (entityKey, record, rowNumber) => {
 
   if (entityKey === 'courses' && sanitizeCell(record.credits) && record.credits === null) {
     errors.push(`Course row ${rowNumber}: credits must be a positive integer.`);
+  }
+
+  if (entityKey === 'enrollments') {
+    if (!record.student_id && !record.student_email) {
+      errors.push(`Enrollment row ${rowNumber}: student_id or student_email is required.`);
+    }
+
+    if (sanitizeCell(record.enrolled_at) && !record.enrolled_at) {
+      errors.push(`Enrollment row ${rowNumber}: enrolled_at must be a valid date or datetime.`);
+    }
+  }
+
+  if (entityKey === 'schedule') {
+    if (!record.group_name && record.audience_type !== 'individual') {
+      errors.push(`Schedule row ${rowNumber}: group_name is required for group and subgroup entries.`);
+    }
+
+    if (record.audience_type === 'subgroup' && !record.subgroup_name) {
+      errors.push(`Schedule row ${rowNumber}: subgroup_name is required for subgroup entries.`);
+    }
+
+    if (record.audience_type === 'individual' && !record.student_id && !record.student_email) {
+      errors.push(`Schedule row ${rowNumber}: student_id or student_email is required for individual entries.`);
+    }
   }
 
   return { errors, warnings };
@@ -345,6 +515,73 @@ const findExistingCourse = async (record) => {
   return { existing };
 };
 
+const findCourseContextByCode = async (courseCode) => (
+  db.get(
+    `SELECT
+       c.*,
+       u.name AS teacher_name,
+       u.email AS teacher_email
+     FROM courses c
+     LEFT JOIN users u ON u.id = c.teacher_id
+     WHERE c.code = ?`,
+    [courseCode]
+  )
+);
+
+const findTeacherByEmail = async (teacherEmail) => (
+  db.get(
+    'SELECT id, name, email, role FROM users WHERE email = ?',
+    [teacherEmail]
+  )
+);
+
+const findStudentByReference = async ({ studentId, studentEmail }) => {
+  const candidates = [];
+
+  if (studentId) {
+    const byStudentId = await db.get(
+      'SELECT id, role, student_id, email, name, group_name, subgroup_name FROM users WHERE student_id = ?',
+      [studentId]
+    );
+    if (byStudentId) {
+      candidates.push(byStudentId);
+    }
+  }
+
+  if (studentEmail) {
+    const byEmail = await db.get(
+      'SELECT id, role, student_id, email, name, group_name, subgroup_name FROM users WHERE email = ?',
+      [studentEmail]
+    );
+    if (byEmail) {
+      candidates.push(byEmail);
+    }
+  }
+
+  const uniqueCandidates = candidates.filter(
+    (candidate, index, array) => array.findIndex((item) => item.id === candidate.id) === index
+  );
+
+  if (!uniqueCandidates.length) {
+    return { student: null };
+  }
+
+  if (uniqueCandidates.length > 1) {
+    return {
+      error: `Student reference ${studentId || studentEmail} matches multiple existing users.`
+    };
+  }
+
+  const student = uniqueCandidates[0];
+  if (student.role !== 'student') {
+    return {
+      error: `User ${student.email} exists but is not a student.`
+    };
+  }
+
+  return { student };
+};
+
 const getComparableUserRecord = (record) => {
   const comparable = {};
   USER_IMPORT_FIELDS.forEach((field) => {
@@ -359,6 +596,32 @@ const getComparableUserRecord = (record) => {
 const getComparableCourseRecord = (record) => {
   const comparable = {};
   COURSE_IMPORT_FIELDS.forEach((field) => {
+    if (Object.prototype.hasOwnProperty.call(record, field)) {
+      comparable[field] = record[field];
+    }
+  });
+
+  return comparable;
+};
+
+const getComparableEnrollmentRecord = (record) => {
+  const comparable = {};
+  ENROLLMENT_IMPORT_FIELDS.forEach((field) => {
+    if (Object.prototype.hasOwnProperty.call(record, field)) {
+      comparable[field] = record[field];
+    }
+  });
+
+  if (record.enrolled_at) {
+    comparable.enrolled_at = record.enrolled_at;
+  }
+
+  return comparable;
+};
+
+const getComparableScheduleRecord = (record) => {
+  const comparable = {};
+  SCHEDULE_IMPORT_FIELDS.forEach((field) => {
     if (Object.prototype.hasOwnProperty.call(record, field)) {
       comparable[field] = record[field];
     }
@@ -391,6 +654,36 @@ const createIssue = (severity, entityKey, rowNumber, message) => ({
   rowNumber,
   message
 });
+
+const getPreviewLookupIndex = (items, keys) => {
+  const index = new Map();
+  items.forEach((item) => {
+    keys.forEach((key) => {
+      const value = item.record[key];
+      if (value) {
+        index.set(`${key}:${value}`, item);
+      }
+    });
+  });
+  return index;
+};
+
+const getPreviewItemId = (item) => item?.appliedId || item?.existingId || null;
+
+const resolveTeacherDisplayByEmail = async (teacherEmail, teacherPreviewByEmail) => {
+  const normalizedEmail = normalizeEmail(teacherEmail);
+  if (!normalizedEmail) {
+    return null;
+  }
+
+  const previewTeacher = teacherPreviewByEmail.get(normalizedEmail);
+  if (previewTeacher?.status === 'ready') {
+    return previewTeacher.record.name || normalizedEmail;
+  }
+
+  const teacher = await findTeacherByEmail(normalizedEmail);
+  return teacher?.name || teacher?.email || normalizedEmail;
+};
 
 const resolveTeacherAssignment = async (teacherEmail, teacherPreviewByEmail) => {
   if (!teacherEmail) {
@@ -438,6 +731,134 @@ const resolveTeacherAssignment = async (teacherEmail, teacherPreviewByEmail) => 
   return { teacherId: teacher.id, deferredTeacherEmail: null, warning: null };
 };
 
+const resolveStudentReference = async (record, studentPreviewIndex) => {
+  const previewMatches = [];
+
+  if (record.student_id && studentPreviewIndex.has(`student_id:${record.student_id}`)) {
+    previewMatches.push(studentPreviewIndex.get(`student_id:${record.student_id}`));
+  }
+
+  if (record.student_email && studentPreviewIndex.has(`email:${record.student_email}`)) {
+    previewMatches.push(studentPreviewIndex.get(`email:${record.student_email}`));
+  }
+
+  const uniquePreviewMatches = previewMatches.filter(
+    (candidate, index, array) => array.findIndex((item) => item.rowNumber === candidate.rowNumber) === index
+  );
+
+  if (uniquePreviewMatches.length > 1) {
+    return {
+      error: `Student reference ${record.student_id || record.student_email} matches multiple rows in the import set.`
+    };
+  }
+
+  const previewStudent = uniquePreviewMatches[0] || null;
+  if (previewStudent) {
+    if (previewStudent.status === 'error') {
+      return {
+        error: `Referenced student ${previewStudent.record.email || previewStudent.record.student_id} failed validation in the import set.`
+      };
+    }
+
+    return {
+      studentUserId: previewStudent.existingId || null,
+      deferredStudent: previewStudent.action === 'create'
+        ? {
+            student_id: previewStudent.record.student_id || null,
+            student_email: previewStudent.record.email || null
+          }
+        : null,
+      studentRecord: previewStudent.record
+    };
+  }
+
+  const existingStudent = await findStudentByReference({
+    studentId: record.student_id,
+    studentEmail: record.student_email
+  });
+
+  if (existingStudent.error) {
+    return { error: existingStudent.error };
+  }
+
+  if (!existingStudent.student) {
+    return {
+      error: `Student ${record.student_email || record.student_id} was not found.`
+    };
+  }
+
+  return {
+    studentUserId: existingStudent.student.id,
+    deferredStudent: null,
+    studentRecord: existingStudent.student
+  };
+};
+
+const resolveCourseReference = async (record, coursePreviewByCode, teacherPreviewByEmail) => {
+  const previewCourse = coursePreviewByCode.get(record.course_code);
+
+  if (previewCourse) {
+    if (previewCourse.status === 'error') {
+      return {
+        error: `Referenced course ${record.course_code} failed validation in the import set.`
+      };
+    }
+
+    return {
+      courseId: previewCourse.existingId || null,
+      deferredCourseCode: previewCourse.action === 'create' ? previewCourse.record.code : null,
+      courseRecord: previewCourse.record,
+      teacherName: previewCourse.record.teacher_email
+        ? await resolveTeacherDisplayByEmail(previewCourse.record.teacher_email, teacherPreviewByEmail)
+        : null
+    };
+  }
+
+  const course = await findCourseContextByCode(record.course_code);
+  if (!course) {
+    return {
+      error: `Course ${record.course_code} was not found.`
+    };
+  }
+
+  return {
+    courseId: course.id,
+    deferredCourseCode: null,
+    courseRecord: course,
+    teacherName: course.teacher_name || course.teacher_email || null
+  };
+};
+
+const findExistingEnrollment = async (studentUserId, courseId) => (
+  db.get(
+    'SELECT * FROM course_enrollments WHERE student_id = ? AND course_id = ?',
+    [studentUserId, courseId]
+  )
+);
+
+const findExistingScheduleEntry = async (record) => (
+  db.get(
+    `SELECT *
+     FROM schedule
+     WHERE day = ?
+       AND time_slot = ?
+       AND COALESCE(group_name, '') = COALESCE(?, '')
+       AND COALESCE(audience_type, 'group') = COALESCE(?, 'group')
+       AND COALESCE(subgroup_name, '') = COALESCE(?, '')
+       AND COALESCE(student_user_id, 0) = COALESCE(?, 0)
+       AND COALESCE(course_id, 0) = COALESCE(?, 0)`,
+    [
+      record.day,
+      record.time_slot,
+      record.group_name || null,
+      record.audience_type || 'group',
+      record.subgroup_name || null,
+      record.student_user_id || null,
+      record.course_id || null
+    ]
+  )
+);
+
 const parseEntityRows = async (entityKey, filePath, sheetName) => {
   const rows = readTabularFile(filePath, sheetName);
   return rows.map((rawRow, index) => {
@@ -447,7 +868,11 @@ const parseEntityRows = async (entityKey, filePath, sheetName) => {
       ? normalizeStudentRecord(canonical)
       : entityKey === 'teachers'
         ? normalizeTeacherRecord(canonical)
-        : normalizeCourseRecord(canonical);
+        : entityKey === 'courses'
+          ? normalizeCourseRecord(canonical)
+          : entityKey === 'enrollments'
+            ? normalizeEnrollmentRecord(canonical)
+            : normalizeScheduleRecord(canonical);
     const { errors, warnings } = validateRecord(entityKey, normalized, rowNumber);
 
     if (unknownColumns.length) {
@@ -569,6 +994,204 @@ const classifyCourseRows = async (items, summary, issues, teacherPreviewByEmail)
       existingId: lookup.existing?.id || null,
       teacherId: teacherResolution.teacherId,
       deferredTeacherEmail: teacherResolution.deferredTeacherEmail
+    });
+  }
+
+  return previews;
+};
+
+const classifyEnrollmentRows = async (items, summary, issues, studentPreviewIndex, coursePreviewByCode, teacherPreviewByEmail) => {
+  const previews = [];
+
+  for (const item of items) {
+    summary.rows += 1;
+    summary.errors += item.errors.length;
+    summary.warnings += item.warnings.length;
+    item.errors.forEach((message) => issues.push(createIssue('error', 'enrollments', item.rowNumber, message)));
+    item.warnings.forEach((message) => issues.push(createIssue('warning', 'enrollments', item.rowNumber, message)));
+
+    if (item.errors.length) {
+      previews.push({
+        ...item,
+        action: 'error',
+        status: 'error',
+        existingId: null
+      });
+      continue;
+    }
+
+    const studentResolution = await resolveStudentReference(item.record, studentPreviewIndex);
+    if (studentResolution.error) {
+      issues.push(createIssue('error', 'enrollments', item.rowNumber, studentResolution.error));
+      summary.errors += 1;
+      previews.push({
+        ...item,
+        action: 'error',
+        status: 'error',
+        existingId: null
+      });
+      continue;
+    }
+
+    const courseResolution = await resolveCourseReference(item.record, coursePreviewByCode, teacherPreviewByEmail);
+    if (courseResolution.error) {
+      issues.push(createIssue('error', 'enrollments', item.rowNumber, courseResolution.error));
+      summary.errors += 1;
+      previews.push({
+        ...item,
+        action: 'error',
+        status: 'error',
+        existingId: null
+      });
+      continue;
+    }
+
+    let existing = null;
+    let action = 'create';
+
+    if (!studentResolution.deferredStudent && !courseResolution.deferredCourseCode) {
+      existing = await findExistingEnrollment(studentResolution.studentUserId, courseResolution.courseId);
+      if (existing) {
+        const comparable = getComparableEnrollmentRecord({
+          student_id: studentResolution.studentUserId,
+          course_id: courseResolution.courseId,
+          enrolled_at: item.record.enrolled_at
+        });
+        action = hasChanges(existing, comparable) ? 'update' : 'skip';
+      }
+    }
+
+    summary.valid += 1;
+    summary[action] += 1;
+
+    previews.push({
+      ...item,
+      action,
+      status: 'ready',
+      existingId: existing?.id || null,
+      resolvedStudentUserId: studentResolution.studentUserId,
+      resolvedCourseId: courseResolution.courseId,
+      deferredStudent: studentResolution.deferredStudent,
+      deferredCourseCode: courseResolution.deferredCourseCode,
+      preparedRecord: {
+        student_id: studentResolution.studentUserId,
+        course_id: courseResolution.courseId,
+        enrolled_at: item.record.enrolled_at || null
+      }
+    });
+  }
+
+  return previews;
+};
+
+const classifyScheduleRows = async (items, summary, issues, studentPreviewIndex, coursePreviewByCode, teacherPreviewByEmail) => {
+  const previews = [];
+
+  for (const item of items) {
+    summary.rows += 1;
+    summary.errors += item.errors.length;
+    summary.warnings += item.warnings.length;
+    item.errors.forEach((message) => issues.push(createIssue('error', 'schedule', item.rowNumber, message)));
+    item.warnings.forEach((message) => issues.push(createIssue('warning', 'schedule', item.rowNumber, message)));
+
+    if (item.errors.length) {
+      previews.push({
+        ...item,
+        action: 'error',
+        status: 'error',
+        existingId: null
+      });
+      continue;
+    }
+
+    const courseResolution = await resolveCourseReference(item.record, coursePreviewByCode, teacherPreviewByEmail);
+    if (courseResolution.error) {
+      issues.push(createIssue('error', 'schedule', item.rowNumber, courseResolution.error));
+      summary.errors += 1;
+      previews.push({
+        ...item,
+        action: 'error',
+        status: 'error',
+        existingId: null
+      });
+      continue;
+    }
+
+    let studentResolution = {
+      studentUserId: null,
+      deferredStudent: null,
+      studentRecord: null
+    };
+
+    if (item.record.audience_type === 'individual' || item.record.student_id || item.record.student_email) {
+      studentResolution = await resolveStudentReference(item.record, studentPreviewIndex);
+      if (studentResolution.error) {
+        issues.push(createIssue('error', 'schedule', item.rowNumber, studentResolution.error));
+        summary.errors += 1;
+        previews.push({
+          ...item,
+          action: 'error',
+          status: 'error',
+          existingId: null
+        });
+        continue;
+      }
+    }
+
+    const groupName = item.record.audience_type === 'individual'
+      ? (item.record.group_name || studentResolution.studentRecord?.group_name || 'INDIVIDUAL')
+      : (item.record.group_name || studentResolution.studentRecord?.group_name || null);
+
+    if (!groupName) {
+      const message = `Schedule row ${item.rowNumber}: group_name could not be resolved.`;
+      issues.push(createIssue('error', 'schedule', item.rowNumber, message));
+      summary.errors += 1;
+      previews.push({
+        ...item,
+        action: 'error',
+        status: 'error',
+        existingId: null
+      });
+      continue;
+    }
+
+    const preparedRecord = {
+      day: item.record.day,
+      time_slot: item.record.time_slot,
+      group_name: groupName,
+      audience_type: item.record.audience_type || 'group',
+      subgroup_name: item.record.audience_type === 'subgroup' ? item.record.subgroup_name || null : null,
+      student_user_id: item.record.audience_type === 'individual' ? studentResolution.studentUserId || null : null,
+      subject: item.record.subject || courseResolution.courseRecord?.name || item.record.course_code,
+      teacher: item.record.teacher || courseResolution.teacherName || null,
+      room: item.record.room || null,
+      course_id: courseResolution.courseId || null
+    };
+
+    let existing = null;
+    let action = 'create';
+
+    if (!studentResolution.deferredStudent && !courseResolution.deferredCourseCode) {
+      existing = await findExistingScheduleEntry(preparedRecord);
+      if (existing) {
+        const comparable = getComparableScheduleRecord(preparedRecord);
+        action = hasChanges(existing, comparable) ? 'update' : 'skip';
+      }
+    }
+
+    summary.valid += 1;
+    summary[action] += 1;
+
+    previews.push({
+      ...item,
+      action,
+      status: 'ready',
+      existingId: existing?.id || null,
+      resolvedStudentUserId: studentResolution.studentUserId,
+      resolvedCourseId: courseResolution.courseId,
+      deferredStudent: studentResolution.deferredStudent,
+      deferredCourseCode: courseResolution.deferredCourseCode,
+      preparedRecord
     });
   }
 
@@ -768,6 +1391,147 @@ const updateImportedCourse = async (existingId, record, teacherId) => {
   return db.get('SELECT * FROM courses WHERE id = ?', [existingId]);
 };
 
+const createImportedEnrollment = async (record) => {
+  if (record.enrolled_at) {
+    const result = await db.run(
+      'INSERT INTO course_enrollments (student_id, course_id, enrolled_at) VALUES (?, ?, ?)',
+      [record.student_id, record.course_id, record.enrolled_at]
+    );
+    return db.get('SELECT * FROM course_enrollments WHERE id = ?', [result.id]);
+  }
+
+  const result = await db.run(
+    'INSERT INTO course_enrollments (student_id, course_id) VALUES (?, ?)',
+    [record.student_id, record.course_id]
+  );
+  return db.get('SELECT * FROM course_enrollments WHERE id = ?', [result.id]);
+};
+
+const updateImportedEnrollment = async (existingId, record) => {
+  if (record.enrolled_at) {
+    await db.run(
+      `UPDATE course_enrollments
+       SET enrolled_at = ?
+       WHERE id = ?`,
+      [record.enrolled_at, existingId]
+    );
+  }
+
+  return db.get('SELECT * FROM course_enrollments WHERE id = ?', [existingId]);
+};
+
+const createImportedScheduleEntry = async (record) => {
+  const result = await db.run(
+    `INSERT INTO schedule (
+      day, time_slot, group_name, audience_type, subgroup_name, student_user_id, subject, teacher, room, course_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      record.day,
+      record.time_slot,
+      record.group_name,
+      record.audience_type,
+      record.subgroup_name || null,
+      record.student_user_id || null,
+      record.subject,
+      record.teacher || null,
+      record.room || null,
+      record.course_id || null
+    ]
+  );
+
+  return db.get('SELECT * FROM schedule WHERE id = ?', [result.id]);
+};
+
+const updateImportedScheduleEntry = async (existingId, record) => {
+  await db.run(
+    `UPDATE schedule
+     SET day = ?,
+         time_slot = ?,
+         group_name = ?,
+         audience_type = ?,
+         subgroup_name = ?,
+         student_user_id = ?,
+         subject = ?,
+         teacher = ?,
+         room = ?,
+         course_id = ?
+     WHERE id = ?`,
+    [
+      record.day,
+      record.time_slot,
+      record.group_name,
+      record.audience_type,
+      record.subgroup_name || null,
+      record.student_user_id || null,
+      record.subject,
+      record.teacher || null,
+      record.room || null,
+      record.course_id || null,
+      existingId
+    ]
+  );
+
+  return db.get('SELECT * FROM schedule WHERE id = ?', [existingId]);
+};
+
+const buildAppliedStudentLookup = (items) => {
+  const lookup = new Map();
+  items.forEach((item) => {
+    const userId = getPreviewItemId(item);
+    if (!userId) {
+      return;
+    }
+
+    if (item.record.student_id) {
+      lookup.set(`student_id:${item.record.student_id}`, userId);
+    }
+
+    if (item.record.email) {
+      lookup.set(`email:${item.record.email}`, userId);
+    }
+  });
+  return lookup;
+};
+
+const buildAppliedCourseLookup = (items) => {
+  const lookup = new Map();
+  items.forEach((item) => {
+    const courseId = getPreviewItemId(item);
+    if (courseId && item.record.code) {
+      lookup.set(item.record.code, courseId);
+    }
+  });
+  return lookup;
+};
+
+const resolveAppliedStudentId = (item, appliedStudentLookup) => {
+  if (item.resolvedStudentUserId) {
+    return item.resolvedStudentUserId;
+  }
+
+  if (item.deferredStudent?.student_id && appliedStudentLookup.has(`student_id:${item.deferredStudent.student_id}`)) {
+    return appliedStudentLookup.get(`student_id:${item.deferredStudent.student_id}`);
+  }
+
+  if (item.deferredStudent?.student_email && appliedStudentLookup.has(`email:${item.deferredStudent.student_email}`)) {
+    return appliedStudentLookup.get(`email:${item.deferredStudent.student_email}`);
+  }
+
+  return null;
+};
+
+const resolveAppliedCourseId = (item, appliedCourseLookup) => {
+  if (item.resolvedCourseId) {
+    return item.resolvedCourseId;
+  }
+
+  if (item.deferredCourseCode && appliedCourseLookup.has(item.deferredCourseCode)) {
+    return appliedCourseLookup.get(item.deferredCourseCode);
+  }
+
+  return null;
+};
+
 const applyImportPlan = async (report) => {
   const createdUsers = [];
   const passwordSeed = String(process.env.IMPORT_DEFAULT_PASSWORD || '').trim();
@@ -827,6 +1591,67 @@ const applyImportPlan = async (report) => {
       item.appliedId = updatedCourse.id;
     }
   }
+
+  const appliedStudentLookup = buildAppliedStudentLookup(report.preview.students);
+  const appliedCourseLookup = buildAppliedCourseLookup(report.preview.courses);
+
+  for (const item of report.preview.enrollments || []) {
+    if (item.action === 'skip' || item.action === 'error') {
+      continue;
+    }
+
+    const studentId = resolveAppliedStudentId(item, appliedStudentLookup);
+    const courseId = resolveAppliedCourseId(item, appliedCourseLookup);
+
+    if (!studentId || !courseId) {
+      throw new Error(`Unable to resolve enrollment row ${item.rowNumber} during apply mode.`);
+    }
+
+    const preparedRecord = {
+      ...item.preparedRecord,
+      student_id: studentId,
+      course_id: courseId
+    };
+
+    if (item.action === 'create') {
+      const createdEnrollment = await createImportedEnrollment(preparedRecord);
+      item.appliedId = createdEnrollment.id;
+    } else if (item.action === 'update') {
+      const updatedEnrollment = await updateImportedEnrollment(item.existingId, preparedRecord);
+      item.appliedId = updatedEnrollment.id;
+    }
+  }
+
+  for (const item of report.preview.schedule || []) {
+    if (item.action === 'skip' || item.action === 'error') {
+      continue;
+    }
+
+    const studentId = resolveAppliedStudentId(item, appliedStudentLookup);
+    const courseId = resolveAppliedCourseId(item, appliedCourseLookup);
+
+    const preparedRecord = {
+      ...item.preparedRecord,
+      student_user_id: item.preparedRecord.audience_type === 'individual' ? studentId : null,
+      course_id: courseId
+    };
+
+    if (!preparedRecord.course_id) {
+      throw new Error(`Unable to resolve schedule row ${item.rowNumber} during apply mode.`);
+    }
+
+    if (preparedRecord.audience_type === 'individual' && !preparedRecord.student_user_id) {
+      throw new Error(`Unable to resolve individual student for schedule row ${item.rowNumber} during apply mode.`);
+    }
+
+    if (item.action === 'create') {
+      const createdEntry = await createImportedScheduleEntry(preparedRecord);
+      item.appliedId = createdEntry.id;
+    } else if (item.action === 'update') {
+      const updatedEntry = await updateImportedScheduleEntry(item.existingId, preparedRecord);
+      item.appliedId = updatedEntry.id;
+    }
+  }
 };
 
 const findImportFile = (directoryPath, filenameBase) => {
@@ -861,9 +1686,13 @@ const runImportWorkflow = async (options = {}) => {
     studentsFile,
     teachersFile,
     coursesFile,
+    enrollmentsFile,
+    scheduleFile,
     studentsSheet,
     teachersSheet,
     coursesSheet,
+    enrollmentsSheet,
+    scheduleSheet,
     apply = false,
     sourceLabel = 'manual-import',
     reportStem = null
@@ -878,6 +1707,12 @@ const runImportWorkflow = async (options = {}) => {
   }
   if (coursesFile) {
     files.courses = { path: path.resolve(coursesFile), sheetName: coursesSheet || null };
+  }
+  if (enrollmentsFile) {
+    files.enrollments = { path: path.resolve(enrollmentsFile), sheetName: enrollmentsSheet || null };
+  }
+  if (scheduleFile) {
+    files.schedule = { path: path.resolve(scheduleFile), sheetName: scheduleSheet || null };
   }
 
   if (!Object.keys(files).length) {
@@ -895,7 +1730,9 @@ const runImportWorkflow = async (options = {}) => {
   const summary = {
     students: buildSummaryBucket('Students'),
     teachers: buildSummaryBucket('Teachers'),
-    courses: buildSummaryBucket('Courses')
+    courses: buildSummaryBucket('Courses'),
+    enrollments: buildSummaryBucket('Enrollments'),
+    schedule: buildSummaryBucket('Schedule')
   };
   const issues = [];
 
@@ -908,18 +1745,46 @@ const runImportWorkflow = async (options = {}) => {
   const courseItems = files.courses
     ? await parseEntityRows('courses', files.courses.path, files.courses.sheetName)
     : [];
+  const enrollmentItems = files.enrollments
+    ? await parseEntityRows('enrollments', files.enrollments.path, files.enrollments.sheetName)
+    : [];
+  const scheduleItems = files.schedule
+    ? await parseEntityRows('schedule', files.schedule.path, files.schedule.sheetName)
+    : [];
 
   const preview = {
     students: await classifyUserRows('students', studentItems, summary.students, issues),
     teachers: await classifyUserRows('teachers', teacherItems, summary.teachers, issues),
-    courses: []
+    courses: [],
+    enrollments: [],
+    schedule: []
   };
 
   const teacherPreviewByEmail = new Map(
     preview.teachers.map((item) => [item.record.email, item])
   );
+  const studentPreviewIndex = getPreviewLookupIndex(preview.students, ['student_id', 'email']);
 
   preview.courses = await classifyCourseRows(courseItems, summary.courses, issues, teacherPreviewByEmail);
+  const coursePreviewByCode = new Map(
+    preview.courses.map((item) => [item.record.code, item])
+  );
+  preview.enrollments = await classifyEnrollmentRows(
+    enrollmentItems,
+    summary.enrollments,
+    issues,
+    studentPreviewIndex,
+    coursePreviewByCode,
+    teacherPreviewByEmail
+  );
+  preview.schedule = await classifyScheduleRows(
+    scheduleItems,
+    summary.schedule,
+    issues,
+    studentPreviewIndex,
+    coursePreviewByCode,
+    teacherPreviewByEmail
+  );
 
   const report = {
     generatedAt: new Date().toISOString(),
