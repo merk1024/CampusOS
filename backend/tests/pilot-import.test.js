@@ -26,7 +26,8 @@ const files = {
   teachers: path.join(tempDir, 'teachers.csv'),
   courses: path.join(tempDir, 'courses.csv'),
   enrollments: path.join(tempDir, 'enrollments.csv'),
-  schedule: path.join(tempDir, 'schedule.csv')
+  schedule: path.join(tempDir, 'schedule.csv'),
+  studentsXlsx: path.join(tempDir, 'students.xlsx')
 };
 
 const writeFile = (targetPath, contents) => {
@@ -215,4 +216,18 @@ test('apply mode creates and updates pilot records', async () => {
   assert.ok(individualSchedule);
   assert.equal(individualSchedule.group_name, 'CYB-24');
   assert.equal(individualSchedule.audience_type, 'individual');
+});
+
+test('xlsx imports are rejected for security hardening', async () => {
+  writeFile(files.studentsXlsx, 'not-a-real-workbook');
+
+  await assert.rejects(
+    () => runImportWorkflow({
+      studentsFile: files.studentsXlsx,
+      apply: false,
+      sourceLabel: 'pilot-import-xlsx-disabled',
+      reportStem: path.join(tempDir, 'xlsx-disabled-report')
+    }),
+    /Excel imports are disabled for security hardening/i
+  );
 });

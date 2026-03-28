@@ -38,7 +38,7 @@ CampusOS уже вышел за рамки учебного каркаса и с
 
 - [x] добавить import `course_enrollments + schedule` в pilot pipeline
 
-- [√] добавить безопасный импорт студентов, преподавателей и предметов из CSV / Excel
+- [√] добавить безопасный импорт студентов, преподавателей и предметов из CSV / TSV
 - [√] подготовить read-only pipeline для тестовых университетских выгрузок
 - [√] нормализовать сиды под более реалистичный pilot dataset
 - [√] описать карту соответствия внешних данных и текущей схемы БД
@@ -77,7 +77,7 @@ CampusOS уже вышел за рамки учебного каркаса и с
 ### Phase 3 — Integration layer
 
 Current progress:
-- [x] initial read-only reconciliation reports for CSV / Excel university exports
+- [x] initial read-only reconciliation reports for CSV / TSV university exports
 
 Цель: превратить CampusOS в удобный единый портал поверх существующих систем университета.
 

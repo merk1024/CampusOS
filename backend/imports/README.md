@@ -2,25 +2,19 @@
 
 ## What goes where
 
-- `templates/` contains sample CSV layouts that can also be used as Excel header references.
+- `templates/` contains sample CSV layouts for pilot imports.
 - `inbox/` is the drop folder for temporary university exports.
 - `reports/` stores generated JSON and Markdown validation reports.
 
 ## Supported files
 
-- `students.csv`, `students.xlsx`, `students.xls`
-- `teachers.csv`, `teachers.xlsx`, `teachers.xls`
-- `courses.csv`, `courses.xlsx`, `courses.xls`
-- `enrollments.csv`, `enrollments.xlsx`, `enrollments.xls`
-- `schedule.csv`, `schedule.xlsx`, `schedule.xls`
+- `students.csv`, `students.tsv`
+- `teachers.csv`, `teachers.tsv`
+- `courses.csv`, `courses.tsv`
+- `enrollments.csv`, `enrollments.tsv`
+- `schedule.csv`, `schedule.tsv`
 
-The importer reads the first worksheet by default. You can override it with:
-
-- `--students-sheet`
-- `--teachers-sheet`
-- `--courses-sheet`
-- `--enrollments-sheet`
-- `--schedule-sheet`
+Excel `.xlsx/.xls` imports are intentionally disabled for security hardening. Convert the needed worksheet to CSV or TSV before running the importer.
 
 ## Commands
 

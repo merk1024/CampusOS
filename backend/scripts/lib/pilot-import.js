@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
-const XLSX = require('xlsx');
 
 const db = require('../../config/database');
 
@@ -9,7 +8,8 @@ const IMPORT_ROOT = path.join(__dirname, '..', '..', 'imports');
 const INBOX_DIR = path.join(IMPORT_ROOT, 'inbox');
 const REPORTS_DIR = path.join(IMPORT_ROOT, 'reports');
 const ACTIVE_STATUS = db.client === 'postgres' ? true : 1;
-const SUPPORTED_IMPORT_EXTENSIONS = ['.xlsx', '.xls', '.csv', '.tsv'];
+const SUPPORTED_IMPORT_EXTENSIONS = ['.csv', '.tsv'];
+const DISABLED_SPREADSHEET_EXTENSIONS = new Set(['.xlsx', '.xls']);
 
 const ENTITY_CONFIG = {
   students: {
@@ -293,20 +293,110 @@ const buildAvatar = (name) => {
   return initials || 'CU';
 };
 
-const readTabularFile = (filePath, sheetName) => {
-  const workbook = XLSX.readFile(filePath, { cellDates: true });
-  const targetSheetName = sheetName || workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[targetSheetName];
+const parseDelimitedLine = (line, delimiter) => {
+  const cells = [];
+  let current = '';
+  let inQuotes = false;
 
-  if (!worksheet) {
-    throw new Error(`Sheet "${targetSheetName}" was not found in ${path.basename(filePath)}.`);
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    const nextCharacter = line[index + 1];
+
+    if (character === '"') {
+      if (inQuotes && nextCharacter === '"') {
+        current += '"';
+        index += 1;
+        continue;
+      }
+
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (character === delimiter && !inQuotes) {
+      cells.push(current);
+      current = '';
+      continue;
+    }
+
+    current += character;
   }
 
-  return XLSX.utils.sheet_to_json(worksheet, {
-    defval: '',
-    raw: false,
-    blankrows: false
+  cells.push(current);
+  return cells;
+};
+
+const parseDelimitedText = (contents, delimiter) => {
+  const normalized = contents.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
+  const physicalLines = normalized.split('\n');
+  const logicalLines = [];
+  let buffer = '';
+  let quoteBalance = 0;
+
+  physicalLines.forEach((line) => {
+    buffer = buffer ? `${buffer}\n${line}` : line;
+
+    const unescapedQuotes = (line.match(/(?<!")"(?!")/g) || []).length;
+    quoteBalance += unescapedQuotes;
+
+    if (quoteBalance % 2 === 0) {
+      logicalLines.push(buffer);
+      buffer = '';
+      quoteBalance = 0;
+    }
   });
+
+  if (buffer) {
+    logicalLines.push(buffer);
+  }
+
+  const rows = logicalLines
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim().length > 0)
+    .map((line) => parseDelimitedLine(line, delimiter));
+
+  if (!rows.length) {
+    return [];
+  }
+
+  const headers = rows[0].map((header) => sanitizeCell(header));
+  return rows.slice(1).map((cells) => {
+    const record = {};
+    headers.forEach((header, index) => {
+      if (!header) {
+        return;
+      }
+
+      record[header] = sanitizeCell(cells[index] ?? '');
+    });
+    return record;
+  });
+};
+
+const readTabularFile = (filePath, sheetName) => {
+  const extension = path.extname(filePath).toLowerCase();
+
+  if (DISABLED_SPREADSHEET_EXTENSIONS.has(extension)) {
+    throw new Error(
+      `Excel imports are disabled for security hardening. Convert ${path.basename(filePath)} to CSV or TSV and try again.`
+    );
+  }
+
+  if (!SUPPORTED_IMPORT_EXTENSIONS.includes(extension)) {
+    throw new Error(
+      `Unsupported import format "${extension || 'unknown'}". Supported formats: ${SUPPORTED_IMPORT_EXTENSIONS.join(', ')}.`
+    );
+  }
+
+  if (sheetName) {
+    throw new Error(
+      `Sheet selection is unavailable because spreadsheet imports are disabled. Export the needed sheet to ${extension === '.tsv' ? 'TSV' : 'CSV'} first.`
+    );
+  }
+
+  const delimiter = extension === '.tsv' ? '\t' : ',';
+  const contents = fs.readFileSync(filePath, 'utf8');
+  return parseDelimitedText(contents, delimiter);
 };
 
 const pickCanonicalRecord = (entityKey, rawRow) => {

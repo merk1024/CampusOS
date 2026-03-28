@@ -23,18 +23,18 @@ Alongside import preview/apply, CampusOS now supports a read-only reconciliation
 - Existing users are matched by `student_id` and/or `email`.
 - Existing courses are matched by `code`.
 - New imported users require `IMPORT_DEFAULT_PASSWORD`.
-- Passwords are never read from CSV or Excel files.
+- Passwords are never read from CSV or TSV files.
 - Reports are written as JSON and Markdown into `backend/imports/reports`.
 
 ## Supported source files
 
-- `students.csv`, `students.xlsx`, `students.xls`
-- `teachers.csv`, `teachers.xlsx`, `teachers.xls`
-- `courses.csv`, `courses.xlsx`, `courses.xls`
-- `enrollments.csv`, `enrollments.xlsx`, `enrollments.xls`
-- `schedule.csv`, `schedule.xlsx`, `schedule.xls`
+- `students.csv`, `students.tsv`
+- `teachers.csv`, `teachers.tsv`
+- `courses.csv`, `courses.tsv`
+- `enrollments.csv`, `enrollments.tsv`
+- `schedule.csv`, `schedule.tsv`
 
-The importer reads the first worksheet by default unless a specific sheet is passed through CLI flags.
+Excel `.xlsx/.xls` imports are disabled in CampusOS for security hardening. If a university export arrives as a workbook, the relevant sheet should be converted to CSV or TSV before import.
 
 ## Students mapping
 

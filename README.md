@@ -225,7 +225,7 @@ Blueprint уже использует:
 - `npm start` — production start
 - `npm run seed` — создание демо-данных
 - `npm run cleanup-demo-data` — очистка старых временных данных
-- `npm run import:pilot` — preview/import студентов, преподавателей, курсов, записей на предметы и расписания из CSV / Excel
+- `npm run import:pilot` — preview/import студентов, преподавателей, курсов, записей на предметы и расписания из CSV / TSV
 - `npm run import:pilot:apply` — применение импорта к текущей БД
 - `npm run import:pilot:preview` — read-only preview файлов из `backend/imports/inbox`, включая enrollments и schedule
 - `npm run reconcile:pilot` — read-only reconciliation отчёт по внешним выгрузкам против текущей БД CampusOS
@@ -250,7 +250,7 @@ Blueprint уже использует:
 
 ## Ближайшие продуктовые задачи
 
-- импорт реальных университетских данных из CSV / Excel / SQL dump
+- импорт реальных университетских данных из CSV / TSV / SQL dump
 - улучшение admin workflow для массового управления пользователями и курсами
 - ускорение сценариев для преподавателя в attendance и schedule
 - стабилизация API и подготовка к staging / pilot launch
