@@ -133,6 +133,37 @@ test('admin can access user directory', async () => {
   assert.ok(body.users.length >= 10);
 });
 
+test('admin can create another admin without student-only fields', async () => {
+  const adminSession = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+  const uniqueEmail = `admin-${Date.now()}@campusos.test`;
+
+  const { response, body } = await request('/api/users', {
+    method: 'POST',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({
+      name: 'Operations Admin',
+      email: uniqueEmail,
+      password: 'TempAdmin123!',
+      role: 'admin',
+      student_id: '',
+      group_name: '',
+      subgroup_name: '',
+      phone: '',
+      date_of_birth: '',
+      faculty: '',
+      major: '',
+      year_of_study: '',
+      address: '',
+      emergency_contact: ''
+    })
+  });
+
+  assert.equal(response.status, 201, JSON.stringify(body));
+  assert.equal(body.user.email, uniqueEmail);
+  assert.equal(body.user.role, 'admin');
+  assert.equal(body.user.student_id, null);
+});
+
 test('teacher can open attendance management sessions but student cannot', async () => {
   const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
   const teacherResult = await request('/api/attendance/management/sessions?date=2026-03-27', {

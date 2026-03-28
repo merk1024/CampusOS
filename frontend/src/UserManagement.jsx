@@ -66,7 +66,19 @@ function UserManagement({ user }) {
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
-    setNewUser((prev) => ({ ...prev, [name]: value }));
+    setNewUser((prev) => {
+      if (name === 'role' && value !== 'student') {
+        return {
+          ...prev,
+          role: value,
+          student_id: '',
+          group_name: '',
+          subgroup_name: ''
+        };
+      }
+
+      return { ...prev, [name]: value };
+    });
   };
 
   const filteredUsers = users.filter((item) => {

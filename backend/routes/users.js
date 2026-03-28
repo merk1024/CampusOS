@@ -35,6 +35,55 @@ const PROFILE_FIELDS = `
   created_at
 `;
 
+const normalizeOptionalText = (value) => {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  const normalized = String(value).trim();
+  return normalized ? normalized : null;
+};
+
+const normalizeOptionalInteger = (value) => {
+  const normalized = normalizeOptionalText(value);
+  if (normalized === null) {
+    return null;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const normalizeUserPayload = (payload = {}) => {
+  const role = normalizeOptionalText(payload.role);
+  const isStudentRole = role === 'student';
+
+  return {
+    email: normalizeOptionalText(payload.email),
+    password: payload.password,
+    name: normalizeOptionalText(payload.name),
+    role,
+    student_id: isStudentRole ? normalizeOptionalText(payload.student_id) : null,
+    group_name: isStudentRole ? normalizeOptionalText(payload.group_name) : null,
+    subgroup_name: isStudentRole ? normalizeOptionalText(payload.subgroup_name) : null,
+    phone: normalizeOptionalText(payload.phone),
+    avatar: normalizeOptionalText(payload.avatar),
+    date_of_birth: normalizeOptionalText(payload.date_of_birth),
+    faculty: normalizeOptionalText(payload.faculty),
+    major: normalizeOptionalText(payload.major),
+    year_of_study: normalizeOptionalInteger(payload.year_of_study),
+    address: normalizeOptionalText(payload.address),
+    emergency_contact: normalizeOptionalText(payload.emergency_contact),
+    father_name: normalizeOptionalText(payload.father_name),
+    program_class: normalizeOptionalText(payload.program_class),
+    advisor: normalizeOptionalText(payload.advisor),
+    study_status: normalizeOptionalText(payload.study_status),
+    balance_info: normalizeOptionalText(payload.balance_info),
+    grant_type: normalizeOptionalText(payload.grant_type),
+    registration_date: normalizeOptionalText(payload.registration_date)
+  };
+};
+
 router.get('/profile/me', auth, async (req, res) => {
   try {
     const user = await db.get(
@@ -74,7 +123,10 @@ router.put('/profile/me', auth, async (req, res) => {
       balance_info,
       grant_type,
       registration_date
-    } = req.body;
+    } = normalizeUserPayload({
+      ...req.body,
+      role: req.user.role
+    });
 
     await db.run(
       `UPDATE users
@@ -169,7 +221,11 @@ router.post('/', auth, isAdmin, async (req, res) => {
       balance_info,
       grant_type,
       registration_date
-    } = req.body;
+    } = normalizeUserPayload(req.body);
+
+    if (!email || !password || !name || !role) {
+      return res.status(400).json({ error: 'Name, email, password, and role are required' });
+    }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -251,6 +307,15 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
+    const existingUser = await db.get(
+      'SELECT role FROM users WHERE id = ?',
+      [req.params.id]
+    );
+
+    if (!existingUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     const {
       name,
       group_name,
@@ -270,7 +335,10 @@ router.put('/:id', auth, async (req, res) => {
       balance_info,
       grant_type,
       registration_date
-    } = req.body;
+    } = normalizeUserPayload({
+      ...req.body,
+      role: existingUser.role
+    });
 
     await db.run(
       `UPDATE users
