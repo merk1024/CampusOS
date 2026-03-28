@@ -141,6 +141,41 @@ const normalizeScheduleAudienceTypes = async (db) => {
   );
 };
 
+const readBooleanEnv = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+    return true;
+  }
+
+  if (['0', 'false', 'no', 'off'].includes(normalized)) {
+    return false;
+  }
+
+  return null;
+};
+
+const getPostgresSslSetting = () => {
+  if (String(process.env.PGSSLMODE || '').toLowerCase() === 'disable') {
+    return false;
+  }
+
+  if (String(process.env.NODE_ENV || '').toLowerCase() === 'development') {
+    return false;
+  }
+
+  const explicitRejectUnauthorized = readBooleanEnv(process.env.PGSSL_REJECT_UNAUTHORIZED);
+  if (explicitRejectUnauthorized !== null) {
+    return { rejectUnauthorized: explicitRejectUnauthorized };
+  }
+
+  const allowSelfSigned = readBooleanEnv(process.env.PGSSL_ALLOW_SELF_SIGNED);
+  if (allowSelfSigned === true) {
+    return { rejectUnauthorized: false };
+  }
+
+  return { rejectUnauthorized: true };
+};
+
 const createSqliteAdapter = () => {
   const sqlite3 = require('sqlite3').verbose();
   const sqlite = new sqlite3.Database(SQLITE_DB_PATH, (error) => {
@@ -278,9 +313,7 @@ const createSqliteAdapter = () => {
 };
 
 const createPostgresAdapter = () => {
-  const sslSetting = process.env.PGSSLMODE === 'disable'
-    ? false
-    : (String(process.env.NODE_ENV).toLowerCase() === 'development' ? false : { rejectUnauthorized: false });
+  const sslSetting = getPostgresSslSetting();
 
   const pool = process.env.DATABASE_URL
     ? new Pool({

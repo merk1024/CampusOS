@@ -159,6 +159,62 @@ const ensureDirectory = (directoryPath) => {
   fs.mkdirSync(directoryPath, { recursive: true });
 };
 
+const normalizeCliPathInput = (value, label) => {
+  const cleaned = sanitizeCell(value);
+  if (!cleaned) {
+    throw new Error(`${label} path is required.`);
+  }
+
+  if (cleaned.includes('\0')) {
+    throw new Error(`${label} contains an invalid null byte.`);
+  }
+
+  return cleaned;
+};
+
+const assertNoParentTraversal = (inputPath, label) => {
+  const pathSegments = inputPath.replace(/\\/g, '/').split('/');
+  if (pathSegments.includes('..')) {
+    throw new Error(`${label} cannot contain parent-directory traversal segments.`);
+  }
+};
+
+const resolveImportFilePath = (inputPath, label = 'Import file') => {
+  const cleaned = normalizeCliPathInput(inputPath, label);
+  assertNoParentTraversal(cleaned, label);
+
+  const resolved = path.resolve(cleaned);
+  if (!fs.existsSync(resolved)) {
+    throw new Error(`${label} was not found: ${resolved}`);
+  }
+
+  const stats = fs.statSync(resolved);
+  if (!stats.isFile()) {
+    throw new Error(`${label} must point to a file: ${resolved}`);
+  }
+
+  return resolved;
+};
+
+const resolveReportStem = (preferredStem, fallbackStem) => {
+  if (!preferredStem) {
+    return fallbackStem;
+  }
+
+  const cleaned = normalizeCliPathInput(preferredStem, 'Report');
+  assertNoParentTraversal(cleaned, 'Report');
+
+  const resolved = path.resolve(cleaned.replace(/\.(json|md)$/i, ''));
+  if (String(process.env.NODE_ENV).toLowerCase() !== 'test') {
+    const relativeToReports = path.relative(REPORTS_DIR, resolved);
+    if (relativeToReports.startsWith('..') || path.isAbsolute(relativeToReports)) {
+      throw new Error(`Report path must stay inside ${REPORTS_DIR}.`);
+    }
+  }
+
+  return resolved;
+};
+
 const formatDateParts = (value) => {
   const year = value.getFullYear();
   const month = String(value.getMonth() + 1).padStart(2, '0');
@@ -1359,9 +1415,10 @@ const timestampToken = () => new Date().toISOString().replace(/[:.]/g, '-');
 
 const writeReportArtifacts = (report, preferredStem) => {
   ensureDirectory(REPORTS_DIR);
-  const reportStem = preferredStem
-    ? path.resolve(preferredStem.replace(/\.(json|md)$/i, ''))
-    : path.join(REPORTS_DIR, `${report.mode}-${timestampToken()}`);
+  const reportStem = resolveReportStem(
+    preferredStem,
+    path.join(REPORTS_DIR, `${report.mode}-${timestampToken()}`)
+  );
 
   return {
     jsonPath: writeJsonReport(report, reportStem),
@@ -2086,9 +2143,10 @@ const writeReconciliationMarkdownReport = (report, reportStem) => {
 
 const writeReconciliationArtifacts = (report, preferredStem) => {
   ensureDirectory(REPORTS_DIR);
-  const reportStem = preferredStem
-    ? path.resolve(preferredStem.replace(/\.(json|md)$/i, ''))
-    : path.join(REPORTS_DIR, `reconciliation-${timestampToken()}`);
+  const reportStem = resolveReportStem(
+    preferredStem,
+    path.join(REPORTS_DIR, `reconciliation-${timestampToken()}`)
+  );
 
   return {
     jsonPath: writeJsonReport(report, reportStem),
@@ -2214,19 +2272,19 @@ const runReconciliationWorkflow = async (options = {}) => {
 
   const files = {};
   if (studentsFile) {
-    files.students = { path: path.resolve(studentsFile), sheetName: studentsSheet || null };
+    files.students = { path: resolveImportFilePath(studentsFile, 'Students import file'), sheetName: studentsSheet || null };
   }
   if (teachersFile) {
-    files.teachers = { path: path.resolve(teachersFile), sheetName: teachersSheet || null };
+    files.teachers = { path: resolveImportFilePath(teachersFile, 'Teachers import file'), sheetName: teachersSheet || null };
   }
   if (coursesFile) {
-    files.courses = { path: path.resolve(coursesFile), sheetName: coursesSheet || null };
+    files.courses = { path: resolveImportFilePath(coursesFile, 'Courses import file'), sheetName: coursesSheet || null };
   }
   if (enrollmentsFile) {
-    files.enrollments = { path: path.resolve(enrollmentsFile), sheetName: enrollmentsSheet || null };
+    files.enrollments = { path: resolveImportFilePath(enrollmentsFile, 'Enrollments import file'), sheetName: enrollmentsSheet || null };
   }
   if (scheduleFile) {
-    files.schedule = { path: path.resolve(scheduleFile), sheetName: scheduleSheet || null };
+    files.schedule = { path: resolveImportFilePath(scheduleFile, 'Schedule import file'), sheetName: scheduleSheet || null };
   }
 
   if (!Object.keys(files).length) {
@@ -2290,19 +2348,19 @@ const runImportWorkflow = async (options = {}) => {
 
   const files = {};
   if (studentsFile) {
-    files.students = { path: path.resolve(studentsFile), sheetName: studentsSheet || null };
+    files.students = { path: resolveImportFilePath(studentsFile, 'Students import file'), sheetName: studentsSheet || null };
   }
   if (teachersFile) {
-    files.teachers = { path: path.resolve(teachersFile), sheetName: teachersSheet || null };
+    files.teachers = { path: resolveImportFilePath(teachersFile, 'Teachers import file'), sheetName: teachersSheet || null };
   }
   if (coursesFile) {
-    files.courses = { path: path.resolve(coursesFile), sheetName: coursesSheet || null };
+    files.courses = { path: resolveImportFilePath(coursesFile, 'Courses import file'), sheetName: coursesSheet || null };
   }
   if (enrollmentsFile) {
-    files.enrollments = { path: path.resolve(enrollmentsFile), sheetName: enrollmentsSheet || null };
+    files.enrollments = { path: resolveImportFilePath(enrollmentsFile, 'Enrollments import file'), sheetName: enrollmentsSheet || null };
   }
   if (scheduleFile) {
-    files.schedule = { path: path.resolve(scheduleFile), sheetName: scheduleSheet || null };
+    files.schedule = { path: resolveImportFilePath(scheduleFile, 'Schedule import file'), sheetName: scheduleSheet || null };
   }
 
   if (!Object.keys(files).length) {
