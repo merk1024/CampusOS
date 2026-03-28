@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api';
 import { canManageAcademicRecords } from '../roles';
@@ -32,7 +32,7 @@ const formatAnnouncementDate = (value) => {
   }).format(date);
 };
 
-function Messages({ user }) {
+function Messages({ user, onAnnouncementsSync, onAnnouncementsViewed }) {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,22 +45,30 @@ function Messages({ user }) {
 
   const canManage = canManageAcademicRecords(user);
 
-  const loadAnnouncements = async () => {
+  const loadAnnouncements = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.getAnnouncements();
-      setAnnouncements(response?.announcements || []);
+      const nextAnnouncements = response?.announcements || [];
+      setAnnouncements(nextAnnouncements);
+      onAnnouncementsSync?.(nextAnnouncements);
       setError('');
     } catch (err) {
       setError(err.message || 'Failed to load messages');
     } finally {
       setLoading(false);
     }
-  };
+  }, [onAnnouncementsSync]);
 
   useEffect(() => {
     loadAnnouncements();
-  }, []);
+  }, [loadAnnouncements]);
+
+  useEffect(() => {
+    if (!loading) {
+      onAnnouncementsViewed?.(announcements);
+    }
+  }, [announcements, loading, onAnnouncementsViewed]);
 
   const filteredAnnouncements = useMemo(() => (
     announcements

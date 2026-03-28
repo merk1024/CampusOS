@@ -22,6 +22,7 @@ import Messages from './components/Messages';
 import Profile from './components/Profile';
 import Schedule from './components/Schedule';
 import Settings from './components/Settings';
+import { getUnreadMessageCount, markMessagesAsRead } from './notificationState';
 import { hasAdminAccess } from './roles';
 
 const SETTINGS_KEY = 'lms_app_settings';
@@ -130,6 +131,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(getInitialTheme);
   const [authNotice, setAuthNotice] = useState('');
+  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -143,6 +145,7 @@ export default function App() {
       setActivePage(getDefaultPage());
       setSidebarOpen(false);
       setAuthNotice(event.detail?.message || SESSION_EXPIRED_MESSAGE);
+      setMessageUnreadCount(0);
     };
 
     window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleAuthSessionExpired);
@@ -187,6 +190,44 @@ export default function App() {
     initAuth();
   }, []);
 
+  useEffect(() => {
+    if (!user) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const refreshMessageNotifications = async () => {
+      try {
+        const response = await api.getAnnouncements();
+        if (cancelled) {
+          return;
+        }
+
+        const announcements = response?.announcements || [];
+        if (activePage === 'messages') {
+          markMessagesAsRead(announcements, user);
+          setMessageUnreadCount(0);
+          return;
+        }
+
+        setMessageUnreadCount(getUnreadMessageCount(announcements, user));
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to refresh message notifications:', error);
+        }
+      }
+    };
+
+    refreshMessageNotifications();
+    const intervalId = window.setInterval(refreshMessageNotifications, 60000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [activePage, user]);
+
   const handleLogin = (userData) => {
     setUser(userData);
     storage.set('lms_user', userData);
@@ -208,6 +249,31 @@ export default function App() {
     setActivePage(getDefaultPage());
     setSidebarOpen(false);
     setAuthNotice('');
+    setMessageUnreadCount(0);
+  };
+
+  const handleAnnouncementsSync = (announcements) => {
+    if (!user) {
+      setMessageUnreadCount(0);
+      return;
+    }
+
+    if (activePage === 'messages') {
+      markMessagesAsRead(announcements, user);
+      setMessageUnreadCount(0);
+      return;
+    }
+
+    setMessageUnreadCount(getUnreadMessageCount(announcements, user));
+  };
+
+  const handleAnnouncementsViewed = (announcements) => {
+    if (!user) {
+      return;
+    }
+
+    markMessagesAsRead(announcements, user);
+    setMessageUnreadCount(0);
   };
 
   const handleThemeChange = (nextTheme) => {
@@ -235,7 +301,13 @@ export default function App() {
       case 'attendance':
         return <AttendancePage user={user} />;
       case 'messages':
-        return <Messages user={user} />;
+        return (
+          <Messages
+            user={user}
+            onAnnouncementsSync={handleAnnouncementsSync}
+            onAnnouncementsViewed={handleAnnouncementsViewed}
+          />
+        );
       case 'profile':
         return <Profile user={user} />;
       case 'settings':
@@ -276,6 +348,7 @@ export default function App() {
         onMenuToggle={() => setSidebarOpen((value) => !value)}
         theme={theme}
         onToggleTheme={handleThemeToggle}
+        messageUnreadCount={messageUnreadCount}
       />
       <div className="app-body">
         <Sidebar

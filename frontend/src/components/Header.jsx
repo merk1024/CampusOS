@@ -89,7 +89,15 @@ function MoonIcon() {
   );
 }
 
-function Header({ user, onLogout, onNavigate, onMenuToggle, theme, onToggleTheme }) {
+function Header({
+  user,
+  onLogout,
+  onNavigate,
+  onMenuToggle,
+  theme,
+  onToggleTheme,
+  messageUnreadCount = 0
+}) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef(null);
   const brandLogo = theme === 'dark' ? campusosBrandDark : campusosBrandLight;
@@ -174,7 +182,9 @@ function Header({ user, onLogout, onNavigate, onMenuToggle, theme, onToggleTheme
 
         <button type="button" className="icon-btn" onClick={() => handleNavigate('messages')} aria-label="Open messages">
           <BellIcon />
-          <span className="badge">3</span>
+          {messageUnreadCount > 0 && (
+            <span className="badge">{messageUnreadCount > 99 ? '99+' : messageUnreadCount}</span>
+          )}
         </button>
         <button type="button" className="icon-btn" onClick={() => handleNavigate('settings')} aria-label="Open settings">
           <SettingsIcon />
