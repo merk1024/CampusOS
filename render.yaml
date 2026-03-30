@@ -23,6 +23,8 @@ services:
         fromDatabase:
           name: web-table-exam-db
           property: connectionString
+      - key: PGSSL_ALLOW_SELF_SIGNED
+        value: true
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
