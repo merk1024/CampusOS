@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api';
+import EmptyState from './EmptyState';
+import StatusBanner from './StatusBanner';
 import { canManageAcademicRecords } from '../roles';
 
 const EMPTY_FORM = {
@@ -44,6 +46,7 @@ function Messages({ user, onAnnouncementsSync, onAnnouncementsViewed }) {
   const [saving, setSaving] = useState(false);
 
   const canManage = canManageAcademicRecords(user);
+  const hasActiveFilters = filter !== 'all' || searchTerm.trim() !== '';
 
   const loadAnnouncements = useCallback(async () => {
     try {
@@ -152,17 +155,6 @@ function Messages({ user, onAnnouncementsSync, onAnnouncementsViewed }) {
     );
   }
 
-  if (error && !announcements.length) {
-    return (
-      <div className="page">
-        <div className="page-header">
-          <h1>Messages</h1>
-          <p>Error loading messages: {error}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="page">
       <div className="page-header">
@@ -177,8 +169,8 @@ function Messages({ user, onAnnouncementsSync, onAnnouncementsViewed }) {
         )}
       </div>
 
-      {error && <div className="error-message">{error}</div>}
-      {notice && <div className="success-message">{notice}</div>}
+      <StatusBanner tone="error" title="Messages could not be updated" message={error} />
+      <StatusBanner tone="success" title="Messages updated" message={notice} />
 
       <div className="management-summary-grid">
         <div className="management-summary-card">
@@ -204,12 +196,12 @@ function Messages({ user, onAnnouncementsSync, onAnnouncementsViewed }) {
             onChange={(event) => setSearchTerm(event.target.value)}
           />
         </div>
-        <div className="filter-buttons">
+        <div className="management-filters">
           {Object.entries(TYPE_META).map(([typeKey, meta]) => (
             <button
               key={typeKey}
               type="button"
-              className={`filter-btn ${filter === typeKey ? 'active' : ''}`}
+              className={`management-filter-chip ${filter === typeKey ? 'active' : ''}`}
               onClick={() => setFilter(typeKey)}
             >
               {meta.label}
@@ -279,10 +271,16 @@ function Messages({ user, onAnnouncementsSync, onAnnouncementsViewed }) {
 
       <div className="messages-list">
         {filteredAnnouncements.length === 0 ? (
-          <div className="no-messages">
-            <h3>No messages found</h3>
-            <p>Try another filter or clear the search.</p>
-          </div>
+          <EmptyState
+            eyebrow="Messages"
+            title="No announcements match the current view"
+            description={hasActiveFilters ? 'Clear the current filters to reopen the full message stream.' : 'Published announcements and exam notices will appear here.'}
+            actionLabel={hasActiveFilters ? 'Clear filters' : ''}
+            onAction={() => {
+              setFilter('all');
+              setSearchTerm('');
+            }}
+          />
         ) : (
           filteredAnnouncements.map((announcement) => {
             const typeKey = TYPE_META[announcement.type] ? announcement.type : 'general';

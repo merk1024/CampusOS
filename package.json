@@ -1,5 +1,12 @@
 {
   "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "seed:demo": "npm --prefix backend run seed",
+    "cleanup:demo": "npm --prefix backend run cleanup-demo-data",
+    "env:check:staging": "npm --prefix backend run env:check -- --mode=staging",
+    "env:check:production": "npm --prefix backend run env:check -- --mode=production",
+    "verify:web": "npm --prefix backend test && npm --prefix frontend run lint && npm --prefix frontend run build",
     "test:backend": "npm --prefix backend test",
     "audit:backend": "npm --prefix backend audit --omit=dev",
     "audit:frontend": "npm --prefix frontend audit --production",

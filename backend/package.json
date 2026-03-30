@@ -9,6 +9,7 @@
     "test": "node --test tests/*.test.js",
     "seed": "node seeds/seed.js",
     "cleanup-demo-data": "node scripts/cleanup-demo-data.js",
+    "env:check": "node scripts/validate-env.js",
     "import:pilot": "node scripts/import-pilot-data.js",
     "import:pilot:apply": "node scripts/import-pilot-data.js --apply",
     "import:pilot:preview": "node scripts/preview-university-export.js",

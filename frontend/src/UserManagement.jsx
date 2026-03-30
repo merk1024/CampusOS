@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 
 import { api } from './api';
+import EmptyState from './components/EmptyState';
+import StatusBanner from './components/StatusBanner';
 import './UserManagement.css';
 import { getRoleKey, getRoleLabel, hasAdminAccess } from './roles';
 
@@ -98,6 +100,7 @@ function UserManagement({ user }) {
     admins: users.filter((item) => item.role === 'admin' && getRoleKey(item) !== 'superadmin').length,
     superAdmins: users.filter((item) => getRoleKey(item) === 'superadmin').length
   };
+  const hasActiveFilters = roleFilter !== 'all' || searchTerm.trim() !== '';
 
   if (!hasAdminAccess(user)) {
     return (
@@ -122,7 +125,7 @@ function UserManagement({ user }) {
         </button>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      <StatusBanner tone="error" title="Could not load the user directory" message={error} />
 
       <div className="management-summary-grid">
         <div className="management-summary-card">
@@ -175,7 +178,14 @@ function UserManagement({ user }) {
           <div className="modal">
             <div className="modal-header">
               <h2>Create New User</h2>
-              <button className="modal-close" onClick={() => setShowCreateForm(false)}>×</button>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setShowCreateForm(false)}
+                aria-label="Close create user dialog"
+              >
+                X
+              </button>
             </div>
             <form onSubmit={handleCreateUser} className="modal-body">
               <div className="management-form-intro">
@@ -277,38 +287,55 @@ function UserManagement({ user }) {
         </div>
       )}
 
-      <div className="users-table">
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Student ID</th>
-              <th>Group</th>
-              <th>Subgroup</th>
-              <th>Faculty</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.map((item) => (
-              <tr key={item.id}>
-                <td>{item.name}</td>
-                <td>{item.email}</td>
-                <td>
-                  <span className={`role-badge role-${getRoleKey(item)}`}>{getRoleLabel(item)}</span>
-                </td>
-                <td>{item.student_id || '-'}</td>
-                <td>{item.group_name || '-'}</td>
-                <td>{item.subgroup_name || '-'}</td>
-                <td>{item.faculty || '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {filteredUsers.length === 0 && (
-          <div className="users-empty-state">
-            <p>No users match the current filters.</p>
+      <div className="data-table-card users-table">
+        <div className="data-table-header">
+          <div>
+            <h3>User directory</h3>
+            <p className="data-table-meta">Showing {filteredUsers.length} of {users.length} accounts</p>
+          </div>
+        </div>
+        {filteredUsers.length === 0 ? (
+          <EmptyState
+            eyebrow="Directory"
+            title="No users match the current filters"
+            description="Try another role chip or clear the search term to show the full directory again."
+            actionLabel={hasActiveFilters ? 'Clear filters' : ''}
+            onAction={() => {
+              setSearchTerm('');
+              setRoleFilter('all');
+            }}
+            compact
+          />
+        ) : (
+          <div className="data-table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Student ID</th>
+                  <th>Group</th>
+                  <th>Subgroup</th>
+                  <th>Faculty</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.name}</td>
+                    <td>{item.email}</td>
+                    <td>
+                      <span className={`role-badge role-${getRoleKey(item)}`}>{getRoleLabel(item)}</span>
+                    </td>
+                    <td>{item.student_id || '-'}</td>
+                    <td>{item.group_name || '-'}</td>
+                    <td>{item.subgroup_name || '-'}</td>
+                    <td>{item.faculty || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

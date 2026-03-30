@@ -32,6 +32,9 @@ coverage/
 
 # Env files
 .env*
+!.env.example
+!.env.staging.example
+!.env.production.example
 
 # Yarn/PNPM
 .yarn/

@@ -12,6 +12,9 @@ coverage/
 
 # Environment variables
 .env*
+!.env.example
+!.env.staging.example
+!.env.production.example
 
 # Logs
 *.log

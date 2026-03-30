@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api';
+import EmptyState from './EmptyState';
+import StatusBanner from './StatusBanner';
 import { canManageAcademicRecords } from '../roles';
 
 const EMPTY_ASSIGNMENT_FORM = {
@@ -183,6 +185,7 @@ function Assignments({ user }) {
 
   const canManage = canManageAcademicRecords(user);
   const isTemplateMode = composerMode === 'duplicate';
+  const hasActiveFilters = filterKey !== 'all' || searchTerm.trim() !== '';
 
   const loadAssignments = async () => {
     try {
@@ -317,8 +320,8 @@ function Assignments({ user }) {
         )}
       </div>
 
-      {error && <div className="error-message">{error}</div>}
-      {notice && <div className="success-message">{notice}</div>}
+      <StatusBanner tone="error" title="Assignments could not be updated" message={error} />
+      <StatusBanner tone="success" title="Assignments updated" message={notice} />
 
       <AssignmentSummary assignments={assignments} />
 
@@ -358,9 +361,16 @@ function Assignments({ user }) {
 
       <div className="assignments-list">
         {filteredAssignments.length === 0 ? (
-          <div className="assignments-placeholder">
-            <p>No assignments found for the current filters.</p>
-          </div>
+          <EmptyState
+            eyebrow="Assignments"
+            title="No assignments match the current view"
+            description={hasActiveFilters ? 'Clear the current filters to reopen the full assignment list.' : 'New assignments will appear here as soon as a teacher publishes them.'}
+            actionLabel={hasActiveFilters ? 'Clear filters' : ''}
+            onAction={() => {
+              setSearchTerm('');
+              setFilterKey('all');
+            }}
+          />
         ) : (
           filteredAssignments.map((assignment) => {
             const status = getAssignmentStatus(assignment.due_date);

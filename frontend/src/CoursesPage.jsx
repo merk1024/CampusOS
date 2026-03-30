@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import './CoursesPage.css';
 import { api } from './api';
+import EmptyState from './components/EmptyState';
 import { canManageAcademicRecords, hasAdminAccess, isStudentAccount } from './roles';
 
 const COURSE_DETAILS_KEY = 'course_details_v2';
@@ -1023,10 +1024,17 @@ export default function CoursesPage({ user }) {
           ))}
         </div>
       ) : visibleCourses.length === 0 ? (
-        <div className="lms-empty">
-          No courses found.
-          <div className="lms-empty-note">Create a new course card or change the search term.</div>
-        </div>
+        <EmptyState
+          eyebrow="Courses"
+          title={listView === 'mine' ? 'No enrolled courses yet' : 'No courses match the current search'}
+          description={
+            listView === 'mine'
+              ? 'Enroll in a subject from the catalog to have it appear in your personal course list.'
+              : 'Try another code or title, or create a new course card if you are managing the catalog.'
+          }
+          actionLabel={search.trim() ? 'Clear search' : ''}
+          onAction={() => setSearch('')}
+        />
       ) : (
         <div className="lms-grid">
           {visibleCourses.map((course, index) => (

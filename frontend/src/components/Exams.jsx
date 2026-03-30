@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api';
+import EmptyState from './EmptyState';
+import StatusBanner from './StatusBanner';
 import { canManageAcademicRecords } from '../roles';
 
 const EMPTY_FORM = {
@@ -46,6 +48,7 @@ function Exams({ user }) {
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
@@ -54,6 +57,7 @@ function Exams({ user }) {
   const [ownershipFilter, setOwnershipFilter] = useState('all');
 
   const canManage = canManageAcademicRecords(user);
+  const hasActiveFilters = groupFilter !== 'all' || ownershipFilter !== 'all' || searchTerm.trim() !== '';
 
   const loadExams = async () => {
     try {
@@ -105,17 +109,22 @@ function Exams({ user }) {
     };
 
     try {
+      let nextNotice = '';
       if (editingId) {
         await api.updateExam(editingId, payload);
+        nextNotice = 'Exam updated successfully.';
       } else {
         await api.createExam(payload);
+        nextNotice = 'Exam created successfully.';
       }
 
       await loadExams();
       resetForm();
+      setNotice(nextNotice);
     } catch (err) {
       console.error('Failed to save exam:', err);
       setError(err.message || 'Failed to save exam');
+      setNotice('');
     }
   };
 
@@ -153,9 +162,11 @@ function Exams({ user }) {
     try {
       await api.deleteExam(id);
       await loadExams();
+      setNotice('Exam deleted successfully.');
     } catch (err) {
       console.error('Failed to delete exam:', err);
       setError(err.message || 'Failed to delete exam');
+      setNotice('');
     }
   };
 
@@ -217,7 +228,8 @@ function Exams({ user }) {
         )}
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      <StatusBanner tone="error" title="Exams could not be updated" message={error} />
+      <StatusBanner tone="success" title="Exams updated" message={notice} />
 
       <div className="exam-dashboard-grid">
         <div className="management-summary-card">
@@ -403,9 +415,17 @@ function Exams({ user }) {
         ))}
 
         {filteredExams.length === 0 && (
-          <div className="schedule-placeholder">
-            <p>No exams found for the current filters.</p>
-          </div>
+          <EmptyState
+            eyebrow="Exams"
+            title="No exams match the current filters"
+            description={hasActiveFilters ? 'Reset the current filters to reopen the full exam list.' : 'Scheduled exams will appear here once a teacher or admin creates them.'}
+            actionLabel={hasActiveFilters ? 'Clear filters' : ''}
+            onAction={() => {
+              setSearchTerm('');
+              setGroupFilter('all');
+              setOwnershipFilter('all');
+            }}
+          />
         )}
       </div>
     </div>
