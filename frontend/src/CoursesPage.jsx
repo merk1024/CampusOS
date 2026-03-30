@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import './CoursesPage.css';
 import { api } from './api';
 import EmptyState from './components/EmptyState';
+import StatusBanner from './components/StatusBanner';
 import { canManageAcademicRecords, hasAdminAccess, isStudentAccount } from './roles';
 
 const COURSE_DETAILS_KEY = 'course_details_v2';
@@ -652,6 +653,7 @@ export default function CoursesPage({ user }) {
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [form, setForm] = useState(DEFAULT_CREATE_FORM);
+  const [statusBanner, setStatusBanner] = useState({ tone: '', title: '', message: '' });
   const { toast, show } = useToast();
 
   const isStudent = isStudentAccount(user);
@@ -671,12 +673,22 @@ export default function CoursesPage({ user }) {
       const hydrated = (response?.courses || []).map(enhanceCourse);
       setCourses(hydrated);
       db.courses.save(hydrated);
+      setStatusBanner((current) => (
+        current.tone === 'info'
+          ? { tone: '', title: '', message: '' }
+          : current
+      ));
       return hydrated;
     } catch (error) {
       console.error('Failed to load courses from API, using local fallback:', error);
       db.init();
       const fallback = db.courses.all().map(enhanceCourse);
       setCourses(fallback);
+      setStatusBanner({
+        tone: 'info',
+        title: 'Offline catalog mode',
+        message: 'CampusOS is using the locally cached course catalog because the API is currently unavailable.'
+      });
       return fallback;
     } finally {
       setLoading(false);
@@ -706,20 +718,7 @@ export default function CoursesPage({ user }) {
     db.init();
 
     const load = async () => {
-      setLoading(true);
-
-      try {
-        const response = await api.getCourses();
-        const hydrated = (response?.courses || []).map(enhanceCourse);
-        setCourses(hydrated);
-        db.courses.save(hydrated);
-      } catch (error) {
-        console.error('Failed to load courses from API, using local fallback:', error);
-        const fallback = db.courses.all().map(enhanceCourse);
-        setCourses(fallback);
-      } finally {
-        setLoading(false);
-      }
+      await loadCourses();
 
       if (!isStudent) {
         setEnrolled([]);
@@ -827,6 +826,11 @@ export default function CoursesPage({ user }) {
     };
 
     if (!payload.code || !payload.name) {
+      setStatusBanner({
+        tone: 'error',
+        title: 'Course form is incomplete',
+        message: 'Course code and course title are required before a card can be created.'
+      });
       show('Code and title are required', 'error');
       return;
     }
@@ -837,6 +841,7 @@ export default function CoursesPage({ user }) {
       const created = refreshed.find((course) => getCourseKey(course) === payload.code) || enhanceCourse(response.course || payload);
       setShowCreateForm(false);
       setForm(DEFAULT_CREATE_FORM);
+      setStatusBanner({ tone: '', title: '', message: '' });
       show('Course card created');
       if (created?.id) {
         setDetailId(created.id);
@@ -859,6 +864,11 @@ export default function CoursesPage({ user }) {
       setCourses(nextCourses);
       setShowCreateForm(false);
       setForm(DEFAULT_CREATE_FORM);
+      setStatusBanner({
+        tone: 'info',
+        title: 'Saved locally',
+        message: 'The new course card was stored locally because the API is unavailable right now.'
+      });
       show('Course card saved locally');
       setDetailId(localCourse.id);
     }
@@ -870,6 +880,8 @@ export default function CoursesPage({ user }) {
       const term = search.toLowerCase();
       return course.name.toLowerCase().includes(term) || course.code.toLowerCase().includes(term);
     });
+  const hasSearch = search.trim().length > 0;
+  const visibleCourseBase = listView === 'mine' ? enrolled.length : courses.length;
 
   if (detailCourse) {
     return (
@@ -905,6 +917,8 @@ export default function CoursesPage({ user }) {
           </button>
         )}
       </div>
+
+      <StatusBanner tone={statusBanner.tone || 'info'} title={statusBanner.title} message={statusBanner.message} />
 
       <div className="lms-stats">
         <div className="lms-stat">
@@ -982,18 +996,29 @@ export default function CoursesPage({ user }) {
       )}
 
       <div className="lms-controls">
-        {isStudent && (
-          <div className="lms-tabs">
-            <button className={listView === 'catalog' ? 'lms-tab active' : 'lms-tab'} onClick={() => setListView('catalog')}>
-              <span>All ({courses.length})</span>
-            </button>
-            <button className={listView === 'mine' ? 'lms-tab active' : 'lms-tab'} onClick={() => setListView('mine')}>
-              <span>Mine ({enrolled.length})</span>
-            </button>
-          </div>
-        )}
+        <div className="lms-controls-copy">
+          <strong>{listView === 'mine' ? 'My course list' : 'Course catalog'}</strong>
+          <span>Showing {visibleCourses.length} of {visibleCourseBase} course card{visibleCourseBase === 1 ? '' : 's'}</span>
+        </div>
+        <div className="lms-controls-actions">
+          {isStudent && (
+            <div className="lms-tabs">
+              <button className={listView === 'catalog' ? 'lms-tab active' : 'lms-tab'} onClick={() => setListView('catalog')}>
+                <span>All ({courses.length})</span>
+              </button>
+              <button className={listView === 'mine' ? 'lms-tab active' : 'lms-tab'} onClick={() => setListView('mine')}>
+                <span>Mine ({enrolled.length})</span>
+              </button>
+            </div>
+          )}
 
-        <input className="lms-search" placeholder="Search by course title or code" value={search} onChange={(event) => setSearch(event.target.value)} />
+          <input className="lms-search" placeholder="Search by course title or code" value={search} onChange={(event) => setSearch(event.target.value)} />
+          {hasSearch && (
+            <button type="button" className="management-filter-chip lms-clear-search" onClick={() => setSearch('')}>
+              Clear search
+            </button>
+          )}
+        </div>
       </div>
 
       {isStudent && listView === 'mine' && enrolled.length > 0 && (
@@ -1032,8 +1057,16 @@ export default function CoursesPage({ user }) {
               ? 'Enroll in a subject from the catalog to have it appear in your personal course list.'
               : 'Try another code or title, or create a new course card if you are managing the catalog.'
           }
-          actionLabel={search.trim() ? 'Clear search' : ''}
-          onAction={() => setSearch('')}
+          actionLabel={hasSearch ? 'Clear search' : (isStudent && listView === 'mine' ? 'Open catalog' : '')}
+          onAction={() => {
+            if (hasSearch) {
+              setSearch('');
+              return;
+            }
+            if (isStudent && listView === 'mine') {
+              setListView('catalog');
+            }
+          }}
         />
       ) : (
         <div className="lms-grid">

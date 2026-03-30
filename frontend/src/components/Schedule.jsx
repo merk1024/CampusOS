@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
+import EmptyState from './EmptyState';
+import StatusBanner from './StatusBanner';
 import { canManageAcademicRecords, hasAdminAccess, isStudentAccount } from '../roles';
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -743,13 +745,37 @@ function Schedule() {
 
   const totalEntries = schedule.length;
   const usesCustomGroup = showCustomGroupInput || (!!selectedGroup && !groupOptions.includes(selectedGroup));
+  const selectedStudent = studentOptions.find((item) => String(item.id) === String(selectedStudentId));
+  const visibleEntryCount = filteredSchedule.length;
+  const currentScopeLabel = isStudent
+    ? `${studentGroup || 'Not set'}${studentSubgroup ? ` / ${studentSubgroup}` : ''}`
+    : (selectedAudienceView === 'individual'
+      ? (selectedStudent ? getStudentLabel(selectedStudent) : 'Choose a student')
+      : (selectedAudienceView === 'subgroup'
+        ? `${selectedGroup || 'Choose group'}${selectedSubgroup ? ` / ${selectedSubgroup}` : ''}`
+        : (selectedGroup || 'Choose group')));
+  const needsSubgroup = canEdit && selectedAudienceView === 'subgroup' && !selectedSubgroup;
+  const needsStudent = canEdit && selectedAudienceView === 'individual' && !selectedStudentId;
+  const needsGroup = !visibleSchedule.length && !selectedGroup && canEdit && selectedAudienceView !== 'individual';
+  const hasCourseFilter = Boolean(selectedCourseFilter);
+  const filterClearedViewEmpty = hasCourseFilter && filteredSchedule.length === 0;
 
   if (loading) {
     return <div className="page"><div className="page-header"><h1>Schedule</h1><p>Loading your timetable...</p></div><div className="loading-spinner"></div></div>;
   }
 
   if (error) {
-    return <div className="page"><div className="page-header"><h1>Schedule</h1><p>Error loading schedule: {error}</p></div></div>;
+    return (
+      <div className="page">
+        <div className="page-header">
+          <div>
+            <h1>Schedule</h1>
+            <p>CampusOS could not load the active timetable view.</p>
+          </div>
+        </div>
+        <StatusBanner tone="error" title="Schedule unavailable" message={error} />
+      </div>
+    );
   }
 
   return (
@@ -768,16 +794,11 @@ function Schedule() {
 
       <div className="schedule-admin-bar">
         <div className="schedule-admin-card"><span className="management-summary-label">Lessons loaded</span><strong>{totalEntries}</strong></div>
+        <div className="schedule-admin-card"><span className="management-summary-label">Visible in view</span><strong>{visibleEntryCount}</strong></div>
         <div className="schedule-admin-card"><span className="management-summary-label">Groups</span><strong>{groupOptions.length}</strong></div>
         <div className="schedule-admin-card">
           <span className="management-summary-label">Current scope</span>
-          <strong>
-            {isStudent
-              ? `${studentGroup || 'Not set'}${studentSubgroup ? ` / ${studentSubgroup}` : ''}`
-              : (selectedAudienceView === 'individual'
-                ? (selectedStudentId ? getStudentLabel(studentOptions.find((item) => String(item.id) === String(selectedStudentId))) : 'Choose a student')
-                : (selectedGroup || 'Choose group'))}
-          </strong>
+          <strong>{currentScopeLabel}</strong>
         </div>
         <div className="schedule-admin-card schedule-admin-legend">
           <span className="schedule-legend-item"><span className="schedule-dot occupied"></span> Existing class</span>
@@ -840,7 +861,11 @@ function Schedule() {
         </div>
       )}
 
-      {copyFeedback.message && <div className={copyFeedback.type === 'error' ? 'error-message' : 'success-message'}>{copyFeedback.message}</div>}
+      <StatusBanner
+        tone={copyFeedback.type === 'error' ? 'error' : 'success'}
+        title={copyFeedback.type === 'error' ? 'Schedule update blocked' : 'Schedule updated'}
+        message={copyFeedback.message}
+      />
 
       {canEdit ? (
         <div className="management-toolbar schedule-group-toolbar">
@@ -973,12 +998,40 @@ function Schedule() {
         </div>
       )}
 
-      {canEdit && selectedAudienceView === 'subgroup' && !selectedSubgroup ? (
-        <div className="lms-empty">Choose or type a subgroup above to start building its subgroup schedule.</div>
-      ) : canEdit && selectedAudienceView === 'individual' && !selectedStudentId ? (
-        <div className="lms-empty">Choose a student above to manage an individual schedule.</div>
-      ) : !visibleSchedule.length && !selectedGroup && canEdit && selectedAudienceView !== 'individual' ? (
-        <div className="lms-empty">Choose or type a group name above to start building its schedule.</div>
+      {needsSubgroup ? (
+        <EmptyState
+          eyebrow="Schedule scope"
+          title="Choose a subgroup to continue"
+          description="Subgroup mode only edits one subgroup at a time. Pick it above or type a new subgroup name."
+          compact
+          className="schedule-empty-state"
+        />
+      ) : needsStudent ? (
+        <EmptyState
+          eyebrow="Schedule scope"
+          title="Choose a student to continue"
+          description="Individual mode opens a personal timetable for exactly one student."
+          compact
+          className="schedule-empty-state"
+        />
+      ) : needsGroup ? (
+        <EmptyState
+          eyebrow="Schedule scope"
+          title="Choose a group to start building the schedule"
+          description="Select an existing group or type a new group name above to open the timetable grid."
+          compact
+          className="schedule-empty-state"
+        />
+      ) : filterClearedViewEmpty ? (
+        <EmptyState
+          eyebrow="Course filter"
+          title="No lessons match the current course filter"
+          description="Reset the course filter to reopen the full timetable for the current scope."
+          actionLabel="Reset course filter"
+          onAction={() => setSelectedCourseFilter('')}
+          compact
+          className="schedule-empty-state"
+        />
       ) : (
         <div className="schedule-grid">
           <div className="schedule-grid-board" style={{ gridTemplateColumns: '76px repeat(6, minmax(122px, 1fr))', gridTemplateRows: `52px repeat(${timeSlots.length}, 56px)` }}>

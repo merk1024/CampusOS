@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 
 import './AttendancePage.css';
 import { api } from './api';
+import EmptyState from './components/EmptyState';
+import StatusBanner from './components/StatusBanner';
 import { canManageAcademicRecords, hasAdminAccess } from './roles';
 
 const ATTENDANCE_UI_KEY = 'attendance_ui_preferences';
@@ -291,6 +293,7 @@ function TeacherAttendance({ user }) {
 
   const draftSummary = buildDraftSummary(students, draftStatuses);
   const isAdmin = hasAdminAccess(user);
+  const hasRosterFilters = rosterFilter !== 'all' || search.trim() !== '';
   const setStudentDraftStatus = (studentId, status) => {
     setDraftStatuses((current) => ({
       ...current,
@@ -371,8 +374,8 @@ function TeacherAttendance({ user }) {
         </div>
       </div>
 
-      {error && <div className="att-banner error">{error}</div>}
-      {notice && <div className="att-banner success">{notice}</div>}
+      <StatusBanner tone="error" title="Attendance could not be updated" message={error} />
+      <StatusBanner tone="success" title="Attendance updated" message={notice} />
 
       <div className="att-management-grid">
         <section className="att-panel att-session-panel">
@@ -382,11 +385,21 @@ function TeacherAttendance({ user }) {
           </div>
 
           {loadingSessions ? (
-            <div className="att-empty-state">Loading schedule...</div>
+            <EmptyState
+              eyebrow="Attendance"
+              title="Loading scheduled classes"
+              description="Checking which sessions are available for the selected date."
+              compact
+              className="att-inline-empty"
+            />
           ) : sessions.length === 0 ? (
-            <div className="att-empty-state">
-              No classes are scheduled for attendance management yet.
-            </div>
+            <EmptyState
+              eyebrow="Attendance"
+              title="No scheduled classes for this date"
+              description="Pick another date or add schedule entries first, then attendance management will appear here."
+              compact
+              className="att-inline-empty"
+            />
           ) : (
             <div className="att-session-list">
               {sessions.map((session) => {
@@ -422,9 +435,21 @@ function TeacherAttendance({ user }) {
 
         <section className={`att-panel att-roster-panel ${compactMode ? 'compact' : ''}`}>
           {!selectedSessionId ? (
-            <div className="att-empty-state">Choose a class from the left to open its attendance roster.</div>
+            <EmptyState
+              eyebrow="Roster"
+              title="Choose a class to open its roster"
+              description="Select one scheduled class from the left panel to start marking attendance."
+              compact
+              className="att-inline-empty"
+            />
           ) : loadingRoster ? (
-            <div className="att-empty-state">Loading roster...</div>
+            <EmptyState
+              eyebrow="Roster"
+              title="Loading roster"
+              description="Preparing the student list and the saved attendance snapshot for this class."
+              compact
+              className="att-inline-empty"
+            />
           ) : (
             <>
               <div className="att-panel-head att-roster-head">
@@ -498,7 +523,18 @@ function TeacherAttendance({ user }) {
               </div>
 
               {filteredStudents.length === 0 ? (
-                <div className="att-empty-state">No students match the current filter.</div>
+                <EmptyState
+                  eyebrow="Roster"
+                  title="No students match the current filter"
+                  description={hasRosterFilters ? 'Clear the search or row filter to reopen the full roster.' : 'The selected class does not currently have students in its roster.'}
+                  actionLabel={hasRosterFilters ? 'Clear filters' : ''}
+                  onAction={() => {
+                    setSearch('');
+                    setRosterFilter('all');
+                  }}
+                  compact
+                  className="att-inline-empty"
+                />
               ) : (
                 <div className="att-roster-scroll">
                   <div className="att-roster-meta">
@@ -639,14 +675,18 @@ function StudentAttendance({ user }) {
     return (
       <div className="att-shell">
         <div className="att-header">
-          <h2>Attendance</h2>
-          <p>{error}</p>
+          <div>
+            <h2>Attendance</h2>
+            <p>CampusOS could not load the attendance history for this account.</p>
+          </div>
         </div>
+        <StatusBanner tone="error" title="Attendance unavailable" message={error} />
       </div>
     );
   }
 
   const stats = getStudentStats(attendance);
+  const hasHistoryFilter = statusFilter !== 'all';
   const filteredAttendance = attendance.filter((record) => (
     statusFilter === 'all' || record.status === statusFilter
   ));
@@ -684,7 +724,15 @@ function StudentAttendance({ user }) {
         </div>
 
         {filteredAttendance.length === 0 ? (
-          <div className="att-empty-state">No attendance records match the current filter.</div>
+          <EmptyState
+            eyebrow="Attendance history"
+            title="No records match the current filter"
+            description={hasHistoryFilter ? 'Reset the status filter to reopen the full attendance history.' : 'Attendance records will appear here after teachers start marking your classes.'}
+            actionLabel={hasHistoryFilter ? 'Reset filter' : ''}
+            onAction={() => setStatusFilter('all')}
+            compact
+            className="att-inline-empty"
+          />
         ) : (
           <div className="att-history-list">
             {filteredAttendance.map((item) => (

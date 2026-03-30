@@ -641,6 +641,13 @@
   background: color-mix(in srgb, var(--surface) 92%, var(--accent) 8%);
 }
 
+.att-inline-empty.empty-state-card {
+  width: 100%;
+  min-height: 160px;
+  justify-content: center;
+  margin: 0;
+}
+
 .att-roster-panel.compact .att-summary-grid {
   gap: 0.7rem;
 }
