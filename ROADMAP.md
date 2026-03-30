@@ -1,98 +1,111 @@
 # CampusOS Roadmap
 
-## Current status
+## Текущее состояние проекта
 
-CampusOS is already beyond a classroom scaffold. It now behaves like a real academic portal MVP with:
+CampusOS уже вышел за рамки учебного каркаса и сейчас выглядит как рабочий MVP академического портала.
 
-- role-based access for students, teachers, admins, and superadmins
-- course assignment and enrollment flows
-- schedule management for groups, subgroups, and individuals
-- exams, grades, assignments, announcements, and attendance
-- SQLite and PostgreSQL support
-- Render deployment blueprints
-- backend tests, security scripts, and import pipelines
+### Уже реализовано
 
-## Near-term priorities
+- авторизация по email и student ID
+- роли `student`, `teacher`, `admin`, `superadmin`
+- управление пользователями и профилями
+- управление курсами и назначение преподавателя
+- запись студентов на курсы
+- экзамены и выставление оценок
+- объявления / messages
+- задания и академические записи
+- расписание для групп, подгрупп и индивидуальных занятий
+- drag-to-copy сценарий в расписании
+- attendance management для преподавателя и история посещаемости для студента
+- тёмная и светлая тема
+- Render deploy blueprint
+- SQLite / PostgreSQL dual database support
+- security scripts: audit, secret scan, ZAP baseline
+
+---
+
+## Ближайший приоритет
 
 ### 1. Stabilization
 
-- [x] cover critical backend routes with tests
-- [x] recheck role scenarios after recent UI changes
-- [x] align root API responses and service text with the `CampusOS` brand
-- [x] remove the most visible legacy CSS conflicts
-- [x] separate staging configuration from production
+- [√] покрыть критические backend-маршруты тестами
+- [√] проверить сценарии ролей на регрессии после последних UI-изменений
+- [√] привести root API response и служебные тексты к бренду `CampusOS`
+- [√] убрать оставшиеся точечные CSS-конфликты в старых страницах
+- [√] подготовить staging-конфигурацию отдельно от production
 
 ### 2. Data readiness
 
-- [x] add safe student, teacher, and course imports from CSV / TSV
-- [x] add `course_enrollments + schedule` to the pilot import flow
-- [x] prepare a read-only pipeline for university test exports
-- [x] normalize the pilot seed dataset
-- [x] document the external-data-to-schema mapping
+- [x] добавить import `course_enrollments + schedule` в pilot pipeline
+
+- [√] добавить безопасный импорт студентов, преподавателей и предметов из CSV / TSV
+- [√] подготовить read-only pipeline для тестовых университетских выгрузок
+- [√] нормализовать сиды под более реалистичный pilot dataset
+- [√] описать карту соответствия внешних данных и текущей схемы БД
 
 ### 3. Teacher workflow polish
 
-- [x] improve attendance workspace for faster daily marking
-- [x] add batch-oriented schedule editing
-- [x] improve teacher-side assignments and exam flows
-- [x] add audit trail storage for grade and attendance changes
+- [√] сделать табличный режим attendance с ещё более быстрым массовым вводом
+- [√] добавить batch edit для schedule
+- [√] улучшить teacher-view assignments и exam flows
+- [√] добавить audit trail для изменений оценок и attendance
+
+---
 
 ## Product roadmap
 
-### Phase 1 - Web MVP hardening
+### Phase 1 — Web MVP hardening
 
-Goal: make the current web platform stable enough for a real pilot.
+Цель: довести текущую веб-платформу до стабильного pilot-ready состояния.
 
-- [ ] finish UI polish on all primary pages
-- [ ] fully unify forms, tables, and filters across all admin surfaces
-- [x] improve empty states and system messages on core pages
-- [x] make staging and production environment handling predictable
-- [x] formalize the seed / cleanup / deploy flow
+- [ ] завершить UI polish по основным страницам
+- [ ] унифицировать формы, таблицы и фильтры
+- [ ] улучшить пустые состояния и системные сообщения
+- [ ] сделать предсказуемую работу со staging и production env
+- [ ] формализовать seed / cleanup / deploy flow
 
-Current progress in this phase:
+### Phase 2 — Admin and academic operations
 
-- shared empty-state and status-banner patterns are now used on key pages
-- table presentation is more consistent on core admin screens
-- env templates now exist for local, staging, and production
-- an operations runbook now documents seed, cleanup, env validation, and Render deploy flow
+Цель: усилить ежедневную работу администрации и преподавателей.
 
-### Phase 2 - Admin and academic operations
+- [ ] массовое создание пользователей
+- [ ] массовое назначение преподавателей на курсы
+- [ ] массовая запись студентов на предметы
+- [ ] генерация академических списков и operational reports
+- [ ] import/export для управленческих сценариев
 
-Goal: speed up daily work for administrators and teachers.
+### Phase 3 — Integration layer
 
-- [ ] bulk user creation
-- [ ] bulk teacher-to-course assignment
-- [ ] bulk student enrollment management
-- [ ] operational academic reports
-- [ ] import/export support for admin-side operations
+Current progress:
+- [x] initial read-only reconciliation reports for CSV / TSV university exports
 
-### Phase 3 - Integration layer
+Цель: превратить CampusOS в удобный единый портал поверх существующих систем университета.
 
-Goal: let CampusOS act as a unified portal on top of existing university systems.
+- [ ] read-only integration с системами выбора предметов
+- [ ] read-only integration с системами оценок и посещаемости
+- [ ] единый dashboard поверх нескольких источников
+- [ ] reconciliation layer для конфликтующих данных
+- [ ] ручные override-сценарии для администрации
 
-- [ ] read-only integration with subject-selection systems
-- [ ] read-only integration with grade and attendance systems
-- [ ] unified dashboard across multiple data sources
-- [ ] reconciliation flow for conflicting data
-- [ ] admin override flow for data conflicts
+### Phase 4 — Analytics and communication
 
-### Phase 4 - Analytics and communication
+Цель: сделать продукт не только учётным, но и аналитическим.
 
-Goal: move beyond record keeping into insight and communication.
-
-- [ ] performance dashboards for students and groups
+- [ ] performance dashboards по студентам и группам
 - [ ] attendance analytics
-- [ ] academic risk flags
-- [ ] expanded announcement and notification flows
-- [ ] faculty-ready report exports
+- [ ] risk flags для академических проблем
+- [ ] расширенные announcements / notification flows
+- [ ] экспорт отчётов для факультета и деканата
 
-### Phase 5 - Mobile direction
+### Phase 5 — Mobile direction
 
-Goal: prepare a downloadable mobile experience after the web MVP stabilizes.
+Цель: перейти к скачиваемому мобильному приложению после стабилизации web.
 
-- [ ] stabilize the API contract for a mobile client
-- [ ] decide between PWA, Capacitor, or a dedicated Android client
-- [ ] ship a mobile pilot after the web MVP is stable
+- [ ] подготовить web API contract под mobile client
+- [ ] решить, идти через PWA / Capacitor / отдельный Android client
+- [ ] собрать мобильный pilot после стабилизации web MVP
+
+---
 
 ## Technical roadmap
 
@@ -103,9 +116,9 @@ Goal: prepare a downloadable mobile experience after the web MVP stabilizes.
 - [x] SQLite support
 - [x] PostgreSQL support
 - [x] seed and cleanup scripts
-- [x] environment validation script
-- [ ] versioned schema migrations
-- [ ] background jobs for imports and notifications
+- [ ] полноценные миграции версий схемы
+- [ ] audit logging
+- [ ] background jobs / queue for imports and notifications
 
 ### Frontend
 
@@ -114,8 +127,8 @@ Goal: prepare a downloadable mobile experience after the web MVP stabilizes.
 - [x] theme switcher
 - [x] branded UI
 - [x] optimized attendance workspace
-- [x] shared empty-state and status-banner patterns on core pages
-- [ ] stronger form consistency across every admin page
+- [ ] stronger form consistency across all admin pages
+- [ ] better table mode for data-heavy pages
 - [ ] broader accessibility pass
 
 ### Security
@@ -127,44 +140,48 @@ Goal: prepare a downloadable mobile experience after the web MVP stabilizes.
 - [x] `eslint-plugin-security`
 - [x] local secret scan
 - [x] OWASP ZAP baseline
-- [ ] remove remaining risky production defaults
+- [ ] remove remaining risky defaults from production configuration
 - [ ] harden token storage strategy
-- [ ] add a release security checklist
+- [ ] add security checklist to release process
 
 ### DevOps
 
 - [x] Render blueprint
 - [x] PostgreSQL deployment path
 - [x] health endpoint
-- [x] staging blueprint
-- [x] env validation flow
 - [ ] CI pipeline
-- [ ] deploy gating with automated checks
+- [ ] automated tests in deploy gate
 - [ ] error monitoring
 - [ ] backup and restore playbook
+
+---
 
 ## Product principles
 
 ### 1. Web first
 
-Finish and stabilize the web platform before building the Android version.
+Сначала стабилизируем и завершаем веб-платформу.  
+Android-версия идёт после того, как web MVP перестанет быстро меняться.
 
 ### 2. Replace carefully
 
-CampusOS does not have to replace every university system at once. A realistic path is to become the clean, unified layer on top of existing data sources first.
+CampusOS не обязан сразу заменять существующие университетские платформы.  
+Более реалистичная стратегия — сначала стать единым удобным интерфейсом поверх текущих систем.
 
 ### 3. Operator-friendly UX
 
-The product should reduce daily friction for teachers and admins:
+Приоритет не только в красоте интерфейса, а в скорости повседневной работы:
 
-- less scrolling
-- fewer repeated clicks
-- faster bulk actions
-- clearer roles and permissions
+- меньше лишнего скролла
+- меньше повторяющихся действий
+- быстрее массовые операции
+- понятнее роли и доступы
 
-## Success criteria for the next milestone
+---
 
-- [ ] pilot-ready web version without critical auth or data issues
-- [ ] documentation fully aligned with the real codebase
-- [ ] staging dataset close to a realistic university scenario
-- [ ] a version that can be shown to teachers and administration with confidence
+## Success criteria for next milestone
+
+- [ ] pilot-ready web version without critical auth/data issues
+- [ ] актуальная документация без расхождений с кодом
+- [ ] staging dataset, похожий на реальные университетские данные
+- [ ] готовность показать систему преподавателям и администрации
