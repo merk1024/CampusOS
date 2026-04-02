@@ -62,6 +62,7 @@ app.use('/api/grades', require('./routes/grades'));
 app.use('/api/assignments', require('./routes/assignments'));
 app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/announcements', require('./routes/announcements'));
+app.use('/api/integrations', require('./routes/integrations'));
 
 app.get('/health', (req, res) => {
   res.json({
@@ -87,7 +88,8 @@ app.get('/api', (req, res) => {
       '/api/grades',
       '/api/assignments',
       '/api/attendance',
-      '/api/announcements'
+      '/api/announcements',
+      '/api/integrations'
     ]
   });
 });

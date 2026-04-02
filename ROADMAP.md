@@ -89,11 +89,11 @@ Current progress:
 
 Goal: turn CampusOS into a convenient unified portal on top of existing university systems.
 
-- `x` read-only integration with subject selection systems
-- `x` read-only integration with grades and attendance systems
-- `x` unified dashboard on top of multiple sources
+- `-` read-only integration with subject selection systems
+- `-` read-only integration with grades and attendance systems
+- `-` unified dashboard on top of multiple sources
 - `-` reconciliation layer for conflicting data
-- `x` manual override scenarios for administration
+- `-` manual override scenarios for administration
 
 ### Phase 4 — Analytics and communication
 

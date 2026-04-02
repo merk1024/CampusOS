@@ -17,6 +17,7 @@ import Exams from './components/Exams';
 import Footer from './components/Footer';
 import Grades from './components/Grades';
 import Header from './components/Header';
+import IntegrationCenter from './components/IntegrationCenter';
 import LoginPage from './components/LoginPage';
 import Messages from './components/Messages';
 import Profile from './components/Profile';
@@ -97,6 +98,7 @@ function Sidebar({ activePage, setActivePage, isOpen, onClose, user }) {
 
   if (hasAdminAccess(user)) {
     menuItems.push({ id: 'userManagement', label: 'User Management', icon: 'USR' });
+    menuItems.push({ id: 'integrations', label: 'Integrations', icon: 'INT' });
   }
 
   const handleNavigate = (page) => {
@@ -329,6 +331,8 @@ export default function App() {
         );
       case 'userManagement':
         return <UserManagement user={user} />;
+      case 'integrations':
+        return <IntegrationCenter user={user} />;
       default:
         return <Dashboard user={user} />;
     }

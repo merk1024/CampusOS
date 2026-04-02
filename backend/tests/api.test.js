@@ -462,6 +462,152 @@ test('admin can bulk enroll students and export course operations data', async (
   assert.ok(teacherRoster.body.students.some((student) => student.email === students[1].email));
 });
 
+test('admin can analyze and apply subject selection integration snapshots', async () => {
+  const adminSession = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+  const uniqueCode = `INT${Date.now()}`;
+  const coursesCsvText = [
+    'course_code,course_name,semester',
+    `${uniqueCode},Integrated Subject Selection,Spring 2026`
+  ].join('\n');
+  const enrollmentsCsvText = [
+    'student_id,course_code,enrolled_at',
+    `240141052,${uniqueCode},2026-04-02`
+  ].join('\n');
+
+  const analysis = await request('/api/integrations/subject-selection/analyze', {
+    method: 'POST',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({
+      sourceName: 'My Alatoo Test Export',
+      coursesCsvText,
+      enrollmentsCsvText
+    })
+  });
+
+  assert.equal(analysis.response.status, 200, JSON.stringify(analysis.body));
+  assert.equal(analysis.body.source.key, 'subject-selection');
+  assert.equal(analysis.body.overview.externalCourses, 1);
+  assert.equal(analysis.body.overview.externalSelections, 1);
+  assert.ok(analysis.body.findings.some((finding) => finding.status === 'only_in_export'));
+
+  const applied = await request('/api/integrations/subject-selection/override', {
+    method: 'POST',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({
+      sourceName: 'My Alatoo Test Export',
+      coursesCsvText,
+      enrollmentsCsvText
+    })
+  });
+
+  assert.equal(applied.response.status, 201, JSON.stringify(applied.body));
+  assert.equal(applied.body.summary.courses.create, 1);
+  assert.equal(applied.body.summary.enrollments.create, 1);
+
+  const courseOverview = await request('/api/courses/reports/overview', {
+    headers: authHeaders(adminSession.token)
+  });
+
+  assert.equal(courseOverview.response.status, 200, JSON.stringify(courseOverview.body));
+  const integratedCourse = courseOverview.body.rows.find((row) => row.code === uniqueCode);
+  assert.ok(integratedCourse);
+  assert.equal(integratedCourse.enrollment_count, 1);
+});
+
+test('admin can analyze academic record integration snapshots in read-only mode', async () => {
+  const adminSession = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+  const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  const uniqueSubject = `Integration Audit ${Date.now()}`;
+
+  const examResult = await request('/api/exams', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      group_name: 'CYB-23',
+      subject: uniqueSubject,
+      exam_date: '2026-04-22',
+      exam_time: '11:00',
+      room: 'A-301',
+      type: 'Midterm',
+      semester: 'Spring 2026',
+      students: ['240141052']
+    })
+  });
+
+  assert.equal(examResult.response.status, 201, JSON.stringify(examResult.body));
+
+  const savedGrade = await request('/api/grades', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      examId: examResult.body.exam.id,
+      studentId: '240141052',
+      grade: 92,
+      comments: 'Integration check'
+    })
+  });
+
+  assert.equal(savedGrade.response.status, 200, JSON.stringify(savedGrade.body));
+
+  const sessionsResult = await request('/api/attendance/management/sessions?date=2026-03-27', {
+    headers: authHeaders(teacherSession.token)
+  });
+
+  assert.equal(sessionsResult.response.status, 200, JSON.stringify(sessionsResult.body));
+  const targetSession = sessionsResult.body.sessions.find((session) => session.course_code) || sessionsResult.body.sessions[0];
+  assert.ok(targetSession, 'Expected seeded attendance session to be available');
+
+  const sessionDetail = await request(`/api/attendance/management/session/${targetSession.id}?date=2026-03-27`, {
+    headers: authHeaders(teacherSession.token)
+  });
+
+  assert.equal(sessionDetail.response.status, 200, JSON.stringify(sessionDetail.body));
+  const targetStudent = sessionDetail.body.students[0];
+  assert.ok(targetStudent, 'Expected a student in the selected session roster');
+
+  const saveAttendance = await request('/api/attendance/bulk', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      scheduleId: targetSession.id,
+      date: '2026-03-27',
+      records: [
+        {
+          studentId: targetStudent.student_id,
+          status: 'present'
+        }
+      ]
+    })
+  });
+
+  assert.equal(saveAttendance.response.status, 200, JSON.stringify(saveAttendance.body));
+
+  const gradesCsvText = [
+    'student_id,subject,assessment_type,grade',
+    `240141052,${uniqueSubject},Midterm,95`
+  ].join('\n');
+  const attendanceCsvText = [
+    'student_id,course_code,date,status',
+    `${targetStudent.student_id},${targetSession.course_code || targetSession.subject},2026-03-27,absent`
+  ].join('\n');
+
+  const analysis = await request('/api/integrations/academic-records/analyze', {
+    method: 'POST',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({
+      sourceName: 'OCS Test Export',
+      gradesCsvText,
+      attendanceCsvText
+    })
+  });
+
+  assert.equal(analysis.response.status, 200, JSON.stringify(analysis.body));
+  assert.equal(analysis.body.source.key, 'academic-records');
+  assert.equal(analysis.body.overview.externalGrades, 1);
+  assert.equal(analysis.body.overview.externalAttendance, 1);
+  assert.ok(analysis.body.findings.some((finding) => finding.status === 'mismatch'));
+});
+
 test('student can read own attendance history', async () => {
   const studentSession = await login('240141052', process.env.SEED_STUDENT_PASSWORD);
   const { response, body } = await request('/api/attendance/student/240141052', {

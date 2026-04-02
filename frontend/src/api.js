@@ -248,6 +248,36 @@ export const api = {
     });
   },
 
+  async getIntegrationOverview() {
+    return request('/integrations/overview', {
+      headers: getHeaders()
+    });
+  },
+
+  async analyzeSubjectSelectionIntegration(payload) {
+    return request('/integrations/subject-selection/analyze', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+  },
+
+  async applySubjectSelectionOverride(payload) {
+    return request('/integrations/subject-selection/override', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+  },
+
+  async analyzeAcademicRecordsIntegration(payload) {
+    return request('/integrations/academic-records/analyze', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+  },
+
   async getEnrolledCourses() {
     return request('/courses/enrolled', { headers: getHeaders() });
   },

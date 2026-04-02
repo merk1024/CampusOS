@@ -14,7 +14,8 @@ const SHARED_PAGES = new Set([
 ]);
 
 const ADMIN_ONLY_PAGES = new Set([
-  'userManagement'
+  'userManagement',
+  'integrations'
 ]);
 
 export const canAccessPage = (user, page) => {
