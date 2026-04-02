@@ -53,7 +53,7 @@ function LoginPage({ onLogin, notice = '' }) {
           <div className="login-brand">
             <img
               src={campusosHero}
-              alt="CampusOS Latonia Edition"
+              alt="CampusOS Unified Academic Portal"
               className="login-brand-image"
             />
             <div className="login-brand-copy">
