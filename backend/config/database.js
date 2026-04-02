@@ -93,6 +93,120 @@ const POSTGRES_AUDIT_TABLE_STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS idx_attendance_audit_student ON attendance_audit_log(student_id)'
 ];
 
+const SQLITE_PLATFORM_TABLE_STATEMENTS = [
+  `CREATE TABLE IF NOT EXISTS system_audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT,
+      action TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      details TEXT,
+      changed_by INTEGER REFERENCES users(id),
+      request_id TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+  'CREATE INDEX IF NOT EXISTS idx_system_audit_created_at ON system_audit_log(created_at)',
+  'CREATE INDEX IF NOT EXISTS idx_system_audit_entity ON system_audit_log(entity_type, entity_id)',
+  `CREATE TABLE IF NOT EXISTS notification_inbox (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      source_type TEXT NOT NULL,
+      source_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'delivered' CHECK (status IN ('queued', 'delivered', 'failed', 'read')),
+      metadata TEXT,
+      is_read INTEGER DEFAULT 0,
+      delivered_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, source_type, source_id)
+    )`,
+  'CREATE INDEX IF NOT EXISTS idx_notification_inbox_user ON notification_inbox(user_id, is_read, created_at)',
+  `CREATE TABLE IF NOT EXISTS job_queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      job_type TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+      payload TEXT NOT NULL,
+      result_payload TEXT,
+      attempts INTEGER DEFAULT 0,
+      max_attempts INTEGER DEFAULT 3,
+      worker_name TEXT,
+      available_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      locked_at DATETIME,
+      completed_at DATETIME,
+      last_error TEXT,
+      created_by INTEGER REFERENCES users(id),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+  'CREATE INDEX IF NOT EXISTS idx_job_queue_status_available ON job_queue(status, available_at, created_at)'
+];
+
+const POSTGRES_PLATFORM_TABLE_STATEMENTS = [
+  `CREATE TABLE IF NOT EXISTS system_audit_log (
+      id SERIAL PRIMARY KEY,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT,
+      action TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      details TEXT,
+      changed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      request_id TEXT,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )`,
+  'CREATE INDEX IF NOT EXISTS idx_system_audit_created_at ON system_audit_log(created_at)',
+  'CREATE INDEX IF NOT EXISTS idx_system_audit_entity ON system_audit_log(entity_type, entity_id)',
+  `CREATE TABLE IF NOT EXISTS notification_inbox (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      source_type TEXT NOT NULL,
+      source_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'delivered' CHECK (status IN ('queued', 'delivered', 'failed', 'read')),
+      metadata TEXT,
+      is_read BOOLEAN DEFAULT FALSE,
+      delivered_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, source_type, source_id)
+    )`,
+  'CREATE INDEX IF NOT EXISTS idx_notification_inbox_user ON notification_inbox(user_id, is_read, created_at)',
+  `CREATE TABLE IF NOT EXISTS job_queue (
+      id SERIAL PRIMARY KEY,
+      job_type TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+      payload TEXT NOT NULL,
+      result_payload TEXT,
+      attempts INTEGER DEFAULT 0,
+      max_attempts INTEGER DEFAULT 3,
+      worker_name TEXT,
+      available_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      locked_at TIMESTAMPTZ,
+      completed_at TIMESTAMPTZ,
+      last_error TEXT,
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )`,
+  'CREATE INDEX IF NOT EXISTS idx_job_queue_status_available ON job_queue(status, available_at, created_at)'
+];
+
+const SQLITE_MIGRATION_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS schema_migrations (
+    version TEXT PRIMARY KEY,
+    description TEXT NOT NULL,
+    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`;
+
+const POSTGRES_MIGRATION_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS schema_migrations (
+    version TEXT PRIMARY KEY,
+    description TEXT NOT NULL,
+    applied_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )
+`;
+
 const shouldUsePostgres = () => (
   String(process.env.DB_CLIENT || '').toLowerCase() === 'postgres'
   || Boolean(process.env.DATABASE_URL)
@@ -176,6 +290,129 @@ const getPostgresSslSetting = () => {
   return { rejectUnauthorized: true };
 };
 
+const ensureSqliteColumns = async (adapter, tableName, columnSpecs) => {
+  const columns = await adapter.all(`PRAGMA table_info(${tableName})`);
+  const existingColumns = new Set(columns.map((column) => column.name));
+
+  for (const [name, type] of columnSpecs) {
+    if (!existingColumns.has(name)) {
+      await adapter.run(`ALTER TABLE ${tableName} ADD COLUMN ${name} ${type}`);
+    }
+  }
+};
+
+const ensurePostgresColumns = async (adapter, tableName, columnSpecs) => {
+  for (const [name, type] of columnSpecs) {
+    await adapter.query(`ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS ${name} ${type}`);
+  }
+};
+
+const getSqliteTableExists = async (adapter, tableName) => {
+  const table = await adapter.get(
+    `SELECT name
+     FROM sqlite_master
+     WHERE type = 'table' AND name = ?`,
+    [tableName]
+  );
+
+  return Boolean(table);
+};
+
+const getPostgresTableExists = async (adapter, tableName) => {
+  const table = await adapter.get(
+    `SELECT table_name
+     FROM information_schema.tables
+     WHERE table_schema = 'public'
+       AND table_name = ?`,
+    [tableName]
+  );
+
+  return Boolean(table);
+};
+
+const getMigrationDefinitions = () => ([
+  {
+    version: '2026-04-02-001-baseline-schema',
+    description: 'Bootstrap baseline schema on empty databases',
+    async apply(context) {
+      if (context.client === 'postgres') {
+        await context.applySchemaFile();
+        return;
+      }
+
+      const hasUsersTable = await context.tableExists('users');
+      if (!hasUsersTable) {
+        await context.applySchemaFile();
+      }
+    }
+  },
+  {
+    version: '2026-04-02-002-user-profile-columns',
+    description: 'Ensure extended user profile columns exist',
+    async apply(context) {
+      await context.ensureColumns('users', USER_PROFILE_COLUMNS);
+    }
+  },
+  {
+    version: '2026-04-02-003-schedule-columns',
+    description: 'Ensure schedule audience and course columns exist',
+    async apply(context) {
+      await context.ensureColumns('schedule', SCHEDULE_COLUMNS);
+      await normalizeScheduleAudienceTypes(context.adapter);
+    }
+  },
+  {
+    version: '2026-04-02-004-academic-audit-tables',
+    description: 'Ensure grade and attendance audit tables exist',
+    async apply(context) {
+      await context.runStatements(
+        context.client === 'postgres'
+          ? POSTGRES_AUDIT_TABLE_STATEMENTS
+          : SQLITE_AUDIT_TABLE_STATEMENTS
+      );
+    }
+  },
+  {
+    version: '2026-04-02-005-platform-ops-tables',
+    description: 'Ensure system audit, notification inbox, and job queue tables exist',
+    async apply(context) {
+      await context.runStatements(
+        context.client === 'postgres'
+          ? POSTGRES_PLATFORM_TABLE_STATEMENTS
+          : SQLITE_PLATFORM_TABLE_STATEMENTS
+      );
+    }
+  }
+]);
+
+const runVersionedMigrations = async (context) => {
+  const migrationDefinitions = getMigrationDefinitions();
+
+  await context.ensureMigrationTable();
+  const appliedRows = await context.adapter.all(
+    'SELECT version FROM schema_migrations ORDER BY applied_at ASC, version ASC'
+  );
+  const appliedVersions = new Set(appliedRows.map((row) => row.version));
+
+  for (const migration of migrationDefinitions) {
+    if (appliedVersions.has(migration.version)) {
+      continue;
+    }
+
+    await migration.apply(context);
+    await context.adapter.run(
+      'INSERT INTO schema_migrations (version, description) VALUES (?, ?)',
+      [migration.version, migration.description]
+    );
+  }
+
+  const currentMigration = migrationDefinitions[migrationDefinitions.length - 1];
+  return {
+    currentVersion: currentMigration.version,
+    appliedCount: migrationDefinitions.length
+  };
+};
+
 const createSqliteAdapter = () => {
   const sqlite3 = require('sqlite3').verbose();
   const sqlite = new sqlite3.Database(SQLITE_DB_PATH, (error) => {
@@ -203,6 +440,7 @@ const createSqliteAdapter = () => {
 
   const adapter = {
     client: 'sqlite',
+    schemaVersion: null,
 
     run(sql, params = []) {
       const normalizedSql = convertDollarParamsToQuestionParams(sql);
@@ -266,40 +504,25 @@ const createSqliteAdapter = () => {
   adapter.migrate = async () => {
     if (!migrationPromise) {
       migrationPromise = (async () => {
-        const usersTable = await adapter.get(
-          `SELECT name
-           FROM sqlite_master
-           WHERE type = 'table' AND name = 'users'`
-        );
-
-        if (!usersTable) {
-          const schemaContents = fs.readFileSync(SQLITE_SCHEMA_PATH, 'utf8');
-          await execSqlite(schemaContents);
-        }
-
-        const columns = await adapter.all('PRAGMA table_info(users)');
-        const existingColumns = new Set(columns.map((column) => column.name));
-
-        for (const [name, type] of USER_PROFILE_COLUMNS) {
-          if (!existingColumns.has(name)) {
-            await adapter.run(`ALTER TABLE users ADD COLUMN ${name} ${type}`);
+        const migrationStatus = await runVersionedMigrations({
+          client: 'sqlite',
+          adapter,
+          tableExists: (tableName) => getSqliteTableExists(adapter, tableName),
+          ensureColumns: (tableName, columnSpecs) => ensureSqliteColumns(adapter, tableName, columnSpecs),
+          ensureMigrationTable: () => adapter.run(SQLITE_MIGRATION_TABLE_SQL),
+          applySchemaFile: async () => {
+            const schemaContents = fs.readFileSync(SQLITE_SCHEMA_PATH, 'utf8');
+            await execSqlite(schemaContents);
+          },
+          runStatements: async (statements) => {
+            for (const statement of statements) {
+              await adapter.run(statement);
+            }
           }
-        }
+        });
 
-        const scheduleColumns = await adapter.all('PRAGMA table_info(schedule)');
-        const existingScheduleColumns = new Set(scheduleColumns.map((column) => column.name));
-
-        for (const [name, type] of SCHEDULE_COLUMNS) {
-          if (!existingScheduleColumns.has(name)) {
-            await adapter.run(`ALTER TABLE schedule ADD COLUMN ${name} ${type}`);
-          }
-        }
-
-        for (const statement of SQLITE_AUDIT_TABLE_STATEMENTS) {
-          await adapter.run(statement);
-        }
-
-        await normalizeScheduleAudienceTypes(adapter);
+        adapter.schemaVersion = migrationStatus.currentVersion;
+        return migrationStatus;
       })().catch((error) => {
         migrationPromise = null;
         throw error;
@@ -335,6 +558,7 @@ const createPostgresAdapter = () => {
 
   const adapter = {
     client: 'postgres',
+    schemaVersion: null,
 
     async run(sql, params = []) {
       let normalizedSql = convertQuestionParamsToDollarParams(sql);
@@ -375,26 +599,28 @@ const createPostgresAdapter = () => {
   adapter.migrate = async () => {
     if (!migrationPromise) {
       migrationPromise = (async () => {
-        const schemaContents = fs.readFileSync(POSTGRES_SCHEMA_PATH, 'utf8');
-        const statements = splitSqlStatements(schemaContents);
+        const migrationStatus = await runVersionedMigrations({
+          client: 'postgres',
+          adapter,
+          tableExists: (tableName) => getPostgresTableExists(adapter, tableName),
+          ensureColumns: (tableName, columnSpecs) => ensurePostgresColumns(adapter, tableName, columnSpecs),
+          ensureMigrationTable: () => adapter.run(POSTGRES_MIGRATION_TABLE_SQL),
+          applySchemaFile: async () => {
+            const schemaContents = fs.readFileSync(POSTGRES_SCHEMA_PATH, 'utf8');
+            const statements = splitSqlStatements(schemaContents);
+            for (const statement of statements) {
+              await adapter.query(statement);
+            }
+          },
+          runStatements: async (statements) => {
+            for (const statement of statements) {
+              await adapter.query(statement);
+            }
+          }
+        });
 
-        for (const statement of statements) {
-          await pool.query(statement);
-        }
-
-        for (const [name, type] of USER_PROFILE_COLUMNS) {
-          await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ${name} ${type}`);
-        }
-
-        for (const [name, type] of SCHEDULE_COLUMNS) {
-          await pool.query(`ALTER TABLE schedule ADD COLUMN IF NOT EXISTS ${name} ${type}`);
-        }
-
-        for (const statement of POSTGRES_AUDIT_TABLE_STATEMENTS) {
-          await pool.query(statement);
-        }
-
-        await normalizeScheduleAudienceTypes(adapter);
+        adapter.schemaVersion = migrationStatus.currentVersion;
+        return migrationStatus;
       })().catch((error) => {
         migrationPromise = null;
         throw error;
