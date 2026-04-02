@@ -67,6 +67,7 @@ Blueprint files:
 
 - `render.yaml` for production
 - `render.staging.yaml` for staging
+- `.github/workflows/render-deploy-gate.yml` for gated releases
 
 Recommended deploy checklist:
 
@@ -74,8 +75,23 @@ Recommended deploy checklist:
 2. Confirm frontend API base URL matches the correct backend `/api`.
 3. Confirm backend `FRONTEND_URL` matches the deployed frontend domain.
 4. Confirm bootstrap passwords are set.
-5. Deploy the blueprint or trigger a manual deploy.
-6. Verify `/health` and login after deploy.
+5. Confirm Render `Auto-Deploy` is disabled for the services controlled by the deploy gate.
+6. Confirm the matching GitHub environment contains:
+   - `RENDER_API_DEPLOY_HOOK_URL`
+   - `RENDER_FRONTEND_DEPLOY_HOOK_URL`
+7. Trigger `CampusOS Render Deploy Gate` from GitHub Actions.
+8. Verify `/health`, `/ready`, and login after deploy.
+
+Recommended GitHub environment mapping:
+
+- `staging` environment -> staging Render service hooks
+- `production` environment -> production Render service hooks
+
+Recommended release protection:
+
+1. Require `CampusOS CI` checks before merging to `main`.
+2. Add manual reviewers to the `production` GitHub environment.
+3. Use the gated workflow instead of direct manual deploys whenever possible.
 
 ## Render PostgreSQL SSL note
 
@@ -100,3 +116,10 @@ This checks:
 - backend tests
 - frontend lint
 - frontend production build
+
+After a gated deploy, verify:
+
+- `GET /health` returns `status = ok`
+- `GET /ready` returns `status = ready`
+- backend and frontend are both on the expected domain
+- login still works for at least one seeded admin or pilot account

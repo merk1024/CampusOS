@@ -151,6 +151,7 @@ Root scripts:
 GitHub Actions workflow:
 
 - `.github/workflows/ci.yml`
+- `.github/workflows/render-deploy-gate.yml`
 
 It runs automatically on pushes to `main`, pull requests, and manual dispatches.
 
@@ -159,6 +160,36 @@ Current checks:
 - backend: `npm test`
 - frontend: `npm run lint`
 - frontend: `npm run build`
+
+## Gated Render deploys
+
+CampusOS now includes a manual deploy gate workflow:
+
+- `.github/workflows/render-deploy-gate.yml`
+
+This workflow:
+
+- checks out the selected git ref
+- runs backend tests
+- runs frontend lint and production build
+- triggers Render deploy hooks only after all checks pass
+
+Recommended setup:
+
+1. Create GitHub environments named `staging` and `production`.
+2. In each environment, add these secrets:
+   - `RENDER_API_DEPLOY_HOOK_URL`
+   - `RENDER_FRONTEND_DEPLOY_HOOK_URL`
+3. In Render, disable `Auto-Deploy` for the gated services so pushes do not bypass the workflow.
+4. Optionally add required reviewers for the `production` GitHub environment.
+5. Trigger the workflow manually from the `Actions` tab with:
+   - `target_environment = staging` or `production`
+   - `git_ref = main` or a release tag / commit SHA
+
+Recommended GitHub protection:
+
+- require `CampusOS CI` before merging to `main`
+- use the gated deploy workflow for staging and production releases
 
 Backend scripts:
 

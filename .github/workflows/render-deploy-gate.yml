@@ -1,0 +1,119 @@
+name: CampusOS Render Deploy Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: Target GitHub environment and Render stack
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      git_ref:
+        description: Git ref to verify and deploy
+        required: true
+        default: main
+        type: string
+
+concurrency:
+  group: campusos-render-deploy-${{ inputs.target_environment }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify-backend:
+    name: Verify Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Run backend test suite
+        run: npm test
+
+  verify-frontend:
+    name: Verify Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Lint frontend
+        run: npm run lint
+
+      - name: Build frontend
+        run: npm run build
+
+  deploy-render:
+    name: Trigger Render Deploy
+    needs:
+      - verify-backend
+      - verify-frontend
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target_environment }}
+    steps:
+      - name: Validate deploy hook secrets
+        env:
+          RENDER_API_DEPLOY_HOOK_URL: ${{ secrets.RENDER_API_DEPLOY_HOOK_URL }}
+          RENDER_FRONTEND_DEPLOY_HOOK_URL: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_API_DEPLOY_HOOK_URL" ]; then
+            echo "::error::Missing RENDER_API_DEPLOY_HOOK_URL secret in the selected GitHub environment."
+            exit 1
+          fi
+
+          if [ -z "$RENDER_FRONTEND_DEPLOY_HOOK_URL" ]; then
+            echo "::error::Missing RENDER_FRONTEND_DEPLOY_HOOK_URL secret in the selected GitHub environment."
+            exit 1
+          fi
+
+      - name: Trigger backend deploy
+        env:
+          RENDER_API_DEPLOY_HOOK_URL: ${{ secrets.RENDER_API_DEPLOY_HOOK_URL }}
+        run: curl --fail --show-error --silent --request POST "$RENDER_API_DEPLOY_HOOK_URL"
+
+      - name: Trigger frontend deploy
+        env:
+          RENDER_FRONTEND_DEPLOY_HOOK_URL: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}
+        run: curl --fail --show-error --silent --request POST "$RENDER_FRONTEND_DEPLOY_HOOK_URL"
+
+      - name: Summarize gated deploy
+        run: |
+          echo "CampusOS gated deploy started."
+          echo "Environment: ${{ inputs.target_environment }}"
+          echo "Git ref: ${{ inputs.git_ref }}"
+          echo "Render accepted both deploy hook requests."
