@@ -1,73 +1,62 @@
-<svg width="920" height="250" viewBox="0 0 920 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="780" height="220" viewBox="0 0 780 220" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="hero-blue" x1="32" y1="28" x2="172" y2="176" gradientUnits="userSpaceOnUse">
+    <linearGradient id="hero-blue" x1="20" y1="22" x2="134" y2="138" gradientUnits="userSpaceOnUse">
       <stop stop-color="#37C8FF"/>
       <stop offset="1" stop-color="#0B6BFF"/>
     </linearGradient>
-    <linearGradient id="hero-orange" x1="60" y1="86" x2="170" y2="190" gradientUnits="userSpaceOnUse">
+    <linearGradient id="hero-orange" x1="42" y1="64" x2="136" y2="152" gradientUnits="userSpaceOnUse">
       <stop stop-color="#FFD15A"/>
       <stop offset="1" stop-color="#FF6A00"/>
     </linearGradient>
-    <linearGradient id="hero-os" x1="612" y1="52" x2="772" y2="176" gradientUnits="userSpaceOnUse">
+    <linearGradient id="hero-os" x1="430" y1="36" x2="566" y2="146" gradientUnits="userSpaceOnUse">
       <stop stop-color="#3AD6FF"/>
       <stop offset="1" stop-color="#0B77FF"/>
     </linearGradient>
-    <linearGradient id="hero-chip" x1="0" y1="0" x2="0" y2="1">
-      <stop stop-color="rgba(255,255,255,0.13)"/>
-      <stop offset="1" stop-color="rgba(255,255,255,0.06)"/>
-    </linearGradient>
-    <filter id="hero-mark-glow" x="0" y="0" width="230" height="230" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feGaussianBlur stdDeviation="16" result="blur"/>
-      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 0.74 0 0 0  0 0.98 0 0 0  0 0 0 0.18 0"/>
-    </filter>
-    <filter id="hero-soft-shadow" x="190" y="6" width="710" height="220" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#020617" flood-opacity="0.18"/>
+    <filter id="hero-mark-shadow" x="0" y="0" width="176" height="176" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#020617" flood-opacity="0.26"/>
     </filter>
   </defs>
 
-  <g transform="translate(16 18)">
-    <circle cx="98" cy="98" r="70" fill="#0E1628"/>
-    <circle cx="98" cy="98" r="54" fill="none" stroke="#1F2A44" stroke-width="5"/>
-    <g filter="url(#hero-mark-glow)">
-      <ellipse cx="98" cy="98" rx="81" ry="55" transform="rotate(-30 98 98)" stroke="url(#hero-blue)" stroke-width="12"/>
-    </g>
-    <ellipse cx="98" cy="98" rx="85" ry="24" transform="rotate(-30 98 98)" stroke="url(#hero-orange)" stroke-width="12"/>
-    <path d="M99 24L104 40L120 45L104 50L99 66L94 50L78 45L94 40L99 24Z" fill="#FFD978"/>
-    <path d="M98 52L142 74V84H54V74L98 52Z" fill="#F7FAFF"/>
-    <path d="M67 86H129V94H67V86Z" fill="#F7FAFF"/>
-    <path d="M69 97H81V137H69V97Z" fill="#F7FAFF"/>
-    <path d="M92 97H104V137H92V97Z" fill="#F7FAFF"/>
-    <path d="M115 97H127V137H115V97Z" fill="#F7FAFF"/>
-    <path d="M58 140H138V149H58V140Z" fill="#F7FAFF"/>
-    <path d="M47 72H55V139H47V72Z" fill="#7F96C6"/>
-    <path d="M141 72H149V139H141V72Z" fill="#7F96C6"/>
+  <g transform="translate(18 22)" filter="url(#hero-mark-shadow)">
+    <circle cx="66" cy="66" r="48" fill="#0E1628"/>
+    <circle cx="66" cy="66" r="37" fill="none" stroke="#1F2A44" stroke-width="4"/>
+    <ellipse cx="66" cy="66" rx="55" ry="37" transform="rotate(-30 66 66)" stroke="url(#hero-blue)" stroke-width="8"/>
+    <ellipse cx="66" cy="66" rx="58" ry="16" transform="rotate(-30 66 66)" stroke="url(#hero-orange)" stroke-width="8"/>
+    <path d="M67 14L71 24L81 28L71 32L67 42L63 32L53 28L63 24L67 14Z" fill="#FFD978"/>
+    <path d="M66 36L96 51V58H36V51L66 36Z" fill="#F7FAFF"/>
+    <path d="M45 60H87V66H45V60Z" fill="#F7FAFF"/>
+    <path d="M47 69H55V96H47V69Z" fill="#F7FAFF"/>
+    <path d="M62 69H70V96H62V69Z" fill="#F7FAFF"/>
+    <path d="M77 69H85V96H77V69Z" fill="#F7FAFF"/>
+    <path d="M39 99H93V106H39V99Z" fill="#F7FAFF"/>
+    <path d="M31 49H37V98H31V49Z" fill="#7F96C6"/>
+    <path d="M95 49H101V98H95V49Z" fill="#7F96C6"/>
   </g>
 
-  <g filter="url(#hero-soft-shadow)" transform="translate(238 0)">
-    <text x="0" y="136" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="110" font-weight="800" letter-spacing="-3">
+  <g transform="translate(176 34)">
+    <text x="0" y="92" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="82" font-weight="800" letter-spacing="-2.4">
       Campus
     </text>
-    <text x="408" y="136" fill="url(#hero-os)" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="110" font-weight="800" letter-spacing="-3">
+    <text x="300" y="92" fill="url(#hero-os)" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="82" font-weight="800" letter-spacing="-2.4">
       OS
     </text>
-    <rect x="208" y="152" width="404" height="3" rx="1.5" fill="url(#hero-blue)" opacity="0.58"/>
-
-    <text x="0" y="191" fill="#8FDBFF" font-family="'JetBrains Mono', 'Segoe UI', monospace" font-size="28" font-weight="700" letter-spacing="4">
+    <rect x="154" y="105" width="276" height="2.5" rx="1.25" fill="url(#hero-blue)" opacity="0.6"/>
+    <text x="0" y="136" fill="#8FDBFF" font-family="'JetBrains Mono', 'Segoe UI', monospace" font-size="24" font-weight="700" letter-spacing="3.4">
       UNIFIED ACADEMIC PORTAL
     </text>
 
-    <g transform="translate(0 210)">
-      <rect x="0" y="-22" width="138" height="34" rx="17" fill="#0F1A30" fill-opacity="0.64" stroke="rgba(125, 211, 252, 0.18)"/>
-      <text x="23" y="0" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="14" font-weight="600" letter-spacing="0.4">Courses</text>
+    <g transform="translate(0 162)">
+      <rect x="0" y="-16" width="116" height="28" rx="14" fill="#101A31" fill-opacity="0.82" stroke="#1F3557"/>
+      <text x="19" y="3" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="12.5" font-weight="600" letter-spacing="0.3">Courses</text>
 
-      <rect x="150" y="-22" width="156" height="34" rx="17" fill="#0F1A30" fill-opacity="0.64" stroke="rgba(125, 211, 252, 0.18)"/>
-      <text x="173" y="0" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="14" font-weight="600" letter-spacing="0.4">Attendance</text>
+      <rect x="128" y="-16" width="128" height="28" rx="14" fill="#101A31" fill-opacity="0.82" stroke="#1F3557"/>
+      <text x="147" y="3" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="12.5" font-weight="600" letter-spacing="0.3">Attendance</text>
 
-      <rect x="318" y="-22" width="122" height="34" rx="17" fill="#0F1A30" fill-opacity="0.64" stroke="rgba(125, 211, 252, 0.18)"/>
-      <text x="342" y="0" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="14" font-weight="600" letter-spacing="0.4">Grading</text>
+      <rect x="268" y="-16" width="110" height="28" rx="14" fill="#101A31" fill-opacity="0.82" stroke="#1F3557"/>
+      <text x="290" y="3" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="12.5" font-weight="600" letter-spacing="0.3">Grading</text>
 
-      <rect x="452" y="-22" width="148" height="34" rx="17" fill="#0F1A30" fill-opacity="0.64" stroke="rgba(125, 211, 252, 0.18)"/>
-      <text x="475" y="0" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="14" font-weight="600" letter-spacing="0.4">Scheduling</text>
+      <rect x="390" y="-16" width="124" height="28" rx="14" fill="#101A31" fill-opacity="0.82" stroke="#1F3557"/>
+      <text x="410" y="3" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="12.5" font-weight="600" letter-spacing="0.3">Schedule</text>
     </g>
   </g>
 </svg>
