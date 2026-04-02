@@ -18,6 +18,7 @@ process.env.SEED_STUDENT_PASSWORD = 'Student123!';
 
 const seed = require('../seeds/seed');
 const { startServer } = require('../server');
+const { SUPERADMIN_EMAIL } = require('../utils/access');
 
 let server;
 let baseUrl;
@@ -122,6 +123,16 @@ test('student cannot access admin-only user directory', async () => {
   assert.equal(body.error, 'Access denied. Admin only.');
 });
 
+test('teacher cannot access admin-only user directory', async () => {
+  const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  const { response, body } = await request('/api/users', {
+    headers: authHeaders(teacherSession.token)
+  });
+
+  assert.equal(response.status, 403);
+  assert.equal(body.error, 'Access denied. Admin only.');
+});
+
 test('admin can access user directory', async () => {
   const adminSession = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
   const { response, body } = await request('/api/users', {
@@ -131,6 +142,17 @@ test('admin can access user directory', async () => {
   assert.equal(response.status, 200);
   assert.ok(Array.isArray(body.users));
   assert.ok(body.users.length >= 10);
+});
+
+test('superadmin can access admin-only user directory', async () => {
+  const superadminSession = await login(SUPERADMIN_EMAIL, process.env.SUPERADMIN_BOOTSTRAP_PASSWORD);
+  const { response, body } = await request('/api/users', {
+    headers: authHeaders(superadminSession.token)
+  });
+
+  assert.equal(response.status, 200);
+  assert.ok(Array.isArray(body.users));
+  assert.ok(body.users.some((user) => user.email === SUPERADMIN_EMAIL));
 });
 
 test('admin can create another admin without student-only fields', async () => {
@@ -229,4 +251,64 @@ test('student can read own attendance history', async () => {
 
   assert.equal(response.status, 200);
   assert.ok(Array.isArray(body.attendance));
+});
+
+test('teacher can create an exam and publish a grade while student cannot submit grades', async () => {
+  const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  const studentSession = await login('240141052', process.env.SEED_STUDENT_PASSWORD);
+  const uniqueSubject = `Regression Testing ${Date.now()}`;
+
+  const createExamResult = await request('/api/exams', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      group_name: 'CYB-23',
+      subject: uniqueSubject,
+      exam_date: '2026-04-15',
+      exam_time: '10:00',
+      room: 'A-201',
+      type: 'Midterm',
+      semester: 'Spring 2026',
+      students: ['240141052']
+    })
+  });
+
+  assert.equal(createExamResult.response.status, 201, JSON.stringify(createExamResult.body));
+  const examId = createExamResult.body.exam.id;
+  assert.ok(examId);
+
+  const blockedStudentAttempt = await request('/api/grades', {
+    method: 'POST',
+    headers: authHeaders(studentSession.token),
+    body: JSON.stringify({
+      examId,
+      studentId: '240141052',
+      grade: 92,
+      comments: 'Blocked student attempt'
+    })
+  });
+
+  assert.equal(blockedStudentAttempt.response.status, 403);
+  assert.equal(blockedStudentAttempt.body.error, 'Access denied. Teachers and admins only.');
+
+  const teacherGradeAttempt = await request('/api/grades', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      examId,
+      studentId: '240141052',
+      grade: 92,
+      comments: 'Published by teacher'
+    })
+  });
+
+  assert.equal(teacherGradeAttempt.response.status, 200, JSON.stringify(teacherGradeAttempt.body));
+  assert.equal(teacherGradeAttempt.body.grade.grade, 92);
+
+  const studentGrades = await request('/api/grades/student/240141052', {
+    headers: authHeaders(studentSession.token)
+  });
+
+  assert.equal(studentGrades.response.status, 200);
+  assert.ok(studentGrades.body.grades.some((grade) => grade.exam_id === examId && grade.subject === uniqueSubject));
 });

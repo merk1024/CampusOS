@@ -23,6 +23,7 @@ import Profile from './components/Profile';
 import Schedule from './components/Schedule';
 import Settings from './components/Settings';
 import { getUnreadMessageCount, markMessagesAsRead } from './notificationState';
+import { getAccessiblePage } from './pageAccess';
 import { hasAdminAccess } from './roles';
 
 const SETTINGS_KEY = 'lms_app_settings';
@@ -132,6 +133,9 @@ export default function App() {
   const [theme, setTheme] = useState(getInitialTheme);
   const [authNotice, setAuthNotice] = useState('');
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
+  const resolvedActivePage = user
+    ? getAccessiblePage(user, activePage || getDefaultPage())
+    : activePage;
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -231,7 +235,7 @@ export default function App() {
   const handleLogin = (userData) => {
     setUser(userData);
     storage.set('lms_user', userData);
-    setActivePage(getDefaultPage());
+    setActivePage(getAccessiblePage(userData, getDefaultPage()));
     setAuthNotice('');
   };
 
@@ -284,8 +288,12 @@ export default function App() {
     setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark'));
   };
 
+  const handleNavigate = (page) => {
+    setActivePage(getAccessiblePage(user, page));
+  };
+
   const renderPage = () => {
-    switch (activePage) {
+    switch (resolvedActivePage) {
       case 'dashboard':
         return <Dashboard user={user} />;
       case 'courses':
@@ -314,7 +322,7 @@ export default function App() {
         return (
           <Settings
             user={user}
-            onNavigate={setActivePage}
+            onNavigate={handleNavigate}
             theme={theme}
             onThemeChange={handleThemeChange}
           />
@@ -344,7 +352,7 @@ export default function App() {
       <Header
         user={user}
         onLogout={handleLogout}
-        onNavigate={setActivePage}
+        onNavigate={handleNavigate}
         onMenuToggle={() => setSidebarOpen((value) => !value)}
         theme={theme}
         onToggleTheme={handleThemeToggle}
@@ -352,8 +360,8 @@ export default function App() {
       />
       <div className="app-body">
         <Sidebar
-          activePage={activePage}
-          setActivePage={setActivePage}
+          activePage={resolvedActivePage}
+          setActivePage={handleNavigate}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           user={user}

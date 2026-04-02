@@ -1,3 +1,5 @@
+name: University Management System Development
+
 # University Management System Development
 
 **WORKFLOW SKILL** — Guide for building web-based university administrative management systems, including backend APIs and frontend interfaces for managing students, teachers, courses, attendance, grades, schedules, and announcements.
