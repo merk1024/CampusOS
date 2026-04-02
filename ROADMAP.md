@@ -75,11 +75,11 @@ Goal: bring the current web platform to a stable pilot-ready state.
 
 Goal: strengthen daily workflows for administration and teachers.
 
-- `-` bulk user creation
-- `-` bulk teacher assignment to courses
-- `-` bulk student enrollment into subjects
-- `x` generation of academic lists and operational reports
-- `-` import / export for administrative workflows
+- `√` bulk user creation
+- `√` bulk teacher assignment to courses
+- `√` bulk student enrollment into subjects
+- `√` generation of academic lists and operational reports
+- `√` import / export for administrative workflows
 
 ### Phase 3 — Integration layer
 

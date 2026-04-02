@@ -151,6 +151,28 @@ const enhanceCourse = (course) => {
   return hydrated;
 };
 
+const escapeCsvValue = (value) => (
+  `"${String(value ?? '')
+    .replace(/"/g, '""')}"`
+);
+
+const downloadCsvFile = (filename, headers, rows) => {
+  const csvLines = [
+    headers.map((header) => escapeCsvValue(header.label)).join(','),
+    ...rows.map((row) => headers.map((header) => escapeCsvValue(row[header.key])).join(','))
+  ];
+
+  const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
 function Ring({ pct = 0, size = 52 }) {
   const radius = (size - 8) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -188,6 +210,419 @@ function useToast() {
   };
 
   return { toast, show };
+}
+
+function AdminOperationsHub({
+  courses,
+  visibleCourses,
+  teacherOptions,
+  onCoursesUpdated,
+  onStatus,
+  onToast
+}) {
+  const [selectedCourseIds, setSelectedCourseIds] = useState([]);
+  const [teacherId, setTeacherId] = useState('');
+  const [studentIdentifiers, setStudentIdentifiers] = useState('');
+  const [reportRows, setReportRows] = useState([]);
+  const [reportSummary, setReportSummary] = useState(null);
+  const [reportCourseId, setReportCourseId] = useState('');
+  const [loadingState, setLoadingState] = useState({
+    assign: false,
+    enroll: false,
+    report: false,
+    roster: false
+  });
+
+  const visibleSelectionPool = visibleCourses.length > 0 ? visibleCourses : courses;
+  const selectedCourseSet = new Set(selectedCourseIds.map(String));
+  const selectedCourses = courses.filter((course) => selectedCourseSet.has(String(course.id)));
+
+  useEffect(() => {
+    setSelectedCourseIds((current) => current.filter((courseId) => courses.some((course) => String(course.id) === String(courseId))));
+
+    if (reportCourseId && !courses.some((course) => String(course.id) === String(reportCourseId))) {
+      setReportCourseId('');
+    }
+  }, [courses, reportCourseId]);
+
+  const toggleCourseSelection = (courseId) => {
+    const nextId = String(courseId);
+    setSelectedCourseIds((current) => (
+      current.includes(nextId)
+        ? current.filter((value) => value !== nextId)
+        : [...current, nextId]
+    ));
+  };
+
+  const selectVisibleCourses = () => {
+    setSelectedCourseIds((current) => {
+      const next = new Set(current);
+      visibleSelectionPool.forEach((course) => next.add(String(course.id)));
+      return [...next];
+    });
+  };
+
+  const clearSelectedCourses = () => {
+    setSelectedCourseIds([]);
+  };
+
+  const loadOverviewReport = async () => {
+    setLoadingState((current) => ({ ...current, report: true }));
+
+    try {
+      const response = await api.getCourseOperationsReport();
+      setReportRows(response?.rows || []);
+      setReportSummary(response?.summary || null);
+      onStatus({
+        tone: 'success',
+        title: 'Operational overview ready',
+        message: `CampusOS prepared ${response?.summary?.total_courses || 0} course rows for export and review.`
+      });
+      return response;
+    } catch (error) {
+      onStatus({
+        tone: 'error',
+        title: 'Failed to load operational overview',
+        message: error.message || 'CampusOS could not prepare the course operations report.'
+      });
+      throw error;
+    } finally {
+      setLoadingState((current) => ({ ...current, report: false }));
+    }
+  };
+
+  const handleBulkTeacherAssignment = async () => {
+    if (selectedCourseIds.length === 0) {
+      onStatus({
+        tone: 'error',
+        title: 'No course selection',
+        message: 'Select at least one course card before assigning a teacher.'
+      });
+      return;
+    }
+
+    setLoadingState((current) => ({ ...current, assign: true }));
+
+    try {
+      const response = await api.bulkAssignTeacherToCourses(teacherId || null, selectedCourseIds);
+      await onCoursesUpdated();
+      onStatus({
+        tone: 'success',
+        title: 'Teacher assignment updated',
+        message: `${response?.summary?.updated_courses || 0} selected course card(s) were updated.${response?.summary?.missing_courses ? ` Missing: ${response.summary.missing_courses}.` : ''}`
+      });
+      onToast(teacherId ? 'Teacher assigned to selected courses' : 'Teacher cleared from selected courses');
+    } catch (error) {
+      onStatus({
+        tone: 'error',
+        title: 'Bulk teacher assignment failed',
+        message: error.message || 'CampusOS could not update teacher assignments.'
+      });
+    } finally {
+      setLoadingState((current) => ({ ...current, assign: false }));
+    }
+  };
+
+  const handleBulkEnrollment = async () => {
+    if (selectedCourseIds.length === 0) {
+      onStatus({
+        tone: 'error',
+        title: 'No course selection',
+        message: 'Select one or more course cards before enrolling students.'
+      });
+      return;
+    }
+
+    if (!studentIdentifiers.trim()) {
+      onStatus({
+        tone: 'error',
+        title: 'Student list is empty',
+        message: 'Paste student emails or student IDs to process bulk enrollment.'
+      });
+      return;
+    }
+
+    setLoadingState((current) => ({ ...current, enroll: true }));
+
+    try {
+      const response = await api.bulkEnrollStudents(selectedCourseIds, studentIdentifiers);
+      await onCoursesUpdated();
+      onStatus({
+        tone: 'success',
+        title: 'Bulk enrollment completed',
+        message: `${response?.summary?.created || 0} new enrollments were created, ${response?.summary?.skipped || 0} were already present.${response?.summary?.missing_students ? ` Missing students: ${response.summary.missing_students}.` : ''}`
+      });
+      onToast('Bulk enrollment processed');
+      setStudentIdentifiers('');
+    } catch (error) {
+      onStatus({
+        tone: 'error',
+        title: 'Bulk enrollment failed',
+        message: error.message || 'CampusOS could not process the enrollment batch.'
+      });
+    } finally {
+      setLoadingState((current) => ({ ...current, enroll: false }));
+    }
+  };
+
+  const handleExportOverview = async () => {
+    try {
+      const response = reportRows.length > 0 && reportSummary
+        ? { rows: reportRows, summary: reportSummary }
+        : await loadOverviewReport();
+
+      downloadCsvFile(
+        'campusos-course-operations-overview.csv',
+        [
+          { key: 'code', label: 'Course Code' },
+          { key: 'name', label: 'Course Name' },
+          { key: 'semester', label: 'Semester' },
+          { key: 'credits', label: 'Credits' },
+          { key: 'teacher_name', label: 'Teacher' },
+          { key: 'teacher_email', label: 'Teacher Email' },
+          { key: 'enrollment_count', label: 'Enrollment Count' },
+          { key: 'group_count', label: 'Group Count' }
+        ],
+        response?.rows || []
+      );
+
+      onToast('Operations overview exported');
+    } catch (error) {
+      onStatus({
+        tone: 'error',
+        title: 'Overview export failed',
+        message: error.message || 'CampusOS could not export the operations overview.'
+      });
+    }
+  };
+
+  const handleExportRoster = async () => {
+    if (!reportCourseId) {
+      onStatus({
+        tone: 'error',
+        title: 'No course selected for roster export',
+        message: 'Choose a course before exporting its academic list.'
+      });
+      return;
+    }
+
+    setLoadingState((current) => ({ ...current, roster: true }));
+
+    try {
+      const response = await api.getCourseRoster(reportCourseId);
+      const course = response?.course || {};
+      downloadCsvFile(
+        `campusos-${String(course.code || reportCourseId).toLowerCase()}-roster.csv`,
+        [
+          { key: 'student_id', label: 'Student ID' },
+          { key: 'name', label: 'Student Name' },
+          { key: 'email', label: 'Email' },
+          { key: 'group_name', label: 'Group' },
+          { key: 'subgroup_name', label: 'Subgroup' },
+          { key: 'faculty', label: 'Faculty' },
+          { key: 'major', label: 'Major' },
+          { key: 'enrolled_at', label: 'Enrolled At' }
+        ],
+        response?.students || []
+      );
+      onToast(`Academic list exported for ${course.name || 'selected course'}`);
+    } catch (error) {
+      onStatus({
+        tone: 'error',
+        title: 'Roster export failed',
+        message: error.message || 'CampusOS could not export the selected academic list.'
+      });
+    } finally {
+      setLoadingState((current) => ({ ...current, roster: false }));
+    }
+  };
+
+  return (
+    <section className="lms-admin-ops">
+      <div className="lms-admin-ops-head">
+        <div>
+          <span className="lms-admin-ops-eyebrow">Admin Operations</span>
+          <h3>Academic operations hub</h3>
+          <p>Assign teachers, enroll students into selected subjects, and export operational views without leaving the course catalog.</p>
+        </div>
+
+        <div className="lms-admin-ops-actions">
+          <span className="lms-admin-selection-pill">{selectedCourseIds.length} selected</span>
+          <button type="button" className="cd-btn-sec" onClick={selectVisibleCourses}>
+            Select visible
+          </button>
+          <button type="button" className="cd-btn-sec" onClick={clearSelectedCourses}>
+            Clear selection
+          </button>
+        </div>
+      </div>
+
+      {visibleSelectionPool.length === 0 ? (
+        <EmptyState
+          compact
+          eyebrow="Course selection"
+          title="No course cards available for bulk actions"
+          description="Create a course card first, or clear the current search to see more options."
+        />
+      ) : (
+        <div className="lms-admin-course-picker">
+          {visibleSelectionPool.map((course) => {
+            const isSelected = selectedCourseSet.has(String(course.id));
+
+            return (
+              <button
+                key={course.id}
+                type="button"
+                className={`lms-admin-course-chip ${isSelected ? 'active' : ''}`}
+                onClick={() => toggleCourseSelection(course.id)}
+              >
+                <span className="lms-admin-course-chip-title">{course.code} · {course.name}</span>
+                <span className="lms-admin-course-chip-meta">{getTeacherName(course)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="lms-admin-ops-grid">
+        <section className="lms-admin-op-card">
+          <div className="lms-admin-op-head">
+            <h4>Bulk teacher assignment</h4>
+            <p>Assign one teacher to the selected course set, or clear the teacher slot in one step.</p>
+          </div>
+
+          <label className="lms-admin-op-field">
+            <span>Teacher</span>
+            <select value={teacherId} onChange={(event) => setTeacherId(event.target.value)}>
+              <option value="">Clear teacher assignment</option>
+              {teacherOptions.map((teacherOption) => (
+                <option key={teacherOption.id} value={teacherOption.id}>{teacherOption.name}</option>
+              ))}
+            </select>
+          </label>
+
+          <div className="lms-admin-selected-list">
+            {selectedCourses.length === 0 ? (
+              <span className="lms-admin-inline-note">No course cards selected yet.</span>
+            ) : (
+              selectedCourses.map((course) => (
+                <span key={course.id} className="lms-admin-selected-item">{course.code}</span>
+              ))
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="cd-btn-pri"
+            onClick={handleBulkTeacherAssignment}
+            disabled={loadingState.assign || selectedCourseIds.length === 0}
+          >
+            {loadingState.assign ? 'Updating...' : (teacherId ? 'Assign teacher to selection' : 'Clear teacher from selection')}
+          </button>
+        </section>
+
+        <section className="lms-admin-op-card">
+          <div className="lms-admin-op-head">
+            <h4>Bulk student enrollment</h4>
+            <p>Paste student IDs or emails, one per line or separated by commas, and CampusOS will enroll them into the selected subjects.</p>
+          </div>
+
+          <label className="lms-admin-op-field">
+            <span>Student emails or IDs</span>
+            <textarea
+              value={studentIdentifiers}
+              onChange={(event) => setStudentIdentifiers(event.target.value)}
+              placeholder={'240141052\nstudent.one@alatoo.edu.kg\n240141053'}
+            />
+          </label>
+
+          <button
+            type="button"
+            className="cd-btn-pri"
+            onClick={handleBulkEnrollment}
+            disabled={loadingState.enroll || selectedCourseIds.length === 0}
+          >
+            {loadingState.enroll ? 'Processing...' : 'Enroll students into selection'}
+          </button>
+        </section>
+
+        <section className="lms-admin-op-card">
+          <div className="lms-admin-op-head">
+            <h4>Operational exports</h4>
+            <p>Generate operational overviews and academic lists for administration without leaving the current workspace.</p>
+          </div>
+
+          <div className="lms-admin-report-actions">
+            <button type="button" className="cd-btn-sec" onClick={loadOverviewReport} disabled={loadingState.report}>
+              {loadingState.report ? 'Loading...' : 'Load overview'}
+            </button>
+            <button type="button" className="cd-btn-pri" onClick={handleExportOverview}>
+              Export overview CSV
+            </button>
+          </div>
+
+          <label className="lms-admin-op-field">
+            <span>Academic list by course</span>
+            <select value={reportCourseId} onChange={(event) => setReportCourseId(event.target.value)}>
+              <option value="">Select course for roster export</option>
+              {courses.map((course) => (
+                <option key={course.id} value={course.id}>{course.code} · {course.name}</option>
+              ))}
+            </select>
+          </label>
+
+          <button
+            type="button"
+            className="cd-btn-sec"
+            onClick={handleExportRoster}
+            disabled={loadingState.roster}
+          >
+            {loadingState.roster ? 'Preparing roster...' : 'Export academic list CSV'}
+          </button>
+
+          {reportSummary ? (
+            <div className="lms-admin-report-summary">
+              <div className="lms-admin-report-metric">
+                <strong>{reportSummary.total_courses}</strong>
+                <span>Courses</span>
+              </div>
+              <div className="lms-admin-report-metric">
+                <strong>{reportSummary.assigned_courses}</strong>
+                <span>Assigned</span>
+              </div>
+              <div className="lms-admin-report-metric">
+                <strong>{reportSummary.unassigned_courses}</strong>
+                <span>Unassigned</span>
+              </div>
+              <div className="lms-admin-report-metric">
+                <strong>{reportSummary.total_enrollments}</strong>
+                <span>Enrollments</span>
+              </div>
+            </div>
+          ) : (
+            <span className="lms-admin-inline-note">Load the overview to preview course operations before export.</span>
+          )}
+
+          {reportRows.length > 0 ? (
+            <div className="lms-admin-report-preview">
+              {reportRows.slice(0, 5).map((row) => (
+                <div key={row.id} className="lms-admin-report-row">
+                  <div>
+                    <strong>{row.code}</strong>
+                    <span>{row.name}</span>
+                  </div>
+                  <div>
+                    <strong>{row.enrollment_count}</strong>
+                    <span>enrolled</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      </div>
+    </section>
+  );
 }
 
 function Card({ course, enrolled, progress, isStudent, onOpen, onEnroll, onUnenroll, index }) {
@@ -946,6 +1381,17 @@ export default function CoursesPage({ user }) {
           </div>
         </div>
       </div>
+
+      {isAdmin && (
+        <AdminOperationsHub
+          courses={courses}
+          visibleCourses={visibleCourses}
+          teacherOptions={teacherOptions}
+          onCoursesUpdated={loadCourses}
+          onStatus={setStatusBanner}
+          onToast={show}
+        />
+      )}
 
       {canManage && showCreateForm && (
         <form className="lms-course-form" onSubmit={handleCreateCourse}>

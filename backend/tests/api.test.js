@@ -355,6 +355,113 @@ test('admin can create course while student is blocked from the same route', asy
   assert.equal(adminAttempt.body.course.teacher_id, teacherSession.user.id);
 });
 
+test('admin can bulk assign a teacher to multiple courses', async () => {
+  const adminSession = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+  const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  const uniqueSuffix = Date.now();
+
+  const firstCourse = await request('/api/courses', {
+    method: 'POST',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({
+      code: `BTA${uniqueSuffix}`,
+      name: 'Bulk Assignment Foundations',
+      description: 'Bulk teacher assignment regression test',
+      credits: 3,
+      semester: 'Spring 2026'
+    })
+  });
+
+  const secondCourse = await request('/api/courses', {
+    method: 'POST',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({
+      code: `BTB${uniqueSuffix}`,
+      name: 'Bulk Assignment Lab',
+      description: 'Bulk teacher assignment regression test',
+      credits: 2,
+      semester: 'Spring 2026'
+    })
+  });
+
+  assert.equal(firstCourse.response.status, 201, JSON.stringify(firstCourse.body));
+  assert.equal(secondCourse.response.status, 201, JSON.stringify(secondCourse.body));
+
+  const assignmentResult = await request('/api/courses/bulk/teacher-assignment', {
+    method: 'POST',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({
+      teacher_id: teacherSession.user.id,
+      course_ids: [firstCourse.body.course.id, secondCourse.body.course.id]
+    })
+  });
+
+  assert.equal(assignmentResult.response.status, 200, JSON.stringify(assignmentResult.body));
+  assert.equal(assignmentResult.body.summary.updated_courses, 2);
+  assert.ok(assignmentResult.body.courses.every((course) => course.teacher_id === teacherSession.user.id));
+});
+
+test('admin can bulk enroll students and export course operations data', async () => {
+  const adminSession = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+  const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  const uniqueCode = `OPS${Date.now()}`;
+
+  const directory = await request('/api/users', {
+    headers: authHeaders(adminSession.token)
+  });
+
+  assert.equal(directory.response.status, 200, JSON.stringify(directory.body));
+  const students = directory.body.users.filter((user) => user.role === 'student').slice(0, 2);
+  assert.equal(students.length, 2, 'Expected at least two seeded students for enrollment regression');
+
+  const createdCourse = await request('/api/courses', {
+    method: 'POST',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({
+      code: uniqueCode,
+      name: 'Operations Reporting',
+      description: 'Course used for bulk enrollment and reporting regression tests',
+      credits: 3,
+      semester: 'Spring 2026',
+      teacher_id: teacherSession.user.id
+    })
+  });
+
+  assert.equal(createdCourse.response.status, 201, JSON.stringify(createdCourse.body));
+  const courseId = createdCourse.body.course.id;
+
+  const enrollmentResult = await request('/api/courses/bulk/enrollments', {
+    method: 'POST',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({
+      course_ids: [courseId],
+      student_identifiers: [students[0].student_id, students[1].email]
+    })
+  });
+
+  assert.equal(enrollmentResult.response.status, 200, JSON.stringify(enrollmentResult.body));
+  assert.equal(enrollmentResult.body.summary.created, 2);
+  assert.equal(enrollmentResult.body.summary.matched_students, 2);
+
+  const reportResult = await request('/api/courses/reports/overview', {
+    headers: authHeaders(adminSession.token)
+  });
+
+  assert.equal(reportResult.response.status, 200, JSON.stringify(reportResult.body));
+  const reportRow = reportResult.body.rows.find((row) => row.code === uniqueCode);
+  assert.ok(reportRow, 'Expected new course to appear in operations overview');
+  assert.equal(reportRow.enrollment_count, 2);
+
+  const teacherRoster = await request(`/api/courses/${courseId}/roster`, {
+    headers: authHeaders(teacherSession.token)
+  });
+
+  assert.equal(teacherRoster.response.status, 200, JSON.stringify(teacherRoster.body));
+  assert.equal(teacherRoster.body.students.length, 2);
+  assert.ok(teacherRoster.body.students.some((student) => student.student_id === students[0].student_id));
+  assert.ok(teacherRoster.body.students.some((student) => student.email === students[1].email));
+});
+
 test('student can read own attendance history', async () => {
   const studentSession = await login('240141052', process.env.SEED_STUDENT_PASSWORD);
   const { response, body } = await request('/api/attendance/student/240141052', {

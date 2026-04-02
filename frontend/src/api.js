@@ -214,6 +214,40 @@ export const api = {
     });
   },
 
+  async bulkAssignTeacherToCourses(teacherId, courseIds) {
+    return request('/courses/bulk/teacher-assignment', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        teacher_id: teacherId || null,
+        course_ids: courseIds
+      })
+    });
+  },
+
+  async bulkEnrollStudents(courseIds, studentIdentifiers) {
+    return request('/courses/bulk/enrollments', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        course_ids: courseIds,
+        student_identifiers: studentIdentifiers
+      })
+    });
+  },
+
+  async getCourseOperationsReport() {
+    return request('/courses/reports/overview', {
+      headers: getHeaders()
+    });
+  },
+
+  async getCourseRoster(id) {
+    return request(`/courses/${id}/roster`, {
+      headers: getHeaders()
+    });
+  },
+
   async getEnrolledCourses() {
     return request('/courses/enrolled', { headers: getHeaders() });
   },
