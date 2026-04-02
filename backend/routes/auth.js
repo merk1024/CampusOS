@@ -23,6 +23,7 @@ const AUTH_USER_FIELDS = `
   study_status,
   balance_info,
   grant_type,
+  is_active,
   date_of_birth,
   registration_date,
   is_superadmin,

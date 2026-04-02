@@ -45,6 +45,7 @@ function UserManagement({ user }) {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkError, setBulkError] = useState('');
   const [bulkNotice, setBulkNotice] = useState('');
+  const [statusLoadingId, setStatusLoadingId] = useState(null);
 
   const loadUsers = async () => {
     try {
@@ -163,6 +164,20 @@ function UserManagement({ user }) {
     });
   };
 
+  const handleToggleUserStatus = async (account) => {
+    try {
+      setStatusLoadingId(account.id);
+      setError('');
+      const nextActiveState = !account.is_active;
+      await api.updateUserStatus(account.id, nextActiveState);
+      await loadUsers();
+    } catch (err) {
+      setError(err.message || 'Failed to update account status');
+    } finally {
+      setStatusLoadingId(null);
+    }
+  };
+
   const filteredUsers = users.filter((item) => {
     const matchesRole = roleFilter === 'all' || getRoleKey(item) === roleFilter;
     const haystack = [item.name, item.email, item.student_id, item.group_name, item.subgroup_name, item.faculty]
@@ -175,6 +190,8 @@ function UserManagement({ user }) {
 
   const counts = {
     total: users.length,
+    active: users.filter((item) => item.is_active).length,
+    inactive: users.filter((item) => !item.is_active).length,
     students: users.filter((item) => getRoleKey(item) === 'student').length,
     teachers: users.filter((item) => getRoleKey(item) === 'teacher').length,
     admins: users.filter((item) => item.role === 'admin' && getRoleKey(item) !== 'superadmin').length,
@@ -221,6 +238,14 @@ function UserManagement({ user }) {
         <div className="management-summary-card">
           <span className="management-summary-label">Students</span>
           <strong>{counts.students}</strong>
+        </div>
+        <div className="management-summary-card">
+          <span className="management-summary-label">Active</span>
+          <strong>{counts.active}</strong>
+        </div>
+        <div className="management-summary-card">
+          <span className="management-summary-label">Inactive</span>
+          <strong>{counts.inactive}</strong>
         </div>
         <div className="management-summary-card">
           <span className="management-summary-label">Teachers</span>
@@ -556,10 +581,12 @@ function UserManagement({ user }) {
                   <th>Name</th>
                   <th>Email</th>
                   <th>Role</th>
+                  <th>Status</th>
                   <th>Student ID</th>
                   <th>Group</th>
                   <th>Subgroup</th>
                   <th>Faculty</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -570,10 +597,38 @@ function UserManagement({ user }) {
                     <td>
                       <span className={`role-badge role-${getRoleKey(item)}`}>{getRoleLabel(item)}</span>
                     </td>
+                    <td>
+                      <span className={`account-status-badge ${item.is_active ? 'active' : 'inactive'}`}>
+                        {item.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
                     <td>{item.student_id || '-'}</td>
                     <td>{item.group_name || '-'}</td>
                     <td>{item.subgroup_name || '-'}</td>
                     <td>{item.faculty || '-'}</td>
+                    <td>
+                      <div className="user-actions">
+                        <button
+                          type="button"
+                          className={`btn-secondary btn-sm ${item.is_active ? 'danger-soft' : 'success-soft'}`}
+                          onClick={() => handleToggleUserStatus(item)}
+                          disabled={statusLoadingId === item.id || item.id === user?.id || getRoleKey(item) === 'superadmin'}
+                          title={
+                            item.id === user?.id
+                              ? 'You cannot change your own account status here'
+                              : getRoleKey(item) === 'superadmin'
+                                ? 'Super admin account is protected'
+                                : ''
+                          }
+                        >
+                          {statusLoadingId === item.id
+                            ? 'Updating...'
+                            : item.is_active
+                              ? 'Disable'
+                              : 'Restore'}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

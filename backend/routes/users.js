@@ -5,7 +5,7 @@ const router = express.Router();
 const { auth, isAdmin } = require('../middleware/auth');
 const db = require('../config/database');
 const { applyBulkUserImport, previewBulkUserImport } = require('../utils/bulkUserImport');
-const { hasAdminAccess } = require('../utils/access');
+const { hasAdminAccess, hasSuperadminAccess } = require('../utils/access');
 
 const PROFILE_FIELDS = `
   id,
@@ -29,6 +29,7 @@ const PROFILE_FIELDS = `
   study_status,
   balance_info,
   grant_type,
+  is_active,
   is_superadmin,
   last_login_at,
   last_login_ip,
@@ -54,6 +55,12 @@ const normalizeOptionalInteger = (value) => {
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : null;
 };
+
+const toActiveDatabaseValue = (isActive) => (
+  db.client === 'postgres'
+    ? Boolean(isActive)
+    : (isActive ? 1 : 0)
+);
 
 const normalizeUserPayload = (payload = {}) => {
   const role = normalizeOptionalText(payload.role);
@@ -300,6 +307,58 @@ router.post('/bulk/apply', auth, isAdmin, async (req, res) => {
       ? 400
       : 500;
     res.status(statusCode).json({ error: error.message || 'Bulk import failed' });
+  }
+});
+
+router.patch('/:id/status', auth, isAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: 'Valid user ID is required' });
+    }
+
+    if (req.user.id === userId) {
+      return res.status(400).json({ error: 'You cannot disable or restore your own account from this screen' });
+    }
+
+    if (typeof req.body?.is_active !== 'boolean') {
+      return res.status(400).json({ error: 'is_active boolean is required' });
+    }
+
+    const targetUser = await db.get(
+      `SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`,
+      [userId]
+    );
+
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (targetUser.is_superadmin) {
+      return res.status(403).json({ error: 'Super admin accounts cannot be disabled from the admin workspace' });
+    }
+
+    if (targetUser.role === 'admin' && !hasSuperadminAccess(req.user)) {
+      return res.status(403).json({ error: 'Only a super admin can change another admin account status' });
+    }
+
+    await db.run(
+      'UPDATE users SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [toActiveDatabaseValue(req.body.is_active), userId]
+    );
+
+    const updatedUser = await db.get(
+      `SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`,
+      [userId]
+    );
+
+    res.json({
+      message: req.body.is_active ? 'Account restored successfully' : 'Account disabled successfully',
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Update user status error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 

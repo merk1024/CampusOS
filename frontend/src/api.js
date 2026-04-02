@@ -175,6 +175,14 @@ export const api = {
     });
   },
 
+  async updateUserStatus(id, isActive) {
+    return request(`/users/${id}/status`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ is_active: isActive })
+    });
+  },
+
   async getCourses() {
     return request('/courses', { headers: getHeaders() });
   },

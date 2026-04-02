@@ -240,6 +240,64 @@ test('admin can apply bulk user creation and receive generated passwords', async
   assert.ok(directory.body.users.some((user) => user.email === teacherEmail));
 });
 
+test('admin can disable and restore a user account', async () => {
+  const adminSession = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+  const uniqueEmail = `status-teacher-${Date.now()}@campusos.test`;
+  const teacherPassword = 'StatusTeacher123!';
+
+  const createdAccount = await request('/api/users', {
+    method: 'POST',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({
+      name: 'Status Managed Teacher',
+      email: uniqueEmail,
+      password: teacherPassword,
+      role: 'teacher'
+    })
+  });
+
+  assert.equal(createdAccount.response.status, 201, JSON.stringify(createdAccount.body));
+  const createdUserId = createdAccount.body.user.id;
+
+  const disabledResult = await request(`/api/users/${createdUserId}/status`, {
+    method: 'PATCH',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({ is_active: false })
+  });
+
+  assert.equal(disabledResult.response.status, 200, JSON.stringify(disabledResult.body));
+  assert.equal(disabledResult.body.user.is_active, 0);
+
+  const blockedLogin = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({
+      login: uniqueEmail,
+      password: teacherPassword
+    })
+  });
+
+  assert.equal(blockedLogin.response.status, 403);
+  assert.equal(blockedLogin.body.error, 'Account is disabled');
+
+  const restoredResult = await request(`/api/users/${createdUserId}/status`, {
+    method: 'PATCH',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({ is_active: true })
+  });
+
+  assert.equal(restoredResult.response.status, 200, JSON.stringify(restoredResult.body));
+
+  const restoredLogin = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({
+      login: uniqueEmail,
+      password: teacherPassword
+    })
+  });
+
+  assert.equal(restoredLogin.response.status, 200, JSON.stringify(restoredLogin.body));
+});
+
 test('teacher can open attendance management sessions but student cannot', async () => {
   const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
   const teacherResult = await request('/api/attendance/management/sessions?date=2026-03-27', {
