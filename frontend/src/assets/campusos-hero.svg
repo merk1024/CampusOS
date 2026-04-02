@@ -1,62 +1,48 @@
-<svg width="780" height="220" viewBox="0 0 780 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="660" height="180" viewBox="0 0 660 180" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="hero-blue" x1="20" y1="22" x2="134" y2="138" gradientUnits="userSpaceOnUse">
+    <linearGradient id="hero-blue" x1="18" y1="18" x2="120" y2="118" gradientUnits="userSpaceOnUse">
       <stop stop-color="#37C8FF"/>
       <stop offset="1" stop-color="#0B6BFF"/>
     </linearGradient>
-    <linearGradient id="hero-orange" x1="42" y1="64" x2="136" y2="152" gradientUnits="userSpaceOnUse">
+    <linearGradient id="hero-orange" x1="38" y1="52" x2="122" y2="132" gradientUnits="userSpaceOnUse">
       <stop stop-color="#FFD15A"/>
       <stop offset="1" stop-color="#FF6A00"/>
     </linearGradient>
-    <linearGradient id="hero-os" x1="430" y1="36" x2="566" y2="146" gradientUnits="userSpaceOnUse">
+    <linearGradient id="hero-os" x1="366" y1="30" x2="490" y2="112" gradientUnits="userSpaceOnUse">
       <stop stop-color="#3AD6FF"/>
       <stop offset="1" stop-color="#0B77FF"/>
     </linearGradient>
-    <filter id="hero-mark-shadow" x="0" y="0" width="176" height="176" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#020617" flood-opacity="0.26"/>
+    <filter id="hero-shadow" x="0" y="0" width="154" height="154" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#020617" flood-opacity="0.22"/>
     </filter>
   </defs>
 
-  <g transform="translate(18 22)" filter="url(#hero-mark-shadow)">
-    <circle cx="66" cy="66" r="48" fill="#0E1628"/>
-    <circle cx="66" cy="66" r="37" fill="none" stroke="#1F2A44" stroke-width="4"/>
-    <ellipse cx="66" cy="66" rx="55" ry="37" transform="rotate(-30 66 66)" stroke="url(#hero-blue)" stroke-width="8"/>
-    <ellipse cx="66" cy="66" rx="58" ry="16" transform="rotate(-30 66 66)" stroke="url(#hero-orange)" stroke-width="8"/>
-    <path d="M67 14L71 24L81 28L71 32L67 42L63 32L53 28L63 24L67 14Z" fill="#FFD978"/>
-    <path d="M66 36L96 51V58H36V51L66 36Z" fill="#F7FAFF"/>
-    <path d="M45 60H87V66H45V60Z" fill="#F7FAFF"/>
-    <path d="M47 69H55V96H47V69Z" fill="#F7FAFF"/>
-    <path d="M62 69H70V96H62V69Z" fill="#F7FAFF"/>
-    <path d="M77 69H85V96H77V69Z" fill="#F7FAFF"/>
-    <path d="M39 99H93V106H39V99Z" fill="#F7FAFF"/>
-    <path d="M31 49H37V98H31V49Z" fill="#7F96C6"/>
-    <path d="M95 49H101V98H95V49Z" fill="#7F96C6"/>
+  <g transform="translate(14 18)" filter="url(#hero-shadow)">
+    <circle cx="56" cy="56" r="40" fill="#0E1628"/>
+    <circle cx="56" cy="56" r="31" fill="none" stroke="#1F2A44" stroke-width="3.2"/>
+    <ellipse cx="56" cy="56" rx="46" ry="31" transform="rotate(-30 56 56)" stroke="url(#hero-blue)" stroke-width="6.6"/>
+    <ellipse cx="56" cy="56" rx="49" ry="13.5" transform="rotate(-30 56 56)" stroke="url(#hero-orange)" stroke-width="6.6"/>
+    <path d="M57 12L60.5 20.8L69.3 24.3L60.5 27.8L57 36.6L53.5 27.8L44.7 24.3L53.5 20.8L57 12Z" fill="#FFD978"/>
+    <path d="M56 30L82 43V49H30V43L56 30Z" fill="#F7FAFF"/>
+    <path d="M38 50.5H74V55.5H38V50.5Z" fill="#F7FAFF"/>
+    <path d="M40 58H47V81H40V58Z" fill="#F7FAFF"/>
+    <path d="M52.5 58H59.5V81H52.5V58Z" fill="#F7FAFF"/>
+    <path d="M65 58H72V81H65V58Z" fill="#F7FAFF"/>
+    <path d="M33 84H79V90H33V84Z" fill="#F7FAFF"/>
+    <path d="M26 41H31V83H26V41Z" fill="#7F96C6"/>
+    <path d="M81 41H86V83H81V41Z" fill="#7F96C6"/>
   </g>
 
-  <g transform="translate(176 34)">
-    <text x="0" y="92" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="82" font-weight="800" letter-spacing="-2.4">
+  <g transform="translate(150 28)">
+    <text x="0" y="74" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="68" font-weight="800" letter-spacing="-2">
       Campus
     </text>
-    <text x="300" y="92" fill="url(#hero-os)" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="82" font-weight="800" letter-spacing="-2.4">
+    <text x="248" y="74" fill="url(#hero-os)" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="68" font-weight="800" letter-spacing="-2">
       OS
     </text>
-    <rect x="154" y="105" width="276" height="2.5" rx="1.25" fill="url(#hero-blue)" opacity="0.6"/>
-    <text x="0" y="136" fill="#8FDBFF" font-family="'JetBrains Mono', 'Segoe UI', monospace" font-size="24" font-weight="700" letter-spacing="3.4">
-      UNIFIED ACADEMIC PORTAL
+    <rect x="128" y="88" width="230" height="2" rx="1" fill="url(#hero-blue)" opacity="0.58"/>
+    <text x="0" y="118" fill="#8FDBFF" font-family="'JetBrains Mono', 'Segoe UI', monospace" font-size="20" font-weight="700" letter-spacing="2.8">
+      ACADEMIC PORTAL
     </text>
-
-    <g transform="translate(0 162)">
-      <rect x="0" y="-16" width="116" height="28" rx="14" fill="#101A31" fill-opacity="0.82" stroke="#1F3557"/>
-      <text x="19" y="3" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="12.5" font-weight="600" letter-spacing="0.3">Courses</text>
-
-      <rect x="128" y="-16" width="128" height="28" rx="14" fill="#101A31" fill-opacity="0.82" stroke="#1F3557"/>
-      <text x="147" y="3" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="12.5" font-weight="600" letter-spacing="0.3">Attendance</text>
-
-      <rect x="268" y="-16" width="110" height="28" rx="14" fill="#101A31" fill-opacity="0.82" stroke="#1F3557"/>
-      <text x="290" y="3" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="12.5" font-weight="600" letter-spacing="0.3">Grading</text>
-
-      <rect x="390" y="-16" width="124" height="28" rx="14" fill="#101A31" fill-opacity="0.82" stroke="#1F3557"/>
-      <text x="410" y="3" fill="#F8FAFF" font-family="'Lexend', 'Segoe UI', sans-serif" font-size="12.5" font-weight="600" letter-spacing="0.3">Schedule</text>
-    </g>
   </g>
 </svg>
