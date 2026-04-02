@@ -1156,22 +1156,42 @@ body {
   box-shadow: var(--shadow-lg);
 }
 
+.stat-content {
+  min-width: 0;
+  flex: 1;
+}
+
 .stat-icon {
   font-size: 2.5rem;
+  flex-shrink: 0;
 }
 
 .stat-value {
   font-size: 2rem;
   font-weight: 800;
   color: var(--accent);
-  line-height: 1;
+  line-height: 1.1;
   margin-bottom: 0.25rem;
+  overflow-wrap: anywhere;
 }
 
 .stat-label {
   font-size: 0.9rem;
   color: var(--text-muted);
   font-weight: 500;
+}
+
+.stat-value-name {
+  font-size: clamp(1.2rem, 2vw, 1.85rem);
+  line-height: 1.2;
+}
+
+.stat-meta {
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
 }
 
 /* Dashboard Grid */

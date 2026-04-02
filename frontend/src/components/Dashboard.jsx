@@ -2,6 +2,13 @@ import { getRoleLabel } from '../roles';
 
 function Dashboard({ user }) {
   const roleLabel = getRoleLabel(user);
+  const firstName = user?.name?.split(' ')?.[0] || 'there';
+  const displayName = user?.name?.trim() || 'Profile not set';
+  const accountMeta = user?.studentId
+    ? `Student ID: ${user.studentId}`
+    : user?.email
+      ? `Login: ${user.email}`
+      : 'Login details are not available yet';
 
   const quickActions = [
     'Open your schedule to check current classes.',
@@ -13,28 +20,31 @@ function Dashboard({ user }) {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Welcome back, {user.name.split(' ')[0]}!</h1>
+          <h1>Welcome back, {firstName}!</h1>
           <p>Your account is ready. Live data will appear here as it is added to the system.</p>
         </div>
       </div>
 
       <div className="stats-grid">
         <div className="stat-card" style={{ '--accent': '#8b5cf6' }}>
-          <span className="stat-icon">👤</span>
+          <span className="stat-icon">R</span>
           <div className="stat-content">
             <div className="stat-value">{roleLabel}</div>
             <div className="stat-label">Current role</div>
           </div>
         </div>
+
         <div className="stat-card" style={{ '--accent': '#10b981' }}>
-          <span className="stat-icon">🪪</span>
+          <span className="stat-icon">@</span>
           <div className="stat-content">
-            <div className="stat-value">{user.studentId || user.email}</div>
-            <div className="stat-label">Primary login</div>
+            <div className="stat-value stat-value-name">{displayName}</div>
+            <div className="stat-label">Account owner</div>
+            <div className="stat-meta">{accountMeta}</div>
           </div>
         </div>
+
         <div className="stat-card" style={{ '--accent': '#3b82f6' }}>
-          <span className="stat-icon">🏫</span>
+          <span className="stat-icon">G</span>
           <div className="stat-content">
             <div className="stat-value">{user.group || 'Not set'}</div>
             <div className="stat-label">Group</div>
@@ -49,14 +59,14 @@ function Dashboard({ user }) {
           </div>
           <div className="activity-list">
             <div className="activity-item">
-              <span className="activity-icon">✅</span>
+              <span className="activity-icon">OK</span>
               <div className="activity-content">
                 <div className="activity-text">Authenticated successfully</div>
                 <div className="activity-time">Your session is active</div>
               </div>
             </div>
             <div className="activity-item">
-              <span className="activity-icon">🗂️</span>
+              <span className="activity-icon">Live</span>
               <div className="activity-content">
                 <div className="activity-text">No demo data is shown on this dashboard</div>
                 <div className="activity-time">Only live system data should be displayed</div>

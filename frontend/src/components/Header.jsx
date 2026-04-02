@@ -4,6 +4,7 @@ import campusosBrandDark from '../assets/campusos-brand-dark.svg';
 import campusosBrandLight from '../assets/campusos-brand-light.svg';
 import campusosMobileDark from '../assets/campusos-mobile-dark.svg';
 import campusosMobileLight from '../assets/campusos-mobile-light.svg';
+import useMediaQuery from '../hooks/useMediaQuery';
 import { getRoleLabel } from '../roles';
 
 function MenuIcon() {
@@ -102,8 +103,10 @@ function Header({
 }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef(null);
+  const isCompactBrand = useMediaQuery('(max-width: 768px)');
   const brandLogo = theme === 'dark' ? campusosBrandDark : campusosBrandLight;
   const mobileBrandLogo = theme === 'dark' ? campusosMobileDark : campusosMobileLight;
+  const activeBrandLogo = isCompactBrand ? mobileBrandLogo : brandLogo;
   const displayName = user?.name?.trim() || user?.email || 'User';
   const firstName = displayName.split(/\s+/)[0] || 'User';
   const avatarLabel = user?.avatar?.trim()
@@ -158,10 +161,9 @@ function Header({
           <MenuIcon />
         </button>
         <button type="button" className="logo" onClick={() => handleNavigate('dashboard')} aria-label="Open dashboard">
-          <picture className="logo-media">
-            <source media="(max-width: 768px)" srcSet={mobileBrandLogo} />
-            <img src={brandLogo} alt="CampusOS" className="logo-image" />
-          </picture>
+          <span className="logo-media">
+            <img src={activeBrandLogo} alt="CampusOS" className="logo-image" />
+          </span>
           <span className="logo-chip">Portal</span>
         </button>
       </div>
