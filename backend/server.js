@@ -4,12 +4,15 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const { randomUUID } = require('crypto');
 require('dotenv').config();
 
 const db = require('./config/database');
 
 const app = express();
 const appEnvironment = process.env.APP_ENV || process.env.NODE_ENV || 'development';
+const appVersion = process.env.APP_VERSION || '1.0.0';
+const appStartedAt = new Date();
 const allowedOriginPatterns = [
   /^http:\/\/localhost(?::\d+)?$/i,
   /^http:\/\/127\.0\.0\.1(?::\d+)?$/i,
@@ -26,6 +29,13 @@ const isAllowedOrigin = (origin) => {
 
 app.use(helmet());
 app.use(compression());
+
+app.use((req, res, next) => {
+  const forwardedRequestId = String(req.headers['x-request-id'] || '').trim();
+  req.requestId = forwardedRequestId || randomUUID();
+  res.setHeader('X-Request-Id', req.requestId);
+  next();
+});
 
 app.use(cors({
   origin(origin, callback) {
@@ -47,9 +57,16 @@ app.use('/api/', limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
+morgan.token('request-id', (req) => req.requestId || '-');
+morgan.token('user-id', (req) => String(req.user?.id || 'guest'));
+
+const accessLogFormat = process.env.NODE_ENV === 'development'
+  ? 'dev'
+  : ':date[iso] :request-id :method :url :status :res[content-length] - :response-time ms user=:user-id';
+
+app.use(morgan(accessLogFormat, {
+  skip: (req) => req.path === '/health'
+}));
 
 app.use('/uploads', express.static('uploads'));
 
@@ -64,21 +81,64 @@ app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/integrations', require('./routes/integrations'));
 
+const buildServiceStatusPayload = (requestId, status, details = {}) => ({
+  service: 'CampusOS API',
+  version: appVersion,
+  environment: appEnvironment,
+  status,
+  timestamp: new Date().toISOString(),
+  startedAt: appStartedAt.toISOString(),
+  uptimeSeconds: Math.round(process.uptime()),
+  requestId,
+  ...details
+});
+
+const checkDatabaseReadiness = async () => {
+  await db.get('SELECT 1 AS ready');
+  return {
+    client: db.client,
+    status: 'ready'
+  };
+};
+
 app.get('/health', (req, res) => {
   res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    ...buildServiceStatusPayload(req.requestId, 'ok'),
+    database: {
+      client: db.client,
+      status: 'configured'
+    }
   });
+});
+
+app.get('/ready', async (req, res) => {
+  try {
+    const database = await checkDatabaseReadiness();
+
+    res.json({
+      ...buildServiceStatusPayload(req.requestId, 'ready'),
+      database
+    });
+  } catch (error) {
+    res.status(503).json({
+      ...buildServiceStatusPayload(req.requestId, 'degraded'),
+      database: {
+        client: db.client,
+        status: 'unavailable',
+        error: 'Database connection failed'
+      }
+    });
+  }
 });
 
 app.get('/api', (req, res) => {
   res.json({
     name: 'CampusOS API',
-    version: '1.0.0',
+    version: appVersion,
     environment: appEnvironment,
     status: 'online',
     health: '/health',
+    readiness: '/ready',
     resources: [
       '/api/auth',
       '/api/users',
@@ -97,11 +157,12 @@ app.get('/api', (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     message: 'CampusOS API',
-    version: '1.0.0',
+    version: appVersion,
     environment: appEnvironment,
     status: 'online',
     api: '/api',
-    health: '/health'
+    health: '/health',
+    readiness: '/ready'
   });
 });
 
@@ -110,14 +171,17 @@ app.use((err, req, res, next) => {
   res.status(err.statusCode || 500).json({
     error: {
       message: err.message || 'Internal Server Error',
-      status: err.statusCode || 500
-    }
+      status: err.statusCode || 500,
+      requestId: req.requestId
+    },
+    requestId: req.requestId
   });
 });
 
 app.use((req, res) => {
   res.status(404).json({
-    error: 'CampusOS API route not found'
+    error: 'CampusOS API route not found',
+    requestId: req.requestId
   });
 });
 

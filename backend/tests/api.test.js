@@ -101,6 +101,7 @@ test('GET / returns CampusOS service metadata', async () => {
   assert.equal(body.message, 'CampusOS API');
   assert.equal(body.api, '/api');
   assert.equal(body.health, '/health');
+  assert.equal(body.readiness, '/ready');
 });
 
 test('GET /api returns CampusOS resource summary', async () => {
@@ -109,8 +110,37 @@ test('GET /api returns CampusOS resource summary', async () => {
   assert.equal(response.status, 200);
   assert.equal(body.name, 'CampusOS API');
   assert.equal(body.status, 'online');
+  assert.equal(body.readiness, '/ready');
   assert.ok(Array.isArray(body.resources));
   assert.ok(body.resources.includes('/api/courses'));
+});
+
+test('GET /health returns request tracing metadata', async () => {
+  const customRequestId = `health-${Date.now()}`;
+  const { response, body } = await request('/health', {
+    headers: {
+      'X-Request-Id': customRequestId
+    }
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-request-id'), customRequestId);
+  assert.equal(body.requestId, customRequestId);
+  assert.equal(body.status, 'ok');
+  assert.equal(body.service, 'CampusOS API');
+  assert.equal(body.database.client, 'sqlite');
+  assert.equal(body.database.status, 'configured');
+  assert.equal(typeof body.uptimeSeconds, 'number');
+});
+
+test('GET /ready verifies database readiness', async () => {
+  const { response, body } = await request('/ready');
+
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.equal(body.status, 'ready');
+  assert.equal(body.database.client, 'sqlite');
+  assert.equal(body.database.status, 'ready');
+  assert.ok(body.requestId);
 });
 
 test('student cannot access admin-only user directory', async () => {
