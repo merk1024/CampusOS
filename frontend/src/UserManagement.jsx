@@ -23,6 +23,13 @@ const EMPTY_USER = {
   emergency_contact: ''
 };
 
+const BULK_IMPORT_TEMPLATE = [
+  'name,email,role,password,student_id,group_name,subgroup_name,faculty,major,year_of_study,phone',
+  'Ainur Sadykova,ainur.sadykova@alatoo.edu.kg,student,,240141099,CYB-23,1-Group,School of Engineering,Cybersecurity,2,+996700123456',
+  'Azhar Kazakbaeva,azhar.kazakbaeva@alatoo.edu.kg,teacher,,,,School of Engineering,Cybersecurity,,+996700499001',
+  'Operations Admin,ops.admin@alatoo.edu.kg,admin,,,,,,,'
+].join('\n');
+
 function UserManagement({ user }) {
   const [users, setUsers] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -31,6 +38,13 @@ function UserManagement({ user }) {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [bulkCsvText, setBulkCsvText] = useState('');
+  const [bulkPreview, setBulkPreview] = useState(null);
+  const [bulkPreviewText, setBulkPreviewText] = useState('');
+  const [bulkCredentials, setBulkCredentials] = useState([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkError, setBulkError] = useState('');
+  const [bulkNotice, setBulkNotice] = useState('');
 
   const loadUsers = async () => {
     try {
@@ -64,6 +78,72 @@ function UserManagement({ user }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePreviewBulkImport = async () => {
+    try {
+      setBulkLoading(true);
+      setBulkError('');
+      setBulkNotice('');
+      setBulkCredentials([]);
+
+      const preview = await api.previewBulkUsers(bulkCsvText);
+      setBulkPreview(preview);
+      setBulkPreviewText(bulkCsvText);
+      setBulkNotice(`Preview ready: ${preview.summary.create} row(s) can be created.`);
+    } catch (err) {
+      setBulkError(err.message || 'Failed to preview the bulk import');
+      setBulkPreview(null);
+      setBulkPreviewText('');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleApplyBulkImport = async () => {
+    try {
+      setBulkLoading(true);
+      setBulkError('');
+      setBulkNotice('');
+
+      const result = await api.applyBulkUsers(bulkCsvText);
+      setBulkPreview({
+        summary: {
+          total: result.summary.total,
+          create: 0,
+          skip: result.summary.skipped,
+          error: result.summary.errors,
+          generatedPasswords: result.summary.generatedPasswords
+        },
+        rows: result.rows
+      });
+      setBulkPreviewText(bulkCsvText);
+      setBulkCredentials(result.credentials || []);
+      setBulkNotice(`Bulk import finished: ${result.summary.created} account(s) created.`);
+      await loadUsers();
+    } catch (err) {
+      setBulkError(err.message || 'Failed to apply the bulk import');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleInsertBulkTemplate = () => {
+    setBulkCsvText(BULK_IMPORT_TEMPLATE);
+    setBulkPreview(null);
+    setBulkPreviewText('');
+    setBulkCredentials([]);
+    setBulkError('');
+    setBulkNotice('');
+  };
+
+  const handleClearBulkImport = () => {
+    setBulkCsvText('');
+    setBulkPreview(null);
+    setBulkPreviewText('');
+    setBulkCredentials([]);
+    setBulkError('');
+    setBulkNotice('');
   };
 
   const handleInputChange = (event) => {
@@ -101,6 +181,12 @@ function UserManagement({ user }) {
     superAdmins: users.filter((item) => getRoleKey(item) === 'superadmin').length
   };
   const hasActiveFilters = roleFilter !== 'all' || searchTerm.trim() !== '';
+  const canApplyBulkImport = (
+    bulkPreview
+    && bulkPreviewText === bulkCsvText
+    && Number(bulkPreview.summary?.create || 0) > 0
+    && !bulkLoading
+  );
 
   if (!hasAdminAccess(user)) {
     return (
@@ -149,6 +235,162 @@ function UserManagement({ user }) {
           <strong>{counts.superAdmins}</strong>
         </div>
       </div>
+
+      <div className="exam-form-card bulk-import-card">
+        <div className="exam-form-header">
+          <div>
+            <h3>Bulk create users</h3>
+            <p>Paste CSV or TSV rows to preview student, teacher, and admin account creation before applying it.</p>
+          </div>
+        </div>
+
+        <StatusBanner tone="error" title="Bulk import failed" message={bulkError} />
+        <StatusBanner tone="success" title="Bulk import ready" message={bulkNotice} />
+
+        <div className="bulk-import-note">
+          <strong>Supported columns</strong>
+          <span>
+            `name`, `email`, `role`, optional `password`, plus student fields like `student_id`, `group_name`, and `subgroup_name`.
+            If `password` is empty, CampusOS will generate a temporary one and show it once after apply.
+          </span>
+        </div>
+
+        <label className="bulk-import-field">
+          <span className="exam-form-label">CSV / TSV content</span>
+          <textarea
+            className="bulk-import-textarea"
+            value={bulkCsvText}
+            onChange={(event) => {
+              setBulkCsvText(event.target.value);
+              setBulkPreview(null);
+              setBulkPreviewText('');
+              setBulkCredentials([]);
+              setBulkError('');
+              setBulkNotice('');
+            }}
+            rows="8"
+            placeholder="Paste CSV or TSV content here"
+          />
+        </label>
+
+        <div className="portal-actions bulk-import-actions">
+          <button type="button" className="btn-secondary" onClick={handleInsertBulkTemplate}>
+            Load sample template
+          </button>
+          <button type="button" className="btn-secondary" onClick={handleClearBulkImport}>
+            Clear
+          </button>
+          <button type="button" className="btn-secondary" onClick={handlePreviewBulkImport} disabled={bulkLoading || !bulkCsvText.trim()}>
+            {bulkLoading ? 'Preparing...' : 'Preview import'}
+          </button>
+          <button type="button" className="btn-primary" onClick={handleApplyBulkImport} disabled={!canApplyBulkImport}>
+            Apply bulk create
+          </button>
+        </div>
+      </div>
+
+      {bulkPreview && (
+        <>
+          <div className="management-summary-grid bulk-preview-summary">
+            <div className="management-summary-card">
+              <span className="management-summary-label">Rows parsed</span>
+              <strong>{bulkPreview.summary.total}</strong>
+            </div>
+            <div className="management-summary-card">
+              <span className="management-summary-label">Ready to create</span>
+              <strong>{bulkPreview.summary.create}</strong>
+            </div>
+            <div className="management-summary-card">
+              <span className="management-summary-label">Will be skipped</span>
+              <strong>{bulkPreview.summary.skip}</strong>
+            </div>
+            <div className="management-summary-card">
+              <span className="management-summary-label">Errors</span>
+              <strong>{bulkPreview.summary.error}</strong>
+            </div>
+            <div className="management-summary-card">
+              <span className="management-summary-label">Generated passwords</span>
+              <strong>{bulkPreview.summary.generatedPasswords}</strong>
+            </div>
+          </div>
+
+          <div className="data-table-card users-table">
+            <div className="data-table-header">
+              <div>
+                <h3>Bulk import preview</h3>
+                <p className="data-table-meta">Review each row before applying the import.</p>
+              </div>
+            </div>
+            <div className="data-table-scroll">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Row</th>
+                    <th>Action</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Student ID</th>
+                    <th>Group</th>
+                    <th>Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bulkPreview.rows.map((row) => (
+                    <tr key={`${row.rowNumber}-${row.email}-${row.name}`}>
+                      <td>{row.rowNumber}</td>
+                      <td>
+                        <span className={`bulk-preview-action ${row.action}`}>{row.action}</span>
+                      </td>
+                      <td>{row.name}</td>
+                      <td>{row.email}</td>
+                      <td>{row.role}</td>
+                      <td>{row.student_id || '-'}</td>
+                      <td>{row.group_name || '-'}</td>
+                      <td>{row.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {bulkCredentials.length > 0 && (
+        <div className="data-table-card users-table">
+          <div className="data-table-header">
+            <div>
+              <h3>Generated temporary passwords</h3>
+              <p className="data-table-meta">These passwords are shown only now. Share them securely with the affected users.</p>
+            </div>
+          </div>
+          <div className="data-table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Student ID</th>
+                  <th>Temporary password</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bulkCredentials.map((credential) => (
+                  <tr key={`${credential.id}-${credential.email}`}>
+                    <td>{credential.name}</td>
+                    <td>{credential.email}</td>
+                    <td>{credential.role}</td>
+                    <td>{credential.student_id || '-'}</td>
+                    <td className="bulk-password-cell">{credential.password}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="management-toolbar">
         <div className="management-search">

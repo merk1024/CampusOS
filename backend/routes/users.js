@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const router = express.Router();
 const { auth, isAdmin } = require('../middleware/auth');
 const db = require('../config/database');
+const { applyBulkUserImport, previewBulkUserImport } = require('../utils/bulkUserImport');
 const { hasAdminAccess } = require('../utils/access');
 
 const PROFILE_FIELDS = `
@@ -276,6 +277,29 @@ router.post('/', auth, isAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Email or student ID already exists' });
     }
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/bulk/preview', auth, isAdmin, async (req, res) => {
+  try {
+    const preview = await previewBulkUserImport(req.body?.csvText);
+    res.json(preview);
+  } catch (error) {
+    console.error('Bulk user preview error:', error);
+    res.status(400).json({ error: error.message || 'Bulk preview failed' });
+  }
+});
+
+router.post('/bulk/apply', auth, isAdmin, async (req, res) => {
+  try {
+    const result = await applyBulkUserImport(req.body?.csvText);
+    res.status(201).json(result);
+  } catch (error) {
+    console.error('Bulk user apply error:', error);
+    const statusCode = error.message?.includes('Paste CSV') || error.message?.includes('header row')
+      ? 400
+      : 500;
+    res.status(statusCode).json({ error: error.message || 'Bulk import failed' });
   }
 });
 

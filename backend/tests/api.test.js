@@ -186,6 +186,60 @@ test('admin can create another admin without student-only fields', async () => {
   assert.equal(body.user.student_id, null);
 });
 
+test('admin can preview bulk user creation with create, skip, and error rows', async () => {
+  const adminSession = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+  const uniqueSuffix = Date.now();
+  const csvText = [
+    'name,email,role,student_id,group_name',
+    `Bulk Student ${uniqueSuffix},bulk-student-${uniqueSuffix}@campusos.test,student,24014${uniqueSuffix},CYB-23`,
+    'Existing Teacher,teacher@alatoo.edu.kg,teacher,,',
+    `Broken Role ${uniqueSuffix},broken-role-${uniqueSuffix}@campusos.test,manager,,`
+  ].join('\n');
+
+  const { response, body } = await request('/api/users/bulk/preview', {
+    method: 'POST',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({ csvText })
+  });
+
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.equal(body.summary.total, 3);
+  assert.equal(body.summary.create, 1);
+  assert.equal(body.summary.skip, 1);
+  assert.equal(body.summary.error, 1);
+});
+
+test('admin can apply bulk user creation and receive generated passwords', async () => {
+  const adminSession = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+  const uniqueSuffix = Date.now();
+  const studentEmail = `bulk-student-${uniqueSuffix}@campusos.test`;
+  const teacherEmail = `bulk-teacher-${uniqueSuffix}@campusos.test`;
+  const csvText = [
+    'name,email,role,student_id,group_name,faculty,major',
+    `Bulk Student ${uniqueSuffix},${studentEmail},student,24${uniqueSuffix},CYB-23,School of Engineering,Cybersecurity`,
+    `Bulk Teacher ${uniqueSuffix},${teacherEmail},teacher,,,School of Engineering,Cybersecurity`
+  ].join('\n');
+
+  const { response, body } = await request('/api/users/bulk/apply', {
+    method: 'POST',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({ csvText })
+  });
+
+  assert.equal(response.status, 201, JSON.stringify(body));
+  assert.equal(body.summary.created, 2);
+  assert.equal(body.credentials.length, 2);
+  assert.ok(body.credentials.every((credential) => credential.password));
+
+  const directory = await request('/api/users', {
+    headers: authHeaders(adminSession.token)
+  });
+
+  assert.equal(directory.response.status, 200);
+  assert.ok(directory.body.users.some((user) => user.email === studentEmail));
+  assert.ok(directory.body.users.some((user) => user.email === teacherEmail));
+});
+
 test('teacher can open attendance management sessions but student cannot', async () => {
   const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
   const teacherResult = await request('/api/attendance/management/sessions?date=2026-03-27', {

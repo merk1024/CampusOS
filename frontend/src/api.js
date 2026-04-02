@@ -147,6 +147,22 @@ export const api = {
     });
   },
 
+  async previewBulkUsers(csvText) {
+    return request('/users/bulk/preview', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ csvText })
+    });
+  },
+
+  async applyBulkUsers(csvText) {
+    return request('/users/bulk/apply', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ csvText })
+    });
+  },
+
   async getUserById(id) {
     return request(`/users/${id}`, { headers: getHeaders() });
   },
