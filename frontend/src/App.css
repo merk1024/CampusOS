@@ -660,10 +660,17 @@ body {
   font: inherit;
 }
 
+.logo-media {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .logo-image {
   height: 2.4rem;
   width: auto;
   max-width: min(15rem, 100%);
+  display: block;
 }
 
 .logo-chip {
@@ -918,9 +925,15 @@ body {
   align-items: center;
 }
 
+.footer-logo-media {
+  display: flex;
+  align-items: center;
+}
+
 .footer-logo-image {
   height: 2rem;
   width: auto;
+  display: block;
 }
 
 .footer-text {
@@ -1368,7 +1381,8 @@ body {
   }
 
   .logo-image {
-    height: 2.1rem;
+    height: 2.2rem;
+    max-width: 2.2rem;
   }
 
   .header-left,
@@ -1441,6 +1455,11 @@ body {
     flex-direction: column;
     text-align: center;
     gap: 1.5rem;
+  }
+
+  .footer-logo-image {
+    height: 2.15rem;
+    max-width: 2.15rem;
   }
 
   .footer-right {

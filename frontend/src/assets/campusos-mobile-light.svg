@@ -1,0 +1,33 @@
+<svg width="88" height="88" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mobile-light-blue" x1="10" y1="10" x2="72" y2="72" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#37C8FF"/>
+      <stop offset="1" stop-color="#0B6BFF"/>
+    </linearGradient>
+    <linearGradient id="mobile-light-orange" x1="24" y1="28" x2="76" y2="80" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD15A"/>
+      <stop offset="1" stop-color="#FF6A00"/>
+    </linearGradient>
+    <filter id="mobile-light-shadow" x="6" y="8" width="76" height="74" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#0F172A" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <g transform="translate(8 8)">
+    <g filter="url(#mobile-light-shadow)">
+      <circle cx="36" cy="34" r="24" fill="#0E1628"/>
+      <circle cx="36" cy="34" r="18.5" fill="none" stroke="#1F2A44" stroke-width="2.4"/>
+      <ellipse cx="36" cy="34" rx="28" ry="18.5" transform="rotate(-30 36 34)" stroke="url(#mobile-light-blue)" stroke-width="4.2"/>
+      <ellipse cx="36" cy="34" rx="30" ry="8.5" transform="rotate(-30 36 34)" stroke="url(#mobile-light-orange)" stroke-width="4.2"/>
+    </g>
+    <path d="M36 7L38.2 13.2L44.4 15.4L38.2 17.6L36 23.8L33.8 17.6L27.6 15.4L33.8 13.2L36 7Z" fill="#FFD978"/>
+    <path d="M36 18L50.5 25.5V29H21.5V25.5L36 18Z" fill="#F7FAFF"/>
+    <path d="M26 30.5H46V33.6H26V30.5Z" fill="#F7FAFF"/>
+    <path d="M27 35H31.2V49H27V35Z" fill="#F7FAFF"/>
+    <path d="M33.9 35H38.1V49H33.9V35Z" fill="#F7FAFF"/>
+    <path d="M40.8 35H45V49H40.8V35Z" fill="#F7FAFF"/>
+    <path d="M22.5 50.6H49.5V54.2H22.5V50.6Z" fill="#F7FAFF"/>
+    <path d="M18.6 24.6H21.8V50.6H18.6V24.6Z" fill="#7F96C6"/>
+    <path d="M50.2 24.6H53.4V50.6H50.2V24.6Z" fill="#7F96C6"/>
+  </g>
+</svg>
