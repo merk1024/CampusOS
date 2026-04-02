@@ -400,7 +400,7 @@ const runVersionedMigrations = async (context) => {
     }
 
     await migration.apply(context);
-    await context.adapter.run(
+    await context.adapter.query(
       'INSERT INTO schema_migrations (version, description) VALUES (?, ?)',
       [migration.version, migration.description]
     );
