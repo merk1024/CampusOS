@@ -146,6 +146,20 @@ Root scripts:
 - `npm run scan:zap`
 - `npm run export:security-docx`
 
+## Continuous integration
+
+GitHub Actions workflow:
+
+- `.github/workflows/ci.yml`
+
+It runs automatically on pushes to `main`, pull requests, and manual dispatches.
+
+Current checks:
+
+- backend: `npm test`
+- frontend: `npm run lint`
+- frontend: `npm run build`
+
 Backend scripts:
 
 - `npm --prefix backend run seed`

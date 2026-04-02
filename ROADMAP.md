@@ -157,8 +157,8 @@ Goal: move to a downloadable mobile app after the web version is stabilized.
 - `√` Render blueprint
 - `√` PostgreSQL deployment path
 - `√` health endpoint
-- `x` CI pipeline
-- `x` automated tests in deploy gate
+- `√` CI pipeline
+- `-` automated tests in deploy gate
 - `x` error monitoring
 - `x` backup and restore playbook
 
