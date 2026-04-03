@@ -1048,7 +1048,7 @@ body {
   position: sticky;
   top: var(--header-height);
   height: calc(100vh - var(--header-height));
-  overflow-y: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
@@ -1061,6 +1061,7 @@ body {
   height: 100%;
   background: rgba(0, 0, 0, 0.5);
   z-index: 199;
+  touch-action: none;
 }
 
 .sidebar-nav {
@@ -1069,6 +1070,10 @@ body {
   flex-direction: column;
   gap: 0.5rem;
   min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 0.15rem;
 }
 
 .nav-item {
@@ -1667,6 +1672,9 @@ body {
 @media (max-width: 768px) {
   .app.sidebar-open .main-content {
     pointer-events: none;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
   }
 
   .login-page {
