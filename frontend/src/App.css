@@ -1048,6 +1048,9 @@ body {
   position: sticky;
   top: var(--header-height);
   height: calc(100vh - var(--header-height));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sidebar-overlay {
@@ -1065,6 +1068,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-height: 0;
 }
 
 .nav-item {

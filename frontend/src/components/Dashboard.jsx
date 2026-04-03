@@ -61,6 +61,10 @@ function escapeCsvValue(value) {
   return `"${String(value ?? '').replace(/"/g, '""')}"`;
 }
 
+function sanitizeUiCopy(value) {
+  return String(value ?? '').replaceAll('вЂ™', "'");
+}
+
 function downloadCsvFile(filename, headers, rows) {
   const csvLines = [
     headers.map((header) => escapeCsvValue(header.label)).join(','),
@@ -139,7 +143,7 @@ function Dashboard({ user, onNavigate }) {
     },
     {
       title: workspaceMode,
-      subtitle: nextFocus,
+      subtitle: displayNextFocus,
       badge: roleLabel
     },
     {
@@ -163,8 +167,14 @@ function Dashboard({ user, onNavigate }) {
       : [
           'Course cards only appear after enrollment or linked academic assignment.',
           'Grades and attendance update as teachers publish live records.',
-        'Profile settings help keep your academic identity up to date.'
+          'Profile settings help keep your academic identity up to date.'
         ];
+  const displayNextFocus = sanitizeUiCopy(nextFocus);
+  const displayActionCards = actionCards.map((item) => ({
+    ...item,
+    label: sanitizeUiCopy(item.label),
+    description: sanitizeUiCopy(item.description)
+  }));
 
   useEffect(() => {
     const loadRiskFlags = async () => {
@@ -300,7 +310,7 @@ function Dashboard({ user, onNavigate }) {
         <div className="dashboard-hero-copy">
           <span className="dashboard-eyebrow">CampusOS workspace</span>
           <h2>{workspaceMode}</h2>
-          <p>{nextFocus}</p>
+          <p>{displayNextFocus}</p>
         </div>
         <div className="dashboard-pill-list" aria-label="Current account summary">
           <span className="dashboard-pill">{roleLabel}</span>
@@ -359,7 +369,7 @@ function Dashboard({ user, onNavigate }) {
             <h3>Quick Actions</h3>
           </div>
           <div className="dashboard-action-grid">
-            {actionCards.map((action) => (
+            {displayActionCards.map((action) => (
               <button
                 key={action.id}
                 type="button"

@@ -111,6 +111,19 @@ const getScheduleCardStyle = (entry) => {
 
 const normalizeDay = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
+  const normalizedAliases = {
+    понедельник: 'Monday',
+    вторник: 'Tuesday',
+    среда: 'Wednesday',
+    четверг: 'Thursday',
+    пятница: 'Friday',
+    суббота: 'Saturday'
+  };
+
+  if (normalizedAliases[normalized]) {
+    return normalizedAliases[normalized];
+  }
+
   const match = Object.entries(dayAliases).find(([, aliases]) => aliases.some((alias) => alias.toLowerCase() === normalized));
   return match ? match[0] : value;
 };

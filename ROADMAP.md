@@ -77,9 +77,9 @@ Goal: make the product not only operational, but analytical.
 
 Goal: move to a downloadable mobile app after the web version is stabilized.
 
-- `в€љ` prepare a stable web API contract for a mobile client
-- `в€љ` choose between PWA / Capacitor / separate Android client
-- `в€љ` build a mobile pilot after the web MVP stabilizes
+- `√` prepare a stable web API contract for a mobile client
+- `√` choose between PWA / Capacitor / separate Android client
+- `√` build a mobile pilot after the web MVP stabilizes
 
 ---
 
