@@ -33,6 +33,11 @@ const SCHEDULE_COLUMNS = [
   ['course_id', 'INTEGER']
 ];
 
+const ANNOUNCEMENT_COLUMNS = [
+  ['audience_scope', "TEXT DEFAULT 'all'"],
+  ['audience_value', 'TEXT']
+];
+
 const SQLITE_AUDIT_TABLE_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS grade_audit_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -380,6 +385,18 @@ const getMigrationDefinitions = () => ([
         context.client === 'postgres'
           ? POSTGRES_PLATFORM_TABLE_STATEMENTS
           : SQLITE_PLATFORM_TABLE_STATEMENTS
+      );
+    }
+  },
+  {
+    version: '2026-04-03-006-announcement-audience',
+    description: 'Ensure announcement audience targeting columns exist',
+    async apply(context) {
+      await context.ensureColumns('announcements', ANNOUNCEMENT_COLUMNS);
+      await context.adapter.query(
+        `UPDATE announcements
+         SET audience_scope = COALESCE(audience_scope, 'all')
+         WHERE audience_scope IS NULL`
       );
     }
   }

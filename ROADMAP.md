@@ -70,8 +70,8 @@ Goal: make the product not only operational, but analytical.
 - `√` performance dashboards for students and groups
 - `√` attendance analytics
 - `√` risk flags for academic problems
-- `x` expanded announcements / notification flows
-- `x` faculty and dean office report exports
+- `√` expanded announcements / notification flows
+- `√` faculty and dean office report exports
 
 ### Phase 5 - Mobile direction
 

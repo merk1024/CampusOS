@@ -142,6 +142,8 @@ CREATE TABLE IF NOT EXISTS announcements (
     title TEXT NOT NULL,
     content TEXT NOT NULL,
     type TEXT DEFAULT 'general',
+    audience_scope TEXT DEFAULT 'all',
+    audience_value TEXT,
     course_id INTEGER REFERENCES courses(id) ON DELETE SET NULL,
     created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     is_pinned BOOLEAN DEFAULT FALSE,

@@ -304,6 +304,46 @@ export const api = {
     });
   },
 
+  async getFacultyOverviewReport(from, to) {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+
+    return request(`/ops/reports/faculty-overview?${params.toString()}`, {
+      headers: getHeaders()
+    });
+  },
+
+  async getDeanOfficeReport(from, to) {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+
+    return request(`/ops/reports/dean-office?${params.toString()}`, {
+      headers: getHeaders()
+    });
+  },
+
+  async getNotifications() {
+    return request('/ops/notifications/me', {
+      headers: getHeaders()
+    });
+  },
+
+  async markNotificationRead(id) {
+    return request(`/ops/notifications/${id}/read`, {
+      method: 'PATCH',
+      headers: getHeaders()
+    });
+  },
+
+  async markAllNotificationsRead() {
+    return request('/ops/notifications/me/read-all', {
+      method: 'PATCH',
+      headers: getHeaders()
+    });
+  },
+
   async getEnrolledCourses() {
     return request('/courses/enrolled', { headers: getHeaders() });
   },

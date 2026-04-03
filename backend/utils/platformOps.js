@@ -1,4 +1,10 @@
 const db = require('../config/database');
+const {
+  normalizeAudienceScope,
+  parseAudienceTokens,
+  normalizeGroupToken,
+  normalizeNumericId
+} = require('./announcementAudience');
 
 const ACTIVE_USER_FILTER = () => (
   db.client === 'postgres'
@@ -222,24 +228,35 @@ async function failJob(job, error) {
   );
 }
 
-async function getNotificationAudienceUsers({ audienceRoles = [], excludeUserId = null }) {
-  const roles = Array.isArray(audienceRoles)
-    ? audienceRoles.map((item) => String(item || '').trim()).filter(Boolean)
-    : [];
+const dedupeUsers = (users) => {
+  const byId = new Map();
+  users.forEach((user) => {
+    if (user?.id) {
+      byId.set(user.id, user);
+    }
+  });
+  return [...byId.values()];
+};
 
-  if (roles.length > 0) {
-    const placeholders = roles.map((_, index) => db.client === 'postgres' ? `$${index + 1}` : '?').join(', ');
-    const params = [...roles];
+async function getNotificationAudienceUsers({
+  audienceScope = 'all',
+  audienceValue = null,
+  courseId = null,
+  excludeUserId = null
+}) {
+  const normalizedScope = normalizeAudienceScope(audienceScope);
+
+  if (normalizedScope === 'all') {
+    const params = [];
     let sql = `
-      SELECT u.id, u.email, u.name, u.role
+      SELECT u.id, u.email, u.name, u.role, u.group_name, u.subgroup_name
       FROM users u
       WHERE ${ACTIVE_USER_FILTER()}
-        AND u.role IN (${placeholders})
     `;
 
     if (excludeUserId) {
       sql += db.client === 'postgres'
-        ? ` AND u.id <> $${roles.length + 1}`
+        ? ' AND u.id <> $1'
         : ' AND u.id <> ?';
       params.push(excludeUserId);
     }
@@ -247,27 +264,87 @@ async function getNotificationAudienceUsers({ audienceRoles = [], excludeUserId 
     return db.all(sql, params);
   }
 
-  const params = [];
-  let sql = `
-    SELECT u.id, u.email, u.name, u.role
-    FROM users u
-    WHERE ${ACTIVE_USER_FILTER()}
-  `;
+  if (normalizedScope === 'students' || normalizedScope === 'teachers' || normalizedScope === 'admins') {
+    const roleMap = {
+      students: 'student',
+      teachers: 'teacher',
+      admins: 'admin'
+    };
+    const params = [roleMap[normalizedScope]];
+    let sql = `
+      SELECT u.id, u.email, u.name, u.role, u.group_name, u.subgroup_name
+      FROM users u
+      WHERE ${ACTIVE_USER_FILTER()}
+        AND u.role = ?
+    `;
 
-  if (excludeUserId) {
-    sql += db.client === 'postgres'
-      ? ' AND u.id <> $1'
-      : ' AND u.id <> ?';
-    params.push(excludeUserId);
+    if (excludeUserId) {
+      sql += ' AND u.id <> ?';
+      params.push(excludeUserId);
+    }
+
+    return db.all(sql, params);
   }
 
-  return db.all(sql, params);
+  if (normalizedScope === 'group') {
+    const groups = parseAudienceTokens(audienceValue).map(normalizeGroupToken);
+    if (groups.length === 0) {
+      return [];
+    }
+
+    const students = await db.all(
+      `SELECT u.id, u.email, u.name, u.role, u.group_name, u.subgroup_name
+       FROM users u
+       WHERE ${ACTIVE_USER_FILTER()}
+         AND u.role = 'student'`
+    );
+
+    return students.filter((user) => {
+      if (excludeUserId && user.id === excludeUserId) {
+        return false;
+      }
+
+      return groups.includes(normalizeGroupToken(user.group_name))
+        || groups.includes(normalizeGroupToken(user.subgroup_name));
+    });
+  }
+
+  if (normalizedScope === 'course') {
+    const resolvedCourseId = normalizeNumericId(courseId);
+    if (!resolvedCourseId) {
+      return [];
+    }
+
+    const enrolledUsers = await db.all(
+      `SELECT DISTINCT u.id, u.email, u.name, u.role, u.group_name, u.subgroup_name
+       FROM users u
+       JOIN course_enrollments ce ON ce.student_id = u.id
+       WHERE ${ACTIVE_USER_FILTER()}
+         AND ce.course_id = ?`,
+      [resolvedCourseId]
+    );
+    const assignedTeacher = await db.all(
+      `SELECT DISTINCT u.id, u.email, u.name, u.role, u.group_name, u.subgroup_name
+       FROM users u
+       JOIN courses c ON c.teacher_id = u.id
+       WHERE ${ACTIVE_USER_FILTER()}
+         AND c.id = ?`,
+      [resolvedCourseId]
+    );
+
+    return dedupeUsers([...enrolledUsers, ...assignedTeacher]).filter((user) => (
+      excludeUserId ? user.id !== excludeUserId : true
+    ));
+  }
+
+  return [];
 }
 
-async function processNotificationBroadcastJob(job) {
-  const payload = JSON.parse(job.payload || '{}');
+async function deliverNotificationBroadcast(payload = {}) {
   const recipients = await getNotificationAudienceUsers({
-    audienceRoles: payload.audienceRoles,
+    audienceScope: payload.audienceScope,
+    audienceValue: payload.audienceValue,
+    courseId: payload.courseId,
     excludeUserId: payload.excludeUserId || null
   });
 
@@ -288,7 +365,17 @@ async function processNotificationBroadcastJob(job) {
   return {
     delivered: recipients.length,
     sourceType: payload.sourceType || 'system',
-    sourceId: payload.sourceId || job.id
+    sourceId: payload.sourceId || null
+  };
+}
+
+async function processNotificationBroadcastJob(job) {
+  const payload = JSON.parse(job.payload || '{}');
+  const deliveryResult = await deliverNotificationBroadcast(payload);
+
+  return {
+    ...deliveryResult,
+    sourceId: deliveryResult.sourceId || job.id
   };
 }
 
@@ -365,5 +452,6 @@ module.exports = {
   logSystemAudit,
   enqueueJob,
   createNotificationInboxEntry,
+  deliverNotificationBroadcast,
   runQueuedJobs
 };

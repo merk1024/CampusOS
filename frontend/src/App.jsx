@@ -23,7 +23,6 @@ import Messages from './components/Messages';
 import Profile from './components/Profile';
 import Schedule from './components/Schedule';
 import Settings from './components/Settings';
-import { getUnreadMessageCount, markMessagesAsRead } from './notificationState';
 import { getAccessiblePage } from './pageAccess';
 import { hasAdminAccess } from './roles';
 
@@ -205,19 +204,13 @@ export default function App() {
 
     const refreshMessageNotifications = async () => {
       try {
-        const response = await api.getAnnouncements();
+        const response = await api.getNotifications();
         if (cancelled) {
           return;
         }
 
-        const announcements = response?.announcements || [];
-        if (activePage === 'messages') {
-          markMessagesAsRead(announcements, user);
-          setMessageUnreadCount(0);
-          return;
-        }
-
-        setMessageUnreadCount(getUnreadMessageCount(announcements, user));
+        const unreadCount = Number(response?.summary?.unread || 0);
+        setMessageUnreadCount(activePage === 'messages' ? 0 : unreadCount);
       } catch (error) {
         if (!cancelled) {
           console.error('Failed to refresh message notifications:', error);
@@ -295,28 +288,8 @@ export default function App() {
     setMessageUnreadCount(0);
   };
 
-  const handleAnnouncementsSync = (announcements) => {
-    if (!user) {
-      setMessageUnreadCount(0);
-      return;
-    }
-
-    if (activePage === 'messages') {
-      markMessagesAsRead(announcements, user);
-      setMessageUnreadCount(0);
-      return;
-    }
-
-    setMessageUnreadCount(getUnreadMessageCount(announcements, user));
-  };
-
-  const handleAnnouncementsViewed = (announcements) => {
-    if (!user) {
-      return;
-    }
-
-    markMessagesAsRead(announcements, user);
-    setMessageUnreadCount(0);
+  const handleMessageUnreadSync = (unreadCount) => {
+    setMessageUnreadCount(Number(unreadCount || 0));
   };
 
   const handleThemeChange = (nextTheme) => {
@@ -351,8 +324,7 @@ export default function App() {
         return (
           <Messages
             user={user}
-            onAnnouncementsSync={handleAnnouncementsSync}
-            onAnnouncementsViewed={handleAnnouncementsViewed}
+            onUnreadCountChange={handleMessageUnreadSync}
           />
         );
       case 'profile':

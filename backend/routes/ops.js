@@ -9,6 +9,28 @@ const { canManageAcademicRecords, hasAdminAccess, isStudentAccount } = require('
 const DEFAULT_RISK_WINDOW_DAYS = 45;
 const DEFAULT_PERFORMANCE_WINDOW_DAYS = 120;
 
+const normalizeBooleanFlag = (value) => (
+  value === true
+  || value === 1
+  || value === '1'
+);
+
+const parseJsonSafely = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === 'object') {
+    return value;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
 const normalizeDateInput = (value) => {
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
     return value.trim();
@@ -71,7 +93,7 @@ const buildInClause = (values) => {
 const getScopedStudentProfiles = async (user) => {
   if (hasAdminAccess(user)) {
     return db.all(
-      `SELECT id, student_id, name, group_name, subgroup_name
+      `SELECT id, student_id, name, group_name, subgroup_name, faculty, major, program_class, advisor
        FROM users
        WHERE role = 'student'
        ORDER BY name`
@@ -80,7 +102,7 @@ const getScopedStudentProfiles = async (user) => {
 
   if (canManageAcademicRecords(user)) {
     return db.all(
-      `SELECT DISTINCT u.id, u.student_id, u.name, u.group_name, u.subgroup_name
+      `SELECT DISTINCT u.id, u.student_id, u.name, u.group_name, u.subgroup_name, u.faculty, u.major, u.program_class, u.advisor
        FROM users u
        JOIN course_enrollments ce ON ce.student_id = u.id
        JOIN courses c ON c.id = ce.course_id
@@ -93,7 +115,7 @@ const getScopedStudentProfiles = async (user) => {
 
   if (isStudentAccount(user) && user.student_id) {
     return db.all(
-      `SELECT id, student_id, name, group_name, subgroup_name
+      `SELECT id, student_id, name, group_name, subgroup_name, faculty, major, program_class, advisor
        FROM users
        WHERE role = 'student'
          AND student_id = ?`,
@@ -102,6 +124,20 @@ const getScopedStudentProfiles = async (user) => {
   }
 
   return [];
+};
+
+const averageNumbers = (values) => {
+  const numericValues = values
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value));
+
+  if (numericValues.length === 0) {
+    return null;
+  }
+
+  return Math.round(
+    numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length
+  );
 };
 
 const getScopedAttendanceRecords = async ({ user, studentIds, from, to }) => {
@@ -161,6 +197,73 @@ const getScopedGradeRecords = async ({ user, studentIds, from, to }) => {
   }
 
   return db.all(sql, params);
+};
+
+const buildAttendanceSummaryMap = (attendanceRecords) => {
+  const summaryMap = new Map();
+
+  attendanceRecords.forEach((record) => {
+    const key = String(record.student_id);
+    const current = summaryMap.get(key) || {
+      total_records: 0,
+      attended_records: 0,
+      absent_count: 0,
+      late_count: 0,
+      last_attendance_date: null
+    };
+
+    current.total_records += 1;
+    if (['present', 'late', 'excused'].includes(record.status)) {
+      current.attended_records += 1;
+    }
+    if (record.status === 'absent') {
+      current.absent_count += 1;
+    }
+    if (record.status === 'late') {
+      current.late_count += 1;
+    }
+    if (!current.last_attendance_date || String(record.date) > String(current.last_attendance_date)) {
+      current.last_attendance_date = record.date;
+    }
+
+    summaryMap.set(key, current);
+  });
+
+  return summaryMap;
+};
+
+const buildGradeSummaryMap = (gradeRecords) => {
+  const summaryMap = new Map();
+
+  gradeRecords.forEach((record) => {
+    const key = String(record.student_id);
+    const current = summaryMap.get(key) || {
+      total_grades: 0,
+      average_grade: null,
+      min_grade: null,
+      fail_count: 0,
+      last_grade_date: null,
+      grade_sum: 0
+    };
+    const gradeValue = Number(record.grade || 0);
+
+    current.total_grades += 1;
+    current.grade_sum += gradeValue;
+    current.average_grade = Math.round(current.grade_sum / current.total_grades);
+    current.min_grade = current.min_grade === null
+      ? gradeValue
+      : Math.min(current.min_grade, gradeValue);
+    if (gradeValue < 60) {
+      current.fail_count += 1;
+    }
+    if (!current.last_grade_date || String(record.grade_date) > String(current.last_grade_date)) {
+      current.last_grade_date = record.grade_date;
+    }
+
+    summaryMap.set(key, current);
+  });
+
+  return summaryMap;
 };
 
 const createStudentSnapshot = (profile, attendance, grades) => {
@@ -443,8 +546,175 @@ const buildPerformanceDashboard = (profiles, attendanceRecords, gradeRecords, us
     groupPerformance: groupPerformance.slice(0, 6),
     topStudents,
     supportQueue,
-    studentSnapshot
+    studentSnapshot,
+    studentSnapshots
   };
+};
+
+const buildAnalyticsDataset = async ({ user, from, to }) => {
+  const profiles = await getScopedStudentProfiles(user);
+  if (profiles.length === 0) {
+    return {
+      profiles: [],
+      attendanceRecords: [],
+      gradeRecords: [],
+      riskSnapshots: [],
+      performanceDashboard: buildPerformanceDashboard([], [], [], user)
+    };
+  }
+
+  const studentIds = profiles
+    .map((profile) => String(profile.student_id || '').trim())
+    .filter(Boolean);
+
+  const [attendanceRecords, gradeRecords] = await Promise.all([
+    getScopedAttendanceRecords({ user, studentIds, from, to }),
+    getScopedGradeRecords({ user, studentIds, from, to })
+  ]);
+
+  const attendanceSummaryMap = buildAttendanceSummaryMap(attendanceRecords);
+  const gradeSummaryMap = buildGradeSummaryMap(gradeRecords);
+  const riskSnapshots = profiles
+    .map((profile) => createStudentSnapshot(
+      profile,
+      attendanceSummaryMap.get(String(profile.student_id)),
+      gradeSummaryMap.get(String(profile.student_id))
+    ))
+    .filter((snapshot) => snapshot.attendanceRecords > 0 || snapshot.totalGrades > 0);
+
+  return {
+    profiles,
+    attendanceRecords,
+    gradeRecords,
+    riskSnapshots,
+    performanceDashboard: buildPerformanceDashboard(profiles, attendanceRecords, gradeRecords, user)
+  };
+};
+
+const buildFacultyReportRows = ({ profiles, riskSnapshots, performanceDashboard }) => {
+  const profileByStudentId = new Map(
+    profiles.map((profile) => [String(profile.student_id), profile])
+  );
+  const riskByStudentId = new Map(
+    riskSnapshots.map((snapshot) => [String(snapshot.studentId), snapshot])
+  );
+  const performanceByStudentId = new Map(
+    (performanceDashboard.studentSnapshots || []).map((snapshot) => [String(snapshot.studentId), snapshot])
+  );
+  const facultyMap = new Map();
+
+  profiles.forEach((profile) => {
+    const facultyKey = profile.faculty || 'Unassigned faculty';
+    const performance = performanceByStudentId.get(String(profile.student_id));
+    const risk = riskByStudentId.get(String(profile.student_id));
+    const current = facultyMap.get(facultyKey) || {
+      faculty: facultyKey,
+      majors: new Set(),
+      groups: new Set(),
+      studentsTracked: 0,
+      attendanceRates: [],
+      gradeAverages: [],
+      flaggedStudents: 0,
+      criticalFlags: 0,
+      watchFlags: 0,
+      supportQueue: 0
+    };
+
+    current.studentsTracked += 1;
+    if (profile.major) {
+      current.majors.add(profile.major);
+    }
+    if (profile.group_name) {
+      current.groups.add(profile.group_name);
+    }
+
+    const attendanceRate = performance?.attendanceRate ?? risk?.attendanceRate ?? null;
+    const averageGrade = performance?.averageGrade ?? risk?.averageGrade ?? null;
+    if (attendanceRate !== null) {
+      current.attendanceRates.push(attendanceRate);
+    }
+    if (averageGrade !== null) {
+      current.gradeAverages.push(averageGrade);
+    }
+
+    if (risk?.severity && risk.severity !== 'ok') {
+      current.flaggedStudents += 1;
+      if (risk.severity === 'critical') {
+        current.criticalFlags += 1;
+      }
+      if (risk.severity === 'watch') {
+        current.watchFlags += 1;
+      }
+    }
+
+    if (performance && (
+      (performance.averageGrade !== null && performance.averageGrade < 70)
+      || performance.attendanceRate < 75
+    )) {
+      current.supportQueue += 1;
+    }
+
+    facultyMap.set(facultyKey, current);
+  });
+
+  return [...facultyMap.values()]
+    .map((entry) => ({
+      faculty: entry.faculty,
+      majorsTracked: entry.majors.size,
+      groupsTracked: entry.groups.size,
+      studentsTracked: entry.studentsTracked,
+      averageAttendanceRate: averageNumbers(entry.attendanceRates),
+      averageGrade: averageNumbers(entry.gradeAverages),
+      flaggedStudents: entry.flaggedStudents,
+      criticalFlags: entry.criticalFlags,
+      watchFlags: entry.watchFlags,
+      supportQueue: entry.supportQueue
+    }))
+    .sort((left, right) => {
+      if (right.flaggedStudents !== left.flaggedStudents) {
+        return right.flaggedStudents - left.flaggedStudents;
+      }
+      return (left.faculty || '').localeCompare(right.faculty || '');
+    });
+};
+
+const buildDeanOfficeRows = ({ profiles, riskSnapshots, performanceDashboard }) => {
+  const profileByStudentId = new Map(
+    profiles.map((profile) => [String(profile.student_id), profile])
+  );
+  const performanceByStudentId = new Map(
+    (performanceDashboard.studentSnapshots || []).map((snapshot) => [String(snapshot.studentId), snapshot])
+  );
+
+  return riskSnapshots
+    .filter((snapshot) => snapshot.severity !== 'ok')
+    .map((snapshot) => {
+      const profile = profileByStudentId.get(String(snapshot.studentId));
+      const performance = performanceByStudentId.get(String(snapshot.studentId));
+
+      return {
+        studentId: snapshot.studentId,
+        studentName: snapshot.studentName,
+        faculty: profile?.faculty || 'Unassigned faculty',
+        major: profile?.major || 'Not set',
+        advisor: profile?.advisor || 'Not set',
+        groupName: snapshot.groupName || profile?.group_name || 'No group',
+        attendanceRate: snapshot.attendanceRate,
+        averageGrade: performance?.averageGrade ?? snapshot.averageGrade,
+        severity: snapshot.severity,
+        riskScore: Math.round(snapshot.riskScore),
+        reasons: snapshot.reasons.join(' | '),
+        supportSubject: performance?.supportSubject?.subject || 'General academic support',
+        lastAttendanceDate: snapshot.lastAttendanceDate || 'No records',
+        lastGradeDate: snapshot.lastGradeDate || 'No records'
+      };
+    })
+    .sort((left, right) => {
+      if (left.severity !== right.severity) {
+        return left.severity === 'critical' ? -1 : 1;
+      }
+      return right.riskScore - left.riskScore;
+    });
 };
 
 router.get('/audit', auth, isAdmin, async (req, res) => {
@@ -705,6 +975,73 @@ router.get('/performance-dashboard', auth, async (req, res) => {
   }
 });
 
+router.get('/reports/faculty-overview', auth, isAdmin, async (req, res) => {
+  try {
+    const defaultRange = getDefaultPerformanceRange();
+    const from = req.query.from ? normalizeDateInput(req.query.from) : defaultRange.from;
+    const to = req.query.to ? normalizeDateInput(req.query.to) : defaultRange.to;
+
+    if (!from || !to) {
+      return res.status(400).json({ error: 'Valid from and to dates are required' });
+    }
+
+    if (from > to) {
+      return res.status(400).json({ error: 'The start date must be earlier than the end date' });
+    }
+
+    const dataset = await buildAnalyticsDataset({ user: req.user, from, to });
+    const rows = buildFacultyReportRows(dataset);
+
+    res.json({
+      from,
+      to,
+      summary: {
+        faculties: rows.length,
+        studentsTracked: dataset.profiles.length,
+        flaggedStudents: dataset.riskSnapshots.filter((snapshot) => snapshot.severity !== 'ok').length,
+        supportQueue: dataset.performanceDashboard.summary.supportQueueSize
+      },
+      rows
+    });
+  } catch (error) {
+    console.error('Faculty overview report error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/reports/dean-office', auth, isAdmin, async (req, res) => {
+  try {
+    const defaultRange = getDefaultPerformanceRange();
+    const from = req.query.from ? normalizeDateInput(req.query.from) : defaultRange.from;
+    const to = req.query.to ? normalizeDateInput(req.query.to) : defaultRange.to;
+
+    if (!from || !to) {
+      return res.status(400).json({ error: 'Valid from and to dates are required' });
+    }
+
+    if (from > to) {
+      return res.status(400).json({ error: 'The start date must be earlier than the end date' });
+    }
+
+    const dataset = await buildAnalyticsDataset({ user: req.user, from, to });
+    const rows = buildDeanOfficeRows(dataset);
+
+    res.json({
+      from,
+      to,
+      summary: {
+        interventions: rows.length,
+        critical: rows.filter((row) => row.severity === 'critical').length,
+        watch: rows.filter((row) => row.severity === 'watch').length
+      },
+      rows
+    });
+  } catch (error) {
+    console.error('Dean office report error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/jobs', auth, isAdmin, async (req, res) => {
   try {
     const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 200);
@@ -757,9 +1094,98 @@ router.get('/notifications/me', auth, async (req, res) => {
       [req.user.id]
     );
 
-    res.json({ notifications });
+    const normalizedNotifications = notifications.map((notification) => ({
+      ...notification,
+      metadata: parseJsonSafely(notification.metadata),
+      is_read: normalizeBooleanFlag(notification.is_read)
+    }));
+
+    res.json({
+      notifications: normalizedNotifications,
+      summary: {
+        total: normalizedNotifications.length,
+        unread: normalizedNotifications.filter((notification) => !notification.is_read).length
+      }
+    });
   } catch (error) {
     console.error('Get notification inbox error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.patch('/notifications/me/read-all', auth, async (req, res) => {
+  try {
+    await db.run(
+      `UPDATE notification_inbox
+       SET is_read = ?, status = CASE WHEN status = 'delivered' THEN 'read' ELSE status END
+       WHERE user_id = ?`,
+      [db.client === 'postgres' ? true : 1, req.user.id]
+    );
+
+    const unreadRow = await db.get(
+      `SELECT COUNT(*) AS unread_count
+       FROM notification_inbox
+       WHERE user_id = ?
+         AND is_read = ?`,
+      [req.user.id, db.client === 'postgres' ? false : 0]
+    );
+
+    res.json({
+      message: 'Notifications marked as read',
+      summary: {
+        unread: Number(unreadRow?.unread_count || 0)
+      }
+    });
+  } catch (error) {
+    console.error('Mark all notifications read error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.patch('/notifications/:id/read', auth, async (req, res) => {
+  try {
+    const notificationId = Number(req.params.id);
+    if (!Number.isInteger(notificationId) || notificationId <= 0) {
+      return res.status(400).json({ error: 'Notification id is invalid' });
+    }
+
+    const existingNotification = await db.get(
+      `SELECT *
+       FROM notification_inbox
+       WHERE id = ?
+         AND user_id = ?`,
+      [notificationId, req.user.id]
+    );
+
+    if (!existingNotification) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+
+    await db.run(
+      `UPDATE notification_inbox
+       SET is_read = ?, status = CASE WHEN status = 'delivered' THEN 'read' ELSE status END
+       WHERE id = ?
+         AND user_id = ?`,
+      [db.client === 'postgres' ? true : 1, notificationId, req.user.id]
+    );
+
+    const updatedNotification = await db.get(
+      `SELECT *
+       FROM notification_inbox
+       WHERE id = ?
+         AND user_id = ?`,
+      [notificationId, req.user.id]
+    );
+
+    res.json({
+      notification: {
+        ...updatedNotification,
+        metadata: parseJsonSafely(updatedNotification.metadata),
+        is_read: true
+      }
+    });
+  } catch (error) {
+    console.error('Mark notification read error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

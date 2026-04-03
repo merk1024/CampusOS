@@ -53,7 +53,14 @@ const request = async (route, options = {}) => {
   });
 
   const text = await response.text();
-  const body = text ? JSON.parse(text) : null;
+  let body = null;
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = { message: text };
+    }
+  }
 
   return { response, body };
 };
@@ -136,11 +143,11 @@ test('GET /health returns request tracing metadata', async () => {
 });
 
 test('database migrations expose the current schema version and platform tables', async () => {
-  assert.equal(db.schemaVersion, '2026-04-02-005-platform-ops-tables');
+  assert.equal(db.schemaVersion, '2026-04-03-006-announcement-audience');
 
   const migrationRow = await db.get(
     'SELECT version FROM schema_migrations WHERE version = ?',
-    ['2026-04-02-005-platform-ops-tables']
+    ['2026-04-03-006-announcement-audience']
   );
   assert.ok(migrationRow);
 
@@ -916,6 +923,79 @@ test('teacher and student can read performance dashboards for their scope', asyn
   assert.ok(studentDashboard.body.studentSnapshot.attendanceRate >= 0);
 });
 
+test('admin can export faculty overview and dean office intervention reports', async () => {
+  const adminSession = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+  const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+
+  const sessionsResult = await request('/api/attendance/management/sessions?date=2026-03-29', {
+    headers: authHeaders(teacherSession.token)
+  });
+
+  assert.equal(sessionsResult.response.status, 200, JSON.stringify(sessionsResult.body));
+  const targetSession = sessionsResult.body.sessions.find((session) => session.course_code) || sessionsResult.body.sessions[0];
+  assert.ok(targetSession, 'Expected a session for report export regression');
+
+  const markAttendance = await request('/api/attendance', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      scheduleId: targetSession.id,
+      studentId: '240141052',
+      date: '2026-03-29',
+      status: 'absent'
+    })
+  });
+
+  assert.equal(markAttendance.response.status, 200, JSON.stringify(markAttendance.body));
+
+  const reportExam = await request('/api/exams', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      group_name: 'CYB-23',
+      subject: `Dean Report ${Date.now()}`,
+      exam_date: '2026-04-19',
+      exam_time: '14:00',
+      room: 'A-110',
+      type: 'Quiz',
+      semester: 'Spring 2026',
+      students: ['240141052']
+    })
+  });
+
+  assert.equal(reportExam.response.status, 201, JSON.stringify(reportExam.body));
+
+  const lowGrade = await request('/api/grades', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      examId: reportExam.body.exam.id,
+      studentId: '240141052',
+      grade: 54,
+      comments: 'Report export regression test'
+    })
+  });
+
+  assert.equal(lowGrade.response.status, 200, JSON.stringify(lowGrade.body));
+
+  const facultyReport = await request('/api/ops/reports/faculty-overview?from=2026-03-01&to=2026-04-30', {
+    headers: authHeaders(adminSession.token)
+  });
+
+  assert.equal(facultyReport.response.status, 200, JSON.stringify(facultyReport.body));
+  assert.ok(Array.isArray(facultyReport.body.rows));
+  assert.ok(facultyReport.body.rows.length >= 1);
+  assert.ok(facultyReport.body.rows.some((row) => Number(row.flaggedStudents || 0) >= 1));
+
+  const deanOfficeReport = await request('/api/ops/reports/dean-office?from=2026-03-01&to=2026-04-30', {
+    headers: authHeaders(adminSession.token)
+  });
+
+  assert.equal(deanOfficeReport.response.status, 200, JSON.stringify(deanOfficeReport.body));
+  assert.ok(Array.isArray(deanOfficeReport.body.rows));
+  assert.ok(deanOfficeReport.body.rows.some((row) => row.studentId === '240141052'));
+});
+
 test('teacher can create an exam and publish a grade while student cannot submit grades', async () => {
   const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
   const studentSession = await login('240141052', process.env.SEED_STUDENT_PASSWORD);
@@ -1061,4 +1141,83 @@ test('announcement creation writes system audit entries and queued notifications
   );
 
   assert.ok(deliveredNotification);
+});
+
+test('targeted announcements and inbox read state work for student recipients', async () => {
+  const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  const primaryStudentSession = await login('240141052', process.env.SEED_STUDENT_PASSWORD);
+  const secondaryStudent = await db.get(
+    `SELECT id, student_id
+     FROM users
+     WHERE role = 'student'
+       AND student_id <> ?
+       AND COALESCE(group_name, '') <> ?
+     LIMIT 1`,
+    ['240141052', 'CYB-23']
+  );
+  const uniqueTitle = `Targeted Notice ${Date.now()}`;
+
+  const createdAnnouncement = await request('/api/announcements', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      title: uniqueTitle,
+      content: 'Targeted announcement regression test.',
+      type: 'general',
+      audienceScope: 'group',
+      audienceValue: 'CYB-23'
+    })
+  });
+
+  assert.equal(createdAnnouncement.response.status, 201, JSON.stringify(createdAnnouncement.body));
+  assert.equal(createdAnnouncement.body.announcement.audience_scope, 'group');
+  assert.equal(createdAnnouncement.body.announcement.audience_label, 'CYB-23');
+
+  const primaryAnnouncements = await request('/api/announcements', {
+    headers: authHeaders(primaryStudentSession.token)
+  });
+
+  assert.equal(primaryAnnouncements.response.status, 200, JSON.stringify(primaryAnnouncements.body));
+  const visibleAnnouncement = primaryAnnouncements.body.announcements.find((announcement) => announcement.title === uniqueTitle);
+  assert.ok(visibleAnnouncement);
+  assert.equal(visibleAnnouncement.is_read, false);
+
+  const primaryInbox = await request('/api/ops/notifications/me', {
+    headers: authHeaders(primaryStudentSession.token)
+  });
+
+  assert.equal(primaryInbox.response.status, 200, JSON.stringify(primaryInbox.body));
+  const deliveredInboxItem = primaryInbox.body.notifications.find((notification) => notification.title === `CampusOS: ${uniqueTitle}`);
+  assert.ok(deliveredInboxItem);
+  assert.ok(primaryInbox.body.summary.unread >= 1);
+
+  if (secondaryStudent?.id) {
+    const unrelatedRecipientInbox = await db.get(
+      `SELECT id
+       FROM notification_inbox
+       WHERE user_id = ?
+         AND source_type = ?
+         AND source_id = ?`,
+      [secondaryStudent.id, 'announcement', String(createdAnnouncement.body.announcement.id)]
+    );
+
+    assert.equal(unrelatedRecipientInbox, undefined);
+  }
+
+  const readAllResult = await request('/api/ops/notifications/me/read-all', {
+    method: 'PATCH',
+    headers: authHeaders(primaryStudentSession.token)
+  });
+
+  assert.equal(readAllResult.response.status, 200, JSON.stringify(readAllResult.body));
+  assert.equal(readAllResult.body.summary.unread, 0);
+
+  const inboxAfterRead = await request('/api/ops/notifications/me', {
+    headers: authHeaders(primaryStudentSession.token)
+  });
+
+  assert.equal(inboxAfterRead.response.status, 200, JSON.stringify(inboxAfterRead.body));
+  const readInboxItem = inboxAfterRead.body.notifications.find((notification) => notification.id === deliveredInboxItem.id);
+  assert.ok(readInboxItem);
+  assert.equal(readInboxItem.is_read, true);
 });

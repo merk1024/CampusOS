@@ -34,6 +34,50 @@ function formatMetricPercent(value) {
   return `${Math.round(Number(value) || 0)}%`;
 }
 
+function normalizeDateInput(value) {
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getDefaultReportRange() {
+  const to = new Date();
+  const from = new Date(to);
+  from.setDate(from.getDate() - 119);
+
+  return {
+    from: normalizeDateInput(from),
+    to: normalizeDateInput(to)
+  };
+}
+
+function escapeCsvValue(value) {
+  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+}
+
+function downloadCsvFile(filename, headers, rows) {
+  const csvLines = [
+    headers.map((header) => escapeCsvValue(header.label)).join(','),
+    ...rows.map((row) => headers.map((header) => escapeCsvValue(row[header.key])).join(','))
+  ];
+
+  const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 function Dashboard({ user, onNavigate }) {
   const [riskFlags, setRiskFlags] = useState(null);
   const [loadingRiskFlags, setLoadingRiskFlags] = useState(true);
@@ -41,6 +85,10 @@ function Dashboard({ user, onNavigate }) {
   const [performanceDashboard, setPerformanceDashboard] = useState(null);
   const [loadingPerformanceDashboard, setLoadingPerformanceDashboard] = useState(true);
   const [performanceDashboardError, setPerformanceDashboardError] = useState('');
+  const [reportRange, setReportRange] = useState(getDefaultReportRange);
+  const [reportNotice, setReportNotice] = useState('');
+  const [reportError, setReportError] = useState('');
+  const [exportingReport, setExportingReport] = useState('');
   const roleLabel = getRoleLabel(user);
   const firstName = user?.name?.split(' ')?.[0] || 'there';
   const displayName = user?.name?.trim() || 'Profile not set';
@@ -171,6 +219,74 @@ function Dashboard({ user, onNavigate }) {
   };
   const studentPerformance = performanceDashboard?.studentSnapshot || null;
 
+  const clearReportNoticeLater = () => {
+    window.setTimeout(() => setReportNotice(''), 2400);
+  };
+
+  const handleExportFacultyReport = async () => {
+    try {
+      setExportingReport('faculty');
+      setReportError('');
+      const response = await api.getFacultyOverviewReport(reportRange.from, reportRange.to);
+      downloadCsvFile(
+        `campusos-faculty-overview-${reportRange.from}-to-${reportRange.to}.csv`,
+        [
+          { key: 'faculty', label: 'Faculty' },
+          { key: 'majorsTracked', label: 'Majors tracked' },
+          { key: 'groupsTracked', label: 'Groups tracked' },
+          { key: 'studentsTracked', label: 'Students tracked' },
+          { key: 'averageAttendanceRate', label: 'Average attendance rate' },
+          { key: 'averageGrade', label: 'Average grade' },
+          { key: 'flaggedStudents', label: 'Flagged students' },
+          { key: 'criticalFlags', label: 'Critical flags' },
+          { key: 'watchFlags', label: 'Watch flags' },
+          { key: 'supportQueue', label: 'Support queue' }
+        ],
+        response?.rows || []
+      );
+      setReportNotice('Faculty overview exported.');
+      clearReportNoticeLater();
+    } catch (requestError) {
+      setReportError(requestError.message || 'Faculty overview export failed.');
+    } finally {
+      setExportingReport('');
+    }
+  };
+
+  const handleExportDeanOfficeReport = async () => {
+    try {
+      setExportingReport('dean');
+      setReportError('');
+      const response = await api.getDeanOfficeReport(reportRange.from, reportRange.to);
+      downloadCsvFile(
+        `campusos-dean-office-${reportRange.from}-to-${reportRange.to}.csv`,
+        [
+          { key: 'studentId', label: 'Student ID' },
+          { key: 'studentName', label: 'Student name' },
+          { key: 'faculty', label: 'Faculty' },
+          { key: 'major', label: 'Major' },
+          { key: 'advisor', label: 'Advisor' },
+          { key: 'groupName', label: 'Group' },
+          { key: 'attendanceRate', label: 'Attendance rate' },
+          { key: 'averageGrade', label: 'Average grade' },
+          { key: 'severity', label: 'Severity' },
+          { key: 'riskScore', label: 'Risk score' },
+          { key: 'supportSubject', label: 'Support focus' },
+          { key: 'reasons', label: 'Reasons' },
+          { key: 'lastAttendanceDate', label: 'Last attendance date' },
+          { key: 'lastGradeDate', label: 'Last grade date' }
+        ],
+        response?.rows || []
+      );
+      setReportNotice('Dean office report exported.');
+      clearReportNoticeLater();
+    } catch (requestError) {
+      setReportError(requestError.message || 'Dean office report export failed.');
+    } finally {
+      setExportingReport('');
+    }
+  };
+
   return (
     <div className="page">
       <div className="page-header">
@@ -298,6 +414,75 @@ function Dashboard({ user, onNavigate }) {
             ))}
           </div>
         </div>
+
+        {isAdmin && (
+          <div className="dash-card">
+            <div className="card-header">
+              <h3>Faculty & Dean Reports</h3>
+            </div>
+
+            <StatusBanner
+              tone="error"
+              title="Report export unavailable"
+              message={reportError}
+            />
+            <StatusBanner
+              tone="success"
+              title="Report export ready"
+              message={reportNotice}
+            />
+
+            <div className="dashboard-report-range">
+              <label className="dashboard-report-field">
+                <span className="dashboard-context-label">From</span>
+                <input
+                  type="date"
+                  value={reportRange.from}
+                  onChange={(event) => setReportRange((current) => ({ ...current, from: event.target.value }))}
+                />
+              </label>
+              <label className="dashboard-report-field">
+                <span className="dashboard-context-label">To</span>
+                <input
+                  type="date"
+                  value={reportRange.to}
+                  onChange={(event) => setReportRange((current) => ({ ...current, to: event.target.value }))}
+                />
+              </label>
+            </div>
+
+            <div className="dashboard-report-list">
+              <div className="dashboard-report-item">
+                <div>
+                  <strong>Faculty overview CSV</strong>
+                  <span>Attendance, grade health, flagged students, and support queue by faculty.</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleExportFacultyReport}
+                  disabled={exportingReport === 'faculty'}
+                >
+                  {exportingReport === 'faculty' ? 'Preparing...' : 'Export faculty'}
+                </button>
+              </div>
+              <div className="dashboard-report-item">
+                <div>
+                  <strong>Dean office intervention CSV</strong>
+                  <span>Flagged students with severity, reasons, advisor, and follow-up focus.</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleExportDeanOfficeReport}
+                  disabled={exportingReport === 'dean'}
+                >
+                  {exportingReport === 'dean' ? 'Preparing...' : 'Export dean office'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="dash-card">
           <div className="card-header">

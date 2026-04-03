@@ -69,7 +69,7 @@ app.use(cors({
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100
+  max: process.env.NODE_ENV === 'test' ? 1000 : 100
 });
 app.use('/api/', limiter);
 

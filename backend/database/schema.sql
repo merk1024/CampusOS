@@ -173,6 +173,8 @@ CREATE TABLE announcements (
     title TEXT NOT NULL,
     content TEXT NOT NULL,
     type TEXT DEFAULT 'general',
+    audience_scope TEXT DEFAULT 'all',
+    audience_value TEXT,
     course_id INTEGER REFERENCES courses(id),
     created_by INTEGER REFERENCES users(id),
     is_pinned INTEGER DEFAULT 0,
