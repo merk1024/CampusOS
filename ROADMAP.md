@@ -33,7 +33,7 @@ CampusOS is already operating as a real web MVP for academic workflows.
 
 Goal: bring the current web platform to a stable pilot-ready state.
 
-- `-` finish UI polish on the main pages
+- `√` finish UI polish on the main pages
 - `√` unify forms, tables, and filters
 - `√` improve empty states and system messages
 - `√` make staging and production environment handling predictable

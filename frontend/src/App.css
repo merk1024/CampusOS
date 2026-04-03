@@ -1251,11 +1251,180 @@ body {
   gap: 1.5rem;
 }
 
+.dashboard-hero-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem 1.65rem;
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 45%),
+    var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  box-shadow: var(--shadow);
+}
+
+.dashboard-hero-copy {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.dashboard-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-soft));
+}
+
+.dashboard-hero-copy h2 {
+  font-size: clamp(1.35rem, 2vw, 2rem);
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.dashboard-hero-copy p {
+  max-width: 60ch;
+  color: var(--text-light);
+}
+
+.dashboard-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
+.dashboard-pill {
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
 .dash-card {
   background: var(--surface);
   padding: 1.5rem;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
+}
+
+.dashboard-status-item .activity-icon {
+  min-width: 3.35rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.95rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--accent);
+}
+
+.dashboard-action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.dashboard-action-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.dashboard-action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+  background: var(--surface-soft-hover);
+}
+
+.dashboard-action-icon {
+  min-width: 2.75rem;
+  height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.95rem;
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.dashboard-action-copy {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.dashboard-action-copy strong {
+  color: var(--text);
+}
+
+.dashboard-action-copy span {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.dashboard-context-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.dashboard-context-item {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.95rem 1rem;
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+}
+
+.dashboard-context-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.dashboard-context-item strong {
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.dashboard-note-list {
+  gap: 0.9rem;
+}
+
+.dashboard-note-item {
+  align-items: flex-start;
 }
 
 .card-header {
@@ -1508,6 +1677,15 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .dashboard-hero-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboard-pill-list {
+    justify-content: flex-start;
+  }
+
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
@@ -1586,12 +1764,20 @@ body {
     padding: 1rem;
   }
 
+  .dashboard-hero-card {
+    padding: 1.15rem;
+  }
+
   .stat-value {
     font-size: 1.5rem;
   }
 
   .dash-card {
     padding: 1rem;
+  }
+
+  .dashboard-action-grid {
+    grid-template-columns: 1fr;
   }
 }
 

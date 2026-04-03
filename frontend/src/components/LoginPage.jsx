@@ -26,6 +26,8 @@ function LoginPage({ onLogin, notice = '' }) {
         studentId: response.user.student_id ?? response.user.studentId,
         group: response.user.group_name ?? response.user.groupName,
         subgroup: response.user.subgroup_name ?? response.user.subgroupName,
+        lastLoginAt: response.user.last_login_at ?? response.user.lastLoginAt,
+        lastLoginIp: response.user.last_login_ip ?? response.user.lastLoginIp,
         avatar: response.user.avatar || response.user.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
       };
 

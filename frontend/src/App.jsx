@@ -334,7 +334,7 @@ export default function App() {
   const renderPage = () => {
     switch (resolvedActivePage) {
       case 'dashboard':
-        return <Dashboard user={user} />;
+        return <Dashboard user={user} onNavigate={handleNavigate} />;
       case 'courses':
         return <CoursesPage user={user} />;
       case 'schedule':
@@ -371,7 +371,7 @@ export default function App() {
       case 'integrations':
         return <IntegrationCenter user={user} />;
       default:
-        return <Dashboard user={user} />;
+        return <Dashboard user={user} onNavigate={handleNavigate} />;
     }
   };
 
