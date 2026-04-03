@@ -8,6 +8,8 @@ const { logAttendanceChange } = require('../utils/auditTrail');
 const { logSystemAudit } = require('../utils/platformOps');
 
 const VALID_STATUSES = new Set(['present', 'absent', 'late', 'excused']);
+const ATTENDED_STATUSES = new Set(['present', 'late', 'excused']);
+const DEFAULT_ANALYTICS_WINDOW_DAYS = 30;
 const DAY_ORDER_SQL = `
   CASE s.day
     WHEN 'Monday' THEN 1
@@ -41,6 +43,30 @@ const normalizeStatus = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
   return VALID_STATUSES.has(normalized) ? normalized : null;
 };
+
+const shiftDateInput = (value, dayOffset) => {
+  const normalized = normalizeDateInput(value);
+  if (!normalized) {
+    return null;
+  }
+
+  const [year, month, day] = normalized.split('-').map(Number);
+  const baseDate = new Date(year, month - 1, day);
+  baseDate.setDate(baseDate.getDate() + dayOffset);
+  return normalizeDateInput(baseDate);
+};
+
+const getDefaultAnalyticsRange = () => {
+  const to = normalizeDateInput(new Date());
+  return {
+    from: shiftDateInput(to, -(DEFAULT_ANALYTICS_WINDOW_DAYS - 1)),
+    to
+  };
+};
+
+const toRate = (attended, total) => (
+  total > 0 ? Math.round((attended / total) * 100) : 0
+);
 
 const getScheduleRecord = async (scheduleId) => (
   db.get(
@@ -196,6 +222,225 @@ const buildSummary = (students) => {
   return summary;
 };
 
+const buildAttendanceAnalytics = (records) => {
+  const summary = {
+    totalRecords: records.length,
+    present: 0,
+    absent: 0,
+    late: 0,
+    excused: 0,
+    attendanceRate: 0,
+    studentsTracked: 0,
+    coursesTracked: 0,
+    groupsTracked: 0,
+    atRiskStudents: 0
+  };
+
+  const trendByDate = new Map();
+  const courseBreakdown = new Map();
+  const groupBreakdown = new Map();
+  const studentRisk = new Map();
+  const trackedStudents = new Set();
+  const trackedCourses = new Set();
+  const trackedGroups = new Set();
+
+  records.forEach((record) => {
+    const status = normalizeStatus(record.status);
+    if (!status) {
+      return;
+    }
+
+    const attended = ATTENDED_STATUSES.has(status);
+    const courseLabel = record.course_name || record.course_code || record.subject || 'Unassigned course';
+    const groupName = record.student_group_name || record.schedule_group_name || 'No group';
+    const courseKey = String(record.course_id || `${courseLabel}:${groupName}`);
+    const groupKey = String(groupName);
+    const studentKey = String(record.student_user_id || record.student_id || record.student_name || 'unknown');
+
+    summary[status] += 1;
+
+    if (record.student_id) {
+      trackedStudents.add(String(record.student_id));
+    }
+
+    trackedCourses.add(courseKey);
+    trackedGroups.add(groupKey);
+
+    const trendEntry = trendByDate.get(record.date) || {
+      date: record.date,
+      totalRecords: 0,
+      present: 0,
+      absent: 0,
+      late: 0,
+      excused: 0,
+      attended: 0
+    };
+    trendEntry.totalRecords += 1;
+    trendEntry[status] += 1;
+    if (attended) {
+      trendEntry.attended += 1;
+    }
+    trendByDate.set(record.date, trendEntry);
+
+    const courseEntry = courseBreakdown.get(courseKey) || {
+      courseId: record.course_id || null,
+      courseCode: record.course_code || null,
+      courseName: record.course_name || null,
+      subject: record.subject || null,
+      groupName,
+      totalRecords: 0,
+      present: 0,
+      absent: 0,
+      late: 0,
+      excused: 0,
+      attended: 0,
+      studentsTracked: new Set()
+    };
+    courseEntry.totalRecords += 1;
+    courseEntry[status] += 1;
+    if (attended) {
+      courseEntry.attended += 1;
+    }
+    if (record.student_id) {
+      courseEntry.studentsTracked.add(String(record.student_id));
+    }
+    courseBreakdown.set(courseKey, courseEntry);
+
+    const groupEntry = groupBreakdown.get(groupKey) || {
+      groupName,
+      totalRecords: 0,
+      present: 0,
+      absent: 0,
+      late: 0,
+      excused: 0,
+      attended: 0,
+      studentsTracked: new Set()
+    };
+    groupEntry.totalRecords += 1;
+    groupEntry[status] += 1;
+    if (attended) {
+      groupEntry.attended += 1;
+    }
+    if (record.student_id) {
+      groupEntry.studentsTracked.add(String(record.student_id));
+    }
+    groupBreakdown.set(groupKey, groupEntry);
+
+    const studentEntry = studentRisk.get(studentKey) || {
+      studentId: record.student_id || null,
+      studentName: record.student_name || record.student_id || 'Unknown student',
+      groupName,
+      totalRecords: 0,
+      present: 0,
+      absent: 0,
+      late: 0,
+      excused: 0,
+      attended: 0,
+      courseLabels: new Set()
+    };
+    studentEntry.totalRecords += 1;
+    studentEntry[status] += 1;
+    if (attended) {
+      studentEntry.attended += 1;
+    }
+    studentEntry.courseLabels.add(courseLabel);
+    studentRisk.set(studentKey, studentEntry);
+  });
+
+  const attendedCount = summary.present + summary.late + summary.excused;
+  summary.attendanceRate = toRate(attendedCount, summary.totalRecords);
+  summary.studentsTracked = trackedStudents.size;
+  summary.coursesTracked = trackedCourses.size;
+  summary.groupsTracked = trackedGroups.size;
+
+  const trend = Array.from(trendByDate.values())
+    .sort((left, right) => left.date.localeCompare(right.date))
+    .map((entry) => ({
+      ...entry,
+      attendanceRate: toRate(entry.attended, entry.totalRecords)
+    }));
+
+  const normalizedCourseBreakdown = Array.from(courseBreakdown.values())
+    .map((entry) => ({
+      courseId: entry.courseId,
+      courseCode: entry.courseCode,
+      courseName: entry.courseName,
+      subject: entry.subject,
+      groupName: entry.groupName,
+      totalRecords: entry.totalRecords,
+      present: entry.present,
+      absent: entry.absent,
+      late: entry.late,
+      excused: entry.excused,
+      attendanceRate: toRate(entry.attended, entry.totalRecords),
+      studentsTracked: entry.studentsTracked.size
+    }))
+    .sort((left, right) => {
+      if (left.attendanceRate !== right.attendanceRate) {
+        return left.attendanceRate - right.attendanceRate;
+      }
+      return right.totalRecords - left.totalRecords;
+    });
+
+  const normalizedGroupBreakdown = Array.from(groupBreakdown.values())
+    .map((entry) => ({
+      groupName: entry.groupName,
+      totalRecords: entry.totalRecords,
+      present: entry.present,
+      absent: entry.absent,
+      late: entry.late,
+      excused: entry.excused,
+      attendanceRate: toRate(entry.attended, entry.totalRecords),
+      studentsTracked: entry.studentsTracked.size
+    }))
+    .sort((left, right) => {
+      if (left.attendanceRate !== right.attendanceRate) {
+        return left.attendanceRate - right.attendanceRate;
+      }
+      return right.totalRecords - left.totalRecords;
+    });
+
+  const riskStudents = Array.from(studentRisk.values())
+    .map((entry) => {
+      const attendanceRate = toRate(entry.attended, entry.totalRecords);
+      const riskScore = (entry.absent * 3) + (entry.late * 2) + Math.max(0, 80 - attendanceRate);
+      return {
+        studentId: entry.studentId,
+        studentName: entry.studentName,
+        groupName: entry.groupName,
+        totalRecords: entry.totalRecords,
+        present: entry.present,
+        absent: entry.absent,
+        late: entry.late,
+        excused: entry.excused,
+        attendanceRate,
+        riskScore,
+        courseLabels: Array.from(entry.courseLabels).slice(0, 3)
+      };
+    })
+    .filter((entry) => (
+      entry.totalRecords >= 3
+      && (entry.attendanceRate < 75 || entry.absent >= 2 || (entry.absent + entry.late) >= 3)
+    ))
+    .sort((left, right) => {
+      if (left.riskScore !== right.riskScore) {
+        return right.riskScore - left.riskScore;
+      }
+      return left.attendanceRate - right.attendanceRate;
+    })
+    .slice(0, 8);
+
+  summary.atRiskStudents = riskStudents.length;
+
+  return {
+    summary,
+    trend,
+    courseBreakdown: normalizedCourseBreakdown.slice(0, 8),
+    groupBreakdown: normalizedGroupBreakdown.slice(0, 8),
+    riskStudents
+  };
+};
+
 const upsertAttendance = async ({ scheduleId, studentId, date, status, markedBy }) => (
   db.run(
     `INSERT INTO attendance (schedule_id, student_id, date, status, marked_by)
@@ -285,6 +530,83 @@ router.get('/management/session/:scheduleId', auth, isTeacherOrAdmin, async (req
     });
   } catch (error) {
     console.error('Get attendance session error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/analytics', auth, isTeacherOrAdmin, async (req, res) => {
+  try {
+    const defaultRange = getDefaultAnalyticsRange();
+    const from = req.query.from ? normalizeDateInput(req.query.from) : defaultRange.from;
+    const to = req.query.to ? normalizeDateInput(req.query.to) : defaultRange.to;
+
+    if (!from || !to) {
+      return res.status(400).json({ error: 'Valid from and to dates are required' });
+    }
+
+    if (from > to) {
+      return res.status(400).json({ error: 'The start date must be earlier than the end date' });
+    }
+
+    let sql = `
+      SELECT
+        a.id,
+        a.schedule_id,
+        a.student_id,
+        a.date,
+        a.status,
+        s.subject,
+        s.day,
+        s.time_slot,
+        s.group_name AS schedule_group_name,
+        s.subgroup_name AS schedule_subgroup_name,
+        s.room,
+        s.teacher,
+        s.course_id,
+        c.code AS course_code,
+        c.name AS course_name,
+        c.teacher_id,
+        u.id AS student_user_id,
+        u.name AS student_name,
+        u.group_name AS student_group_name,
+        u.subgroup_name AS student_subgroup_name
+      FROM attendance a
+      LEFT JOIN schedule s ON s.id = a.schedule_id
+      LEFT JOIN courses c ON c.id = s.course_id
+      LEFT JOIN users u ON u.student_id = a.student_id
+      WHERE a.date >= ?
+        AND a.date <= ?
+    `;
+    const params = [from, to];
+
+    if (!hasAdminAccess(req.user)) {
+      sql += `
+        AND (
+          c.teacher_id = ?
+          OR COALESCE(s.teacher, '') = ?
+          OR COALESCE(s.teacher, '') = ?
+        )
+      `;
+      params.push(req.user.id, req.user.name, req.user.email);
+    }
+
+    sql += `
+      ORDER BY
+        a.date ASC,
+        ${DAY_ORDER_SQL},
+        s.time_slot,
+        a.student_id
+    `;
+
+    const records = await db.all(sql, params);
+
+    res.json({
+      from,
+      to,
+      ...buildAttendanceAnalytics(records)
+    });
+  } catch (error) {
+    console.error('Get attendance analytics error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

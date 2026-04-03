@@ -72,6 +72,24 @@ const getTodayDate = () => {
   return `${year}-${month}-${day}`;
 };
 
+const shiftDate = (value, dayOffset) => {
+  const [year, month, day] = String(value || getTodayDate()).split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + dayOffset);
+  const nextYear = date.getFullYear();
+  const nextMonth = String(date.getMonth() + 1).padStart(2, '0');
+  const nextDay = String(date.getDate()).padStart(2, '0');
+  return `${nextYear}-${nextMonth}-${nextDay}`;
+};
+
+const createDefaultAnalyticsRange = () => {
+  const to = getTodayDate();
+  return {
+    from: shiftDate(to, -29),
+    to
+  };
+};
+
 const formatDate = (value) => {
   if (!value) return 'No date';
 
@@ -81,6 +99,8 @@ const formatDate = (value) => {
     year: 'numeric'
   }).format(new Date(value));
 };
+
+const formatPercentage = (value) => `${Math.round(Number(value) || 0)}%`;
 
 const buildDraftSummary = (students, draftStatuses) => {
   const summary = { ...EMPTY_SUMMARY, total: students.length };
@@ -178,9 +198,223 @@ function AttendanceSummary({ summary }) {
   );
 }
 
+function AttendanceAnalyticsPanel({
+  analytics,
+  analyticsRange,
+  analyticsError,
+  loadingAnalytics,
+  onAnalyticsRangeChange
+}) {
+  const summaryCards = analytics ? [
+    { label: 'Attendance rate', value: formatPercentage(analytics.summary.attendanceRate) },
+    { label: 'Attendance records', value: analytics.summary.totalRecords },
+    { label: 'Students tracked', value: analytics.summary.studentsTracked },
+    { label: 'Courses tracked', value: analytics.summary.coursesTracked },
+    { label: 'Groups tracked', value: analytics.summary.groupsTracked },
+    { label: 'At-risk students', value: analytics.summary.atRiskStudents }
+  ] : [];
+
+  return (
+    <section className="att-panel att-analytics-panel">
+      <div className="att-panel-head att-analytics-head">
+        <div>
+          <h3>Attendance analytics</h3>
+          <p>
+            Review attendance trends, risk patterns, and the courses or groups that may need follow-up.
+          </p>
+        </div>
+
+        <div className="att-analytics-range">
+          <label className="att-filter">
+            <span>From</span>
+            <input
+              type="date"
+              value={analyticsRange.from}
+              onChange={(event) => onAnalyticsRangeChange('from', event.target.value)}
+            />
+          </label>
+          <label className="att-filter">
+            <span>To</span>
+            <input
+              type="date"
+              value={analyticsRange.to}
+              onChange={(event) => onAnalyticsRangeChange('to', event.target.value)}
+            />
+          </label>
+        </div>
+      </div>
+
+      <StatusBanner tone="error" title="Attendance analytics unavailable" message={analyticsError} />
+
+      {loadingAnalytics ? (
+        <EmptyState
+          eyebrow="Analytics"
+          title="Building attendance insights"
+          description="CampusOS is aggregating recent attendance records for the selected date range."
+          compact
+          className="att-inline-empty"
+        />
+      ) : !analytics ? (
+        <EmptyState
+          eyebrow="Analytics"
+          title="No attendance insights yet"
+          description="Attendance analytics will appear here after teachers begin marking class sessions."
+          compact
+          className="att-inline-empty"
+        />
+      ) : (
+        <>
+          <div className="att-summary-grid att-summary-grid-analytics">
+            {summaryCards.map((card) => (
+              <div key={card.label} className="att-summary-card">
+                <strong>{card.value}</strong>
+                <span>{card.label}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="att-analytics-grid">
+            <section className="att-analytics-card">
+              <div className="att-analytics-card-head">
+                <h4>Daily trend</h4>
+                <span>{analytics.trend.length} active day(s)</span>
+              </div>
+              {analytics.trend.length === 0 ? (
+                <EmptyState
+                  eyebrow="Trend"
+                  title="No marked sessions in this window"
+                  description="Try widening the date range or mark attendance for more sessions."
+                  compact
+                  className="att-inline-empty"
+                />
+              ) : (
+                <div className="att-analytics-list">
+                  {analytics.trend.map((entry) => (
+                    <article key={entry.date} className="att-analytics-row">
+                      <div className="att-analytics-main">
+                        <strong>{formatDate(entry.date)}</strong>
+                        <span>
+                          {entry.totalRecords} record{entry.totalRecords === 1 ? '' : 's'} | {entry.absent} absent
+                        </span>
+                      </div>
+                      <div className="att-analytics-kpi">
+                        <strong>{formatPercentage(entry.attendanceRate)}</strong>
+                        <div className="att-analytics-meter" aria-hidden="true">
+                          <span style={{ width: `${entry.attendanceRate}%` }} />
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="att-analytics-card">
+              <div className="att-analytics-card-head">
+                <h4>Course watchlist</h4>
+                <span>Lower attendance appears first</span>
+              </div>
+              {analytics.courseBreakdown.length === 0 ? (
+                <EmptyState
+                  eyebrow="Courses"
+                  title="No course analytics yet"
+                  description="Courses with saved attendance will appear here."
+                  compact
+                  className="att-inline-empty"
+                />
+              ) : (
+                <div className="att-analytics-list">
+                  {analytics.courseBreakdown.map((entry) => (
+                    <article
+                      key={`${entry.courseId || entry.courseCode || entry.subject}-${entry.groupName}`}
+                      className="att-analytics-row"
+                    >
+                      <div className="att-analytics-main">
+                        <strong>{entry.courseName || entry.courseCode || entry.subject || 'Course'}</strong>
+                        <span>
+                          {entry.groupName} | {entry.totalRecords} record{entry.totalRecords === 1 ? '' : 's'}
+                        </span>
+                      </div>
+                      <div className="att-analytics-kpi">
+                        <strong>{formatPercentage(entry.attendanceRate)}</strong>
+                        <small>{entry.absent} absent</small>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="att-analytics-card">
+              <div className="att-analytics-card-head">
+                <h4>Groups and students to review</h4>
+                <span>{analytics.riskStudents.length} student alert(s)</span>
+              </div>
+
+              <div className="att-analytics-section">
+                {analytics.groupBreakdown.length === 0 ? null : (
+                  <div className="att-analytics-subsection">
+                    <h5>Group snapshot</h5>
+                    <div className="att-analytics-list compact">
+                      {analytics.groupBreakdown.slice(0, 4).map((entry) => (
+                        <article key={entry.groupName} className="att-analytics-row compact">
+                          <div className="att-analytics-main">
+                            <strong>{entry.groupName}</strong>
+                            <span>{entry.studentsTracked} student{entry.studentsTracked === 1 ? '' : 's'} tracked</span>
+                          </div>
+                          <div className="att-analytics-kpi">
+                            <strong>{formatPercentage(entry.attendanceRate)}</strong>
+                            <small>{entry.absent} absent</small>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="att-analytics-subsection">
+                  <h5>Student alerts</h5>
+                  {analytics.riskStudents.length === 0 ? (
+                    <p className="att-analytics-note">
+                      No critical attendance risk flags were found in this date range.
+                    </p>
+                  ) : (
+                    <div className="att-analytics-list compact">
+                      {analytics.riskStudents.map((entry) => (
+                        <article key={entry.studentId || entry.studentName} className="att-analytics-row compact risk">
+                          <div className="att-analytics-main">
+                            <strong>{entry.studentName}</strong>
+                            <span>
+                              {entry.studentId || 'No student ID'}
+                              {entry.groupName ? ` | ${entry.groupName}` : ''}
+                            </span>
+                            {entry.courseLabels?.length ? (
+                              <small>{entry.courseLabels.join(' | ')}</small>
+                            ) : null}
+                          </div>
+                          <div className="att-analytics-kpi">
+                            <strong>{formatPercentage(entry.attendanceRate)}</strong>
+                            <small>{entry.absent} absent | {entry.late} late</small>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
 function TeacherAttendance({ user }) {
   const initialPreferences = readAttendancePreferences();
   const [selectedDate, setSelectedDate] = useState(getTodayDate);
+  const [analyticsRange, setAnalyticsRange] = useState(createDefaultAnalyticsRange);
+  const [analytics, setAnalytics] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -190,8 +424,10 @@ function TeacherAttendance({ user }) {
   const [search, setSearch] = useState('');
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [loadingRoster, setLoadingRoster] = useState(false);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [analyticsError, setAnalyticsError] = useState('');
   const [notice, setNotice] = useState('');
   const [compactMode, setCompactMode] = useState(initialPreferences.compactMode);
   const [rosterFilter, setRosterFilter] = useState(initialPreferences.rosterFilter);
@@ -208,6 +444,25 @@ function TeacherAttendance({ user }) {
   useEffect(() => {
     writeAttendancePreferences({ layoutMode });
   }, [layoutMode]);
+
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      try {
+        setLoadingAnalytics(true);
+        setAnalyticsError('');
+
+        const response = await api.getAttendanceAnalytics(analyticsRange.from, analyticsRange.to);
+        setAnalytics(response);
+      } catch (requestError) {
+        setAnalytics(null);
+        setAnalyticsError(requestError.message || 'Failed to load attendance analytics');
+      } finally {
+        setLoadingAnalytics(false);
+      }
+    };
+
+    loadAnalytics();
+  }, [analyticsRange.from, analyticsRange.to]);
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -294,6 +549,26 @@ function TeacherAttendance({ user }) {
   const draftSummary = buildDraftSummary(students, draftStatuses);
   const isAdmin = hasAdminAccess(user);
   const hasRosterFilters = rosterFilter !== 'all' || search.trim() !== '';
+  const handleAnalyticsRangeChange = (field, value) => {
+    setAnalyticsRange((current) => {
+      if (!value) {
+        return current;
+      }
+
+      if (field === 'from') {
+        return {
+          from: value,
+          to: value > current.to ? value : current.to
+        };
+      }
+
+      return {
+        from: value < current.from ? value : current.from,
+        to: value
+      };
+    });
+  };
+
   const setStudentDraftStatus = (studentId, status) => {
     setDraftStatuses((current) => ({
       ...current,
@@ -344,6 +619,11 @@ function TeacherAttendance({ user }) {
 
       const sessionsResponse = await api.getAttendanceSessions(selectedDate);
       setSessions(sessionsResponse.sessions || []);
+
+      if (selectedDate >= analyticsRange.from && selectedDate <= analyticsRange.to) {
+        const analyticsResponse = await api.getAttendanceAnalytics(analyticsRange.from, analyticsRange.to);
+        setAnalytics(analyticsResponse);
+      }
     } catch (requestError) {
       setError(requestError.message || 'Failed to save attendance');
     } finally {
@@ -376,6 +656,14 @@ function TeacherAttendance({ user }) {
 
       <StatusBanner tone="error" title="Attendance could not be updated" message={error} />
       <StatusBanner tone="success" title="Attendance updated" message={notice} />
+
+      <AttendanceAnalyticsPanel
+        analytics={analytics}
+        analyticsRange={analyticsRange}
+        analyticsError={analyticsError}
+        loadingAnalytics={loadingAnalytics}
+        onAnalyticsRangeChange={handleAnalyticsRangeChange}
+      />
 
       <div className="att-management-grid">
         <section className="att-panel att-session-panel">

@@ -699,6 +699,58 @@ test('student can read own attendance history', async () => {
   assert.ok(Array.isArray(body.attendance));
 });
 
+test('teacher can read attendance analytics for managed classes', async () => {
+  const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+
+  const sessionsResult = await request('/api/attendance/management/sessions?date=2026-03-27', {
+    headers: authHeaders(teacherSession.token)
+  });
+
+  assert.equal(sessionsResult.response.status, 200, JSON.stringify(sessionsResult.body));
+  const targetSession = sessionsResult.body.sessions.find((session) => session.course_code) || sessionsResult.body.sessions[0];
+  assert.ok(targetSession, 'Expected a seeded attendance session for analytics');
+
+  const sessionDetail = await request(`/api/attendance/management/session/${targetSession.id}?date=2026-03-27`, {
+    headers: authHeaders(teacherSession.token)
+  });
+
+  assert.equal(sessionDetail.response.status, 200, JSON.stringify(sessionDetail.body));
+  const rosterSlice = sessionDetail.body.students.slice(0, 3);
+  assert.ok(rosterSlice.length >= 1, 'Expected at least one student to mark for analytics');
+
+  const statusSequence = ['present', 'late', 'absent'];
+  const records = rosterSlice.map((student, index) => ({
+    studentId: student.student_id,
+    status: statusSequence[index] || 'present'
+  }));
+
+  const attendanceSave = await request('/api/attendance/bulk', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      scheduleId: targetSession.id,
+      date: '2026-03-27',
+      records
+    })
+  });
+
+  assert.equal(attendanceSave.response.status, 200, JSON.stringify(attendanceSave.body));
+
+  const analytics = await request('/api/attendance/analytics?from=2026-03-01&to=2026-03-31', {
+    headers: authHeaders(teacherSession.token)
+  });
+
+  assert.equal(analytics.response.status, 200, JSON.stringify(analytics.body));
+  assert.ok(analytics.body.summary.totalRecords >= records.length);
+  assert.ok(analytics.body.summary.studentsTracked >= 1);
+  assert.ok(Array.isArray(analytics.body.trend));
+  assert.ok(analytics.body.trend.some((entry) => entry.date === '2026-03-27'));
+  assert.ok(Array.isArray(analytics.body.courseBreakdown));
+  assert.ok(analytics.body.courseBreakdown.length >= 1);
+  assert.ok(Array.isArray(analytics.body.groupBreakdown));
+  assert.ok(Array.isArray(analytics.body.riskStudents));
+});
+
 test('teacher can create an exam and publish a grade while student cannot submit grades', async () => {
   const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
   const studentSession = await login('240141052', process.env.SEED_STUDENT_PASSWORD);

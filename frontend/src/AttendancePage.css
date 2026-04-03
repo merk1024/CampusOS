@@ -308,6 +308,153 @@
   font-size: 0.88rem;
 }
 
+.att-summary-grid-analytics {
+  margin-bottom: 1.4rem;
+}
+
+.att-analytics-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.att-analytics-head p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.att-analytics-range {
+  display: flex;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.att-analytics-range .att-filter {
+  min-width: 160px;
+}
+
+.att-analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.att-analytics-card {
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--border) 82%, var(--accent) 18%);
+  border-radius: 20px;
+  padding: 1.05rem;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 94%, var(--accent) 6%), var(--surf2));
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.att-analytics-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.att-analytics-card-head h4,
+.att-analytics-subsection h5 {
+  color: var(--text);
+  margin: 0;
+}
+
+.att-analytics-card-head span,
+.att-analytics-subsection p,
+.att-analytics-main span,
+.att-analytics-main small,
+.att-analytics-kpi small,
+.att-analytics-note {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.att-analytics-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.att-analytics-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.att-analytics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.att-analytics-list.compact {
+  gap: 0.6rem;
+}
+
+.att-analytics-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 0.95rem;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 50%, var(--surf2) 50%);
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent 18%);
+}
+
+.att-analytics-row.compact {
+  padding: 0.78rem 0.9rem;
+}
+
+.att-analytics-row.risk {
+  border-color: color-mix(in srgb, #ef4444 28%, var(--border) 72%);
+  background: color-mix(in srgb, #ef4444 7%, var(--surface) 93%);
+}
+
+.att-analytics-main,
+.att-analytics-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.att-analytics-main {
+  min-width: 0;
+}
+
+.att-analytics-main strong,
+.att-analytics-kpi strong {
+  color: var(--text);
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+
+.att-analytics-kpi {
+  align-items: flex-end;
+  min-width: 92px;
+}
+
+.att-analytics-meter {
+  width: 110px;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 40%, var(--border) 60%);
+}
+
+.att-analytics-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+}
+
 .att-toolbar {
   display: flex;
   justify-content: space-between;
@@ -687,6 +834,10 @@
 }
 
 @media (max-width: 1080px) {
+  .att-analytics-grid {
+    grid-template-columns: 1fr;
+  }
+
   .att-management-grid {
     grid-template-columns: 1fr;
   }
@@ -716,7 +867,9 @@
   .att-roster-head,
   .att-toolbar,
   .att-actions,
-  .att-roster-meta {
+  .att-roster-meta,
+  .att-analytics-card-head,
+  .att-analytics-row {
     flex-direction: column;
     align-items: stretch;
   }
@@ -727,6 +880,10 @@
   }
 
   .att-toolbar-main {
+    flex-direction: column;
+  }
+
+  .att-analytics-range {
     flex-direction: column;
   }
 
@@ -766,6 +923,14 @@
 
   .att-quick-actions button {
     flex: 1 1 150px;
+  }
+
+  .att-analytics-kpi {
+    align-items: flex-start;
+  }
+
+  .att-analytics-meter {
+    width: 100%;
   }
 
   .att-actions-sticky {

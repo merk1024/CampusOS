@@ -420,6 +420,16 @@ export const api = {
     });
   },
 
+  async getAttendanceAnalytics(from, to) {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+
+    return request(`/attendance/analytics?${params.toString()}`, {
+      headers: getHeaders()
+    });
+  },
+
   async getAttendanceSession(scheduleId, date) {
     return request(
       `/attendance/management/session/${encodeURIComponent(scheduleId)}?date=${encodeURIComponent(date)}`,
