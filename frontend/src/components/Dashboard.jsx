@@ -135,23 +135,6 @@ function Dashboard({ user, onNavigate }) {
           { id: 'assignments', label: 'Assignments', description: 'Open tasks, due dates, and course requirements.', icon: 'ASN' },
           { id: 'messages', label: 'Messages', description: 'Read announcements, exam notices, and updates.', icon: 'MSG' }
         ];
-  const statusItems = [
-    {
-      title: 'Authenticated successfully',
-      subtitle: 'Your session is active and the portal is ready to use.',
-      badge: 'LIVE'
-    },
-    {
-      title: workspaceMode,
-      subtitle: displayNextFocus,
-      badge: roleLabel
-    },
-    {
-      title: 'Account profile',
-      subtitle: accountMeta,
-      badge: groupLabel
-    }
-  ];
   const quickNotes = isAdmin
     ? [
         'Use the operations hub in Courses for bulk teacher assignment and roster exports.',
@@ -175,6 +158,24 @@ function Dashboard({ user, onNavigate }) {
     label: sanitizeUiCopy(item.label),
     description: sanitizeUiCopy(item.description)
   }));
+  const displayQuickNotes = quickNotes.map((item) => sanitizeUiCopy(item));
+  const statusItems = [
+    {
+      title: 'Authenticated successfully',
+      subtitle: 'Your session is active and the portal is ready to use.',
+      badge: 'LIVE'
+    },
+    {
+      title: workspaceMode,
+      subtitle: displayNextFocus,
+      badge: roleLabel
+    },
+    {
+      title: 'Account profile',
+      subtitle: accountMeta,
+      badge: groupLabel
+    }
+  ];
 
   useEffect(() => {
     const loadRiskFlags = async () => {
@@ -415,7 +416,7 @@ function Dashboard({ user, onNavigate }) {
             <h3>Workspace Notes</h3>
           </div>
           <div className="deadline-list dashboard-note-list">
-            {quickNotes.map((item) => (
+            {displayQuickNotes.map((item) => (
               <div key={item} className="deadline-item dashboard-note-item">
                 <div className="deadline-info">
                   <span className="deadline-title">{item}</span>
