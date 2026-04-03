@@ -68,6 +68,11 @@ const toRate = (attended, total) => (
   total > 0 ? Math.round((attended / total) * 100) : 0
 );
 
+const toDateKey = (value) => {
+  const normalized = normalizeDateInput(value);
+  return normalized || String(value || '');
+};
+
 const getScheduleRecord = async (scheduleId) => (
   db.get(
     `SELECT
@@ -250,6 +255,7 @@ const buildAttendanceAnalytics = (records) => {
       return;
     }
 
+    const dateKey = toDateKey(record.date);
     const attended = ATTENDED_STATUSES.has(status);
     const courseLabel = record.course_name || record.course_code || record.subject || 'Unassigned course';
     const groupName = record.student_group_name || record.schedule_group_name || 'No group';
@@ -266,8 +272,8 @@ const buildAttendanceAnalytics = (records) => {
     trackedCourses.add(courseKey);
     trackedGroups.add(groupKey);
 
-    const trendEntry = trendByDate.get(record.date) || {
-      date: record.date,
+    const trendEntry = trendByDate.get(dateKey) || {
+      date: dateKey,
       totalRecords: 0,
       present: 0,
       absent: 0,
@@ -280,7 +286,7 @@ const buildAttendanceAnalytics = (records) => {
     if (attended) {
       trendEntry.attended += 1;
     }
-    trendByDate.set(record.date, trendEntry);
+    trendByDate.set(dateKey, trendEntry);
 
     const courseEntry = courseBreakdown.get(courseKey) || {
       courseId: record.course_id || null,
@@ -354,7 +360,7 @@ const buildAttendanceAnalytics = (records) => {
   summary.groupsTracked = trackedGroups.size;
 
   const trend = Array.from(trendByDate.values())
-    .sort((left, right) => left.date.localeCompare(right.date))
+    .sort((left, right) => String(left.date).localeCompare(String(right.date)))
     .map((entry) => ({
       ...entry,
       attendanceRate: toRate(entry.attended, entry.totalRecords)
