@@ -751,6 +751,83 @@ test('teacher can read attendance analytics for managed classes', async () => {
   assert.ok(Array.isArray(analytics.body.riskStudents));
 });
 
+test('teacher and student can read academic risk flags for their scope', async () => {
+  const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  const studentSession = await login('240141052', process.env.SEED_STUDENT_PASSWORD);
+
+  const sessionsResult = await request('/api/attendance/management/sessions?date=2026-03-27', {
+    headers: authHeaders(teacherSession.token)
+  });
+
+  assert.equal(sessionsResult.response.status, 200, JSON.stringify(sessionsResult.body));
+  const targetSession = sessionsResult.body.sessions.find((session) => session.course_code) || sessionsResult.body.sessions[0];
+  assert.ok(targetSession, 'Expected a managed session for the risk flag test');
+
+  const absentDates = ['2026-03-24', '2026-03-26', '2026-03-27'];
+  for (const date of absentDates) {
+    const markAttendance = await request('/api/attendance', {
+      method: 'POST',
+      headers: authHeaders(teacherSession.token),
+      body: JSON.stringify({
+        scheduleId: targetSession.id,
+        studentId: '240141052',
+        date,
+        status: 'absent'
+      })
+    });
+
+    assert.equal(markAttendance.response.status, 200, JSON.stringify(markAttendance.body));
+  }
+
+  const uniqueSubject = `Risk Flags ${Date.now()}`;
+  const createExamResult = await request('/api/exams', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      group_name: 'CYB-23',
+      subject: uniqueSubject,
+      exam_date: '2026-04-16',
+      exam_time: '12:00',
+      room: 'A-204',
+      type: 'Quiz',
+      semester: 'Spring 2026',
+      students: ['240141052']
+    })
+  });
+
+  assert.equal(createExamResult.response.status, 201, JSON.stringify(createExamResult.body));
+
+  const failingGrade = await request('/api/grades', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      examId: createExamResult.body.exam.id,
+      studentId: '240141052',
+      grade: 48,
+      comments: 'Risk flag regression test'
+    })
+  });
+
+  assert.equal(failingGrade.response.status, 200, JSON.stringify(failingGrade.body));
+
+  const teacherFlags = await request('/api/ops/risk-flags?from=2026-03-01&to=2026-04-30', {
+    headers: authHeaders(teacherSession.token)
+  });
+
+  assert.equal(teacherFlags.response.status, 200, JSON.stringify(teacherFlags.body));
+  assert.ok(teacherFlags.body.summary.flaggedStudents >= 1);
+  assert.ok(teacherFlags.body.flags.some((flag) => flag.studentId === '240141052'));
+
+  const studentFlags = await request('/api/ops/risk-flags?from=2026-03-01&to=2026-04-30', {
+    headers: authHeaders(studentSession.token)
+  });
+
+  assert.equal(studentFlags.response.status, 200, JSON.stringify(studentFlags.body));
+  assert.equal(studentFlags.body.snapshot.studentId, '240141052');
+  assert.notEqual(studentFlags.body.snapshot.severity, 'ok');
+  assert.ok(studentFlags.body.snapshot.reasons.length >= 1);
+});
+
 test('teacher can create an exam and publish a grade while student cannot submit grades', async () => {
   const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
   const studentSession = await login('240141052', process.env.SEED_STUDENT_PASSWORD);

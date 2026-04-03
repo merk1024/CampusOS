@@ -1,3 +1,8 @@
+import { useEffect, useState } from 'react';
+
+import { api } from '../api';
+import EmptyState from './EmptyState';
+import StatusBanner from './StatusBanner';
 import { canManageAcademicRecords, getRoleLabel, hasAdminAccess, isStudentAccount } from '../roles';
 
 function formatLastSeen(value) {
@@ -19,7 +24,16 @@ function formatLastSeen(value) {
   });
 }
 
+function getRiskSeverityLabel(severity) {
+  if (severity === 'critical') return 'Critical';
+  if (severity === 'watch') return 'Watch';
+  return 'Stable';
+}
+
 function Dashboard({ user, onNavigate }) {
+  const [riskFlags, setRiskFlags] = useState(null);
+  const [loadingRiskFlags, setLoadingRiskFlags] = useState(true);
+  const [riskFlagsError, setRiskFlagsError] = useState('');
   const roleLabel = getRoleLabel(user);
   const firstName = user?.name?.split(' ')?.[0] || 'there';
   const displayName = user?.name?.trim() || 'Profile not set';
@@ -94,8 +108,35 @@ function Dashboard({ user, onNavigate }) {
       : [
           'Course cards only appear after enrollment or linked academic assignment.',
           'Grades and attendance update as teachers publish live records.',
-          'Profile settings help keep your academic identity up to date.'
+        'Profile settings help keep your academic identity up to date.'
         ];
+
+  useEffect(() => {
+    const loadRiskFlags = async () => {
+      try {
+        setLoadingRiskFlags(true);
+        setRiskFlagsError('');
+        const response = await api.getAcademicRiskFlags(undefined, undefined, isStudent ? 4 : 6);
+        setRiskFlags(response);
+      } catch (requestError) {
+        setRiskFlags(null);
+        setRiskFlagsError(requestError.message || 'Failed to load academic risk flags.');
+      } finally {
+        setLoadingRiskFlags(false);
+      }
+    };
+
+    loadRiskFlags();
+  }, [isStudent]);
+
+  const studentRiskSnapshot = riskFlags?.snapshot || null;
+  const hasStudentRisk = studentRiskSnapshot && studentRiskSnapshot.severity !== 'ok';
+  const riskSummary = riskFlags?.summary || {
+    studentsEvaluated: 0,
+    flaggedStudents: 0,
+    criticalFlags: 0,
+    watchFlags: 0
+  };
 
   return (
     <div className="page">
@@ -223,6 +264,127 @@ function Dashboard({ user, onNavigate }) {
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="dash-card">
+          <div className="card-header">
+            <h3>{isStudent ? 'Academic Health' : 'Academic Risk Flags'}</h3>
+          </div>
+
+          <StatusBanner
+            tone="error"
+            title="Risk flags unavailable"
+            message={riskFlagsError}
+          />
+
+          {loadingRiskFlags ? (
+            <EmptyState
+              eyebrow="Academic signals"
+              title="Building risk signals"
+              description="CampusOS is reviewing attendance and grade patterns to detect possible academic problems."
+              compact
+              className="dashboard-inline-empty"
+            />
+          ) : isStudent ? (
+            studentRiskSnapshot ? (
+              <div className="dashboard-risk-shell">
+                <div className={`dashboard-risk-banner ${studentRiskSnapshot.severity}`}>
+                  <span className={`dashboard-risk-badge ${studentRiskSnapshot.severity}`}>
+                    {getRiskSeverityLabel(studentRiskSnapshot.severity)}
+                  </span>
+                  <div className="dashboard-risk-metrics">
+                    <div className="dashboard-risk-metric">
+                      <span>Attendance</span>
+                      <strong>{studentRiskSnapshot.attendanceRate}%</strong>
+                    </div>
+                    <div className="dashboard-risk-metric">
+                      <span>Average grade</span>
+                      <strong>{studentRiskSnapshot.averageGrade ?? 'No grades'}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {hasStudentRisk ? (
+                  <div className="dashboard-risk-list">
+                    {studentRiskSnapshot.reasons.map((reason) => (
+                      <div key={reason} className="dashboard-risk-item">
+                        <strong>{reason}</strong>
+                        <span>
+                          Open attendance and grades to review the latest records and speak with your instructor if needed.
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="dashboard-risk-clear">
+                    <strong>No active academic risk flags</strong>
+                    <span>
+                      Your recent attendance and grade patterns look stable in CampusOS.
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <EmptyState
+                eyebrow="Academic signals"
+                title="No academic records yet"
+                description="Risk flags will appear once attendance and grades start coming into your profile."
+                compact
+                className="dashboard-inline-empty"
+              />
+            )
+          ) : (
+            <div className="dashboard-risk-shell">
+              <div className="dashboard-risk-summary">
+                <div className="dashboard-risk-summary-card">
+                  <strong>{riskSummary.flaggedStudents}</strong>
+                  <span>Flagged students</span>
+                </div>
+                <div className="dashboard-risk-summary-card">
+                  <strong>{riskSummary.criticalFlags}</strong>
+                  <span>Critical</span>
+                </div>
+                <div className="dashboard-risk-summary-card">
+                  <strong>{riskSummary.watchFlags}</strong>
+                  <span>Watch</span>
+                </div>
+                <div className="dashboard-risk-summary-card">
+                  <strong>{riskSummary.studentsEvaluated}</strong>
+                  <span>Students evaluated</span>
+                </div>
+              </div>
+
+              {riskFlags?.flags?.length ? (
+                <div className="dashboard-risk-list">
+                  {riskFlags.flags.slice(0, 4).map((flag) => (
+                    <div key={flag.studentId} className="dashboard-risk-item">
+                      <div className="dashboard-risk-item-head">
+                        <strong>{flag.studentName}</strong>
+                        <span className={`dashboard-risk-badge ${flag.severity}`}>
+                          {getRiskSeverityLabel(flag.severity)}
+                        </span>
+                      </div>
+                      <span>
+                        {flag.studentId}
+                        {flag.groupName ? ` | ${flag.groupName}` : ''}
+                      </span>
+                      <small>
+                        Attendance {flag.attendanceRate}% | Average grade {flag.averageGrade ?? 'No grades'}
+                      </small>
+                      <p>{flag.reasons.join(' | ')}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="dashboard-risk-clear">
+                  <strong>No flagged students in the current review window</strong>
+                  <span>
+                    Attendance and grade signals look stable for the currently evaluated population.
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

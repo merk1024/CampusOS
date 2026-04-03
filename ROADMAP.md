@@ -69,7 +69,7 @@ Goal: make the product not only operational, but analytical.
 
 - `x` performance dashboards for students and groups
 - `√` attendance analytics
-- `x` risk flags for academic problems
+- `√` risk flags for academic problems
 - `x` expanded announcements / notification flows
 - `x` faculty and dean office report exports
 

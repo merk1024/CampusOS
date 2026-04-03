@@ -283,6 +283,17 @@ export const api = {
     });
   },
 
+  async getAcademicRiskFlags(from, to, limit) {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (limit) params.set('limit', String(limit));
+
+    return request(`/ops/risk-flags?${params.toString()}`, {
+      headers: getHeaders()
+    });
+  },
+
   async getEnrolledCourses() {
     return request('/courses/enrolled', { headers: getHeaders() });
   },
