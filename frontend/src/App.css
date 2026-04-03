@@ -1117,7 +1117,7 @@ body {
    PAGES
 ══════════════════════════════════════════════════════════ */
 .page {
-  max-width: 1200px;
+  max-width: 1400px;
   animation: pageIn 0.4s ease;
 }
 
@@ -1427,189 +1427,6 @@ body {
   align-items: flex-start;
 }
 
-.dashboard-inline-empty.empty-state-card {
-  width: 100%;
-  min-height: 180px;
-  margin: 0;
-}
-
-.dashboard-risk-shell {
-  display: grid;
-  gap: 1rem;
-}
-
-.dashboard-risk-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.85rem;
-}
-
-.dashboard-risk-summary-card {
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.95rem 1rem;
-  border-radius: var(--radius);
-  background: var(--surface-soft);
-  border: 1px solid var(--border);
-}
-
-.dashboard-risk-summary-card strong {
-  color: var(--text);
-  font-size: 1.35rem;
-  line-height: 1;
-}
-
-.dashboard-risk-summary-card span,
-.dashboard-risk-clear span,
-.dashboard-risk-item span,
-.dashboard-risk-item small,
-.dashboard-risk-metric span {
-  color: var(--text-muted);
-  line-height: 1.45;
-}
-
-.dashboard-risk-banner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.05rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--surface-soft);
-}
-
-.dashboard-risk-banner.critical {
-  background: color-mix(in srgb, #ef4444 8%, var(--surface-soft));
-  border-color: color-mix(in srgb, #ef4444 28%, var(--border));
-}
-
-.dashboard-risk-banner.watch {
-  background: color-mix(in srgb, #f59e0b 8%, var(--surface-soft));
-  border-color: color-mix(in srgb, #f59e0b 28%, var(--border));
-}
-
-.dashboard-risk-metrics {
-  display: flex;
-  gap: 1.25rem;
-  flex-wrap: wrap;
-}
-
-.dashboard-risk-metric {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.dashboard-risk-metric strong {
-  color: var(--text);
-  font-size: 1.1rem;
-}
-
-.dashboard-risk-list {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.dashboard-risk-item {
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.95rem 1rem;
-  border-radius: var(--radius);
-  background: var(--surface-soft);
-  border: 1px solid var(--border);
-}
-
-.dashboard-risk-item p {
-  color: var(--text-light);
-  line-height: 1.55;
-}
-
-.dashboard-risk-item-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.dashboard-risk-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 2rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  border: 1px solid transparent;
-}
-
-.dashboard-risk-badge.critical {
-  color: #991b1b;
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.2);
-}
-
-.dashboard-risk-badge.watch {
-  color: #9a6700;
-  background: rgba(245, 158, 11, 0.14);
-  border-color: rgba(245, 158, 11, 0.22);
-}
-
-.dashboard-risk-badge.ok {
-  color: #065f46;
-  background: rgba(16, 185, 129, 0.12);
-  border-color: rgba(16, 185, 129, 0.22);
-}
-
-.dashboard-risk-clear {
-  display: grid;
-  gap: 0.35rem;
-  padding: 1rem 1.05rem;
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--surface-soft) 86%, var(--accent) 14%);
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border));
-}
-
-.dashboard-risk-clear strong {
-  color: var(--text);
-}
-
-.dashboard-performance-columns {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
-}
-
-.dashboard-performance-list {
-  display: grid;
-  gap: 0.8rem;
-}
-
-.dashboard-performance-item {
-  display: grid;
-  gap: 0.3rem;
-  padding: 0.9rem 1rem;
-  border-radius: var(--radius);
-  background: var(--surface-soft);
-  border: 1px solid var(--border);
-}
-
-.dashboard-performance-item.attention {
-  border-color: color-mix(in srgb, #f59e0b 28%, var(--border));
-  background: color-mix(in srgb, #f59e0b 7%, var(--surface-soft));
-}
-
-.dashboard-performance-item strong {
-  color: var(--text);
-}
-
-.dashboard-performance-item small {
-  color: var(--text-muted);
-  line-height: 1.45;
-}
-
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -1873,17 +1690,6 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .dashboard-risk-banner,
-  .dashboard-risk-item-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .dashboard-risk-metrics {
-    width: 100%;
-    justify-content: space-between;
-  }
-
   .page-header {
     flex-direction: column;
     align-items: flex-start;
@@ -1971,10 +1777,6 @@ body {
   }
 
   .dashboard-action-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-risk-summary {
     grid-template-columns: 1fr;
   }
 }
@@ -3728,7 +3530,7 @@ body {
   }
 
   .schedule-grid {
-    display: none;
+    padding: 0.85rem;
   }
 
   .schedule-grid-board {
@@ -3762,15 +3564,6 @@ body {
   .exam-card-actions,
   .form-actions {
     flex-direction: column;
-  }
-
-  .schedule-overview-strip {
-    display: none;
-  }
-
-  .schedule-mobile-stack {
-    display: block;
-    margin: 12px 0 22px;
   }
 }
 .schedule-overview-strip {
@@ -3851,113 +3644,6 @@ body {
   font-size: 0.84rem;
   color: var(--muted-text, #64748b);
   padding: 2px 4px 0;
-}
-
-.schedule-mobile-stack {
-  display: none;
-}
-
-.schedule-mobile-day {
-  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.24));
-  border-radius: 18px;
-  background: var(--surface, #ffffff);
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-  overflow: hidden;
-}
-
-.schedule-mobile-day + .schedule-mobile-day {
-  margin-top: 14px;
-}
-
-.schedule-mobile-day-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border-color, rgba(148, 163, 184, 0.18));
-  background: color-mix(in srgb, var(--surface, #fff) 92%, var(--accent-color, #2563eb) 8%);
-}
-
-.schedule-mobile-day-head strong {
-  display: block;
-  color: var(--text-color, #0f172a);
-}
-
-.schedule-mobile-day-head span {
-  color: var(--muted-text, #64748b);
-  font-size: 0.82rem;
-}
-
-.schedule-mobile-add {
-  min-height: 36px;
-  padding: 0.5rem 0.85rem;
-  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.24));
-  border-radius: 999px;
-  background: var(--surface, #ffffff);
-  color: var(--text-color, #0f172a);
-  font: inherit;
-  font-weight: 700;
-}
-
-.schedule-mobile-list {
-  display: grid;
-  gap: 10px;
-  padding: 14px;
-}
-
-.schedule-mobile-strip {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--schedule-card-border, rgba(59, 130, 246, 0.24));
-  border-left-width: 6px;
-  border-radius: 16px;
-  background: var(--schedule-card-bg, linear-gradient(135deg, #eef8ff 0%, #dceefe 100%));
-  color: inherit;
-  text-align: left;
-}
-
-button.schedule-mobile-strip {
-  cursor: pointer;
-}
-
-.schedule-mobile-time {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 38px;
-  padding: 0.35rem 0.55rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.5);
-  color: var(--text-color, #0f172a);
-  font-size: 0.8rem;
-  font-weight: 800;
-}
-
-.schedule-mobile-copy {
-  display: grid;
-  gap: 0.25rem;
-  min-width: 0;
-}
-
-.schedule-mobile-copy strong {
-  color: var(--text-color, #0f172a);
-  line-height: 1.35;
-}
-
-.schedule-mobile-copy span {
-  color: var(--muted-text, #64748b);
-  font-size: 0.86rem;
-}
-
-.schedule-mobile-empty {
-  padding: 14px 16px 18px;
-  color: var(--muted-text, #64748b);
-  font-size: 0.9rem;
 }
 
 .integration-page {
