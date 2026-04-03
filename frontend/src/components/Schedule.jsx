@@ -240,6 +240,16 @@ function Schedule() {
       }))
       .filter((section) => section.items.length > 0)
   ), [filteredSchedule]);
+  const mobileScheduleSections = useMemo(() => {
+    const sections = days.map((day) => ({
+      day,
+      items: filteredSchedule
+        .filter((item) => item.day === day)
+        .sort((left, right) => timeSlots.indexOf(left.time_slot) - timeSlots.indexOf(right.time_slot))
+    }));
+
+    return canEdit ? sections : sections.filter((section) => section.items.length > 0);
+  }, [canEdit, filteredSchedule]);
 
   const scheduleMap = useMemo(() => new Map(filteredSchedule.map((item) => [`${item.day}__${item.time_slot}`, item])), [filteredSchedule]);
   const mergedBlocks = useMemo(() => {
@@ -421,6 +431,29 @@ function Schedule() {
     setSelectedSubgroup('');
     setSelectedCourseFilter('');
     setSelectedGroup(groupOptions[0] || '');
+  };
+
+  const openQuickAddForDay = (day) => {
+    if (!canEdit) return;
+
+    const student = students.find((item) => String(item.id) === String(selectedStudentId));
+    setFormData({
+      id: null,
+      day,
+      time_slot: timeSlots[0],
+      original_time_slot: timeSlots[0],
+      legacy_slots: [timeSlots[0]],
+      group_name: isStudent ? studentGroup : (selectedGroup || student?.group_name || ''),
+      audience_type: selectedAudienceView,
+      subgroup_name: selectedAudienceView === 'subgroup' ? selectedSubgroup : '',
+      student_user_id: selectedAudienceView === 'individual' ? normalizeId(selectedStudentId) : '',
+      course_id: '',
+      subject: '',
+      teacher: user?.role === 'teacher' ? user.name : '',
+      room: ''
+    });
+    setSelectedTimeSlots([timeSlots[0]]);
+    setShowEditForm(true);
   };
 
   const handleCoursePick = (courseId) => {
@@ -759,6 +792,7 @@ function Schedule() {
   const needsGroup = !visibleSchedule.length && !selectedGroup && canEdit && selectedAudienceView !== 'individual';
   const hasCourseFilter = Boolean(selectedCourseFilter);
   const filterClearedViewEmpty = hasCourseFilter && filteredSchedule.length === 0;
+  const canRenderScheduleView = !needsSubgroup && !needsStudent && !needsGroup && !filterClearedViewEmpty;
 
   if (loading) {
     return <div className="page"><div className="page-header"><h1>Schedule</h1><p>Loading your timetable...</p></div><div className="loading-spinner"></div></div>;
@@ -994,6 +1028,71 @@ function Schedule() {
                 {section.items.length > 4 && <div className="schedule-overview-more">+{section.items.length - 4} more</div>}
               </div>
             </div>
+          ))}
+        </div>
+      )}
+
+      {canRenderScheduleView && (
+        <div className="schedule-mobile-stack" aria-label="Mobile schedule view">
+          {mobileScheduleSections.map((section) => (
+            <section key={section.day} className="schedule-mobile-day">
+              <div className="schedule-mobile-day-head">
+                <div>
+                  <strong>{section.day}</strong>
+                  <span>{section.items.length} class{section.items.length === 1 ? '' : 'es'}</span>
+                </div>
+                {canEdit && (
+                  <button
+                    type="button"
+                    className="schedule-mobile-add"
+                    onClick={() => openQuickAddForDay(section.day)}
+                  >
+                    Add
+                  </button>
+                )}
+              </div>
+
+              {section.items.length > 0 ? (
+                <div className="schedule-mobile-list">
+                  {section.items.map((item) => {
+                    const mobileStyle = getScheduleCardStyle(item);
+                    const content = (
+                      <>
+                        <div className="schedule-mobile-time">{getSlotStart(item.time_slot)}</div>
+                        <div className="schedule-mobile-copy">
+                          <strong>{item.subject}</strong>
+                          <span>{item.room || 'Room TBD'}</span>
+                        </div>
+                      </>
+                    );
+
+                    return canEdit ? (
+                      <button
+                        key={`${item.id}-${item.time_slot}`}
+                        type="button"
+                        className="schedule-mobile-strip"
+                        style={mobileStyle}
+                        onClick={() => handleCellClick(item.day, item.time_slot)}
+                      >
+                        {content}
+                      </button>
+                    ) : (
+                      <div
+                        key={`${item.id}-${item.time_slot}`}
+                        className="schedule-mobile-strip"
+                        style={mobileStyle}
+                      >
+                        {content}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="schedule-mobile-empty">
+                  {canEdit ? 'No classes yet. Tap Add to create one.' : 'No classes scheduled for this day.'}
+                </div>
+              )}
+            </section>
           ))}
         </div>
       )}
