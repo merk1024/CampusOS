@@ -64,6 +64,13 @@
   --shadow-lg: 0 28px 60px rgba(2, 6, 23, 0.58);
 }
 
+:root[data-density='compact'] {
+  --header-height: 64px;
+  --sidebar-width: 188px;
+  --radius: 14px;
+  --radius-lg: 18px;
+}
+
 body {
   font-family: 'Lexend', -apple-system, sans-serif;
   background: var(--bg-page);
@@ -71,6 +78,54 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+}
+
+:root[data-density='compact'] body {
+  font-size: 0.95rem;
+}
+
+:root[data-density='compact'] .header {
+  padding: 0 1.25rem;
+}
+
+:root[data-density='compact'] .header-left,
+:root[data-density='compact'] .header-center,
+:root[data-density='compact'] .header-right {
+  gap: 0.9rem;
+}
+
+:root[data-density='compact'] .main-content {
+  padding: 1.35rem;
+}
+
+:root[data-density='compact'] .page-header,
+:root[data-density='compact'] .stats-grid,
+:root[data-density='compact'] .management-toolbar,
+:root[data-density='compact'] .management-summary-grid,
+:root[data-density='compact'] .dashboard-grid {
+  margin-bottom: 1.25rem;
+}
+
+:root[data-density='compact'] .page-header h1 {
+  font-size: 1.72rem;
+}
+
+:root[data-density='compact'] .stat-card,
+:root[data-density='compact'] .dash-card,
+:root[data-density='compact'] .exam-form-card,
+:root[data-density='compact'] .data-table-card,
+:root[data-density='compact'] .management-toolbar,
+:root[data-density='compact'] .message-card,
+:root[data-density='compact'] .portal-row {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+:root[data-density='compact'] .btn-primary,
+:root[data-density='compact'] .btn-secondary,
+:root[data-density='compact'] .management-filter-chip,
+:root[data-density='compact'] .nav-item {
+  min-height: 0;
 }
 
 .skip-link {

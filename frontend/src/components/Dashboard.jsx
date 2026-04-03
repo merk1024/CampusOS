@@ -5,7 +5,7 @@ import EmptyState from './EmptyState';
 import StatusBanner from './StatusBanner';
 import { canManageAcademicRecords, getRoleLabel, hasAdminAccess, isStudentAccount } from '../roles';
 
-function formatLastSeen(value) {
+function formatLastSeen(value, locale = 'en-GB') {
   if (!value) {
     return 'Session details will appear after the next authenticated refresh.';
   }
@@ -15,7 +15,7 @@ function formatLastSeen(value) {
     return value;
   }
 
-  return parsed.toLocaleString([], {
+  return parsed.toLocaleString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -82,7 +82,7 @@ function downloadCsvFile(filename, headers, rows) {
   URL.revokeObjectURL(url);
 }
 
-function Dashboard({ user, onNavigate }) {
+function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
   const [riskFlags, setRiskFlags] = useState(null);
   const [loadingRiskFlags, setLoadingRiskFlags] = useState(true);
   const [riskFlagsError, setRiskFlagsError] = useState('');
@@ -402,7 +402,7 @@ function Dashboard({ user, onNavigate }) {
             </div>
             <div className="dashboard-context-item">
               <span className="dashboard-context-label">Last seen</span>
-              <strong>{formatLastSeen(user?.last_login_at || user?.lastLoginAt)}</strong>
+              <strong>{formatLastSeen(user?.last_login_at || user?.lastLoginAt, locale)}</strong>
             </div>
             <div className="dashboard-context-item">
               <span className="dashboard-context-label">Profile next step</span>

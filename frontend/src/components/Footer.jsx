@@ -2,10 +2,12 @@ import campusosBrandDark from '../assets/campusos-brand-dark.svg';
 import campusosBrandLight from '../assets/campusos-brand-light.svg';
 import campusosMobileDark from '../assets/campusos-mobile-dark.svg';
 import campusosMobileLight from '../assets/campusos-mobile-light.svg';
+import { getShellCopy } from '../appPreferences';
 import useMediaQuery from '../hooks/useMediaQuery';
 
-function Footer({ theme = 'light' }) {
+function Footer({ theme = 'light', language = 'English' }) {
   const year = new Date().getFullYear();
+  const copy = getShellCopy(language).footer;
   const isCompactBrand = useMediaQuery('(max-width: 768px)');
   const brandLogo = theme === 'dark' ? campusosBrandDark : campusosBrandLight;
   const mobileBrandLogo = theme === 'dark' ? campusosMobileDark : campusosMobileLight;
@@ -20,13 +22,13 @@ function Footer({ theme = 'light' }) {
               <img src={activeBrandLogo} alt="CampusOS" className="footer-logo-image" />
             </span>
           </div>
-          <p className="footer-text">Copyright {year} CampusOS by Alatoo University. All rights reserved.</p>
+          <p className="footer-text">{copy.copyright.replace('{year}', String(year))}</p>
         </div>
         <div className="footer-right">
           <div className="footer-links">
-            <a href="#" className="footer-link">Privacy Policy</a>
-            <a href="#" className="footer-link">Terms of Service</a>
-            <a href="#" className="footer-link">Support</a>
+            <a href="#" className="footer-link">{copy.privacy}</a>
+            <a href="#" className="footer-link">{copy.terms}</a>
+            <a href="#" className="footer-link">{copy.support}</a>
           </div>
         </div>
       </div>

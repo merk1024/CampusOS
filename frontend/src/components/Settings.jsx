@@ -1,79 +1,78 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
+import { getDefaultPageLabel, getShellCopy } from '../appPreferences';
 import StatusBanner from './StatusBanner';
 import { getRoleLabel } from '../roles';
 
-const SETTINGS_KEY = 'lms_app_settings';
-
-const DEFAULT_SETTINGS = {
-  language: 'English',
-  defaultPage: 'dashboard',
-  reminderMode: 'All notifications',
-  density: 'Comfortable',
-  theme: 'light'
-};
-
-const readSettings = () => {
-  try {
-    return { ...DEFAULT_SETTINGS, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}) };
-  } catch {
-    return { ...DEFAULT_SETTINGS };
-  }
-};
-
-function Settings({ user, onNavigate, theme, onThemeChange, mobileInstall }) {
-  const [settings, setSettings] = useState(readSettings);
+function Settings({
+  user,
+  onNavigate,
+  settings,
+  language,
+  theme,
+  onThemeChange,
+  onSaveSettings,
+  mobileInstall
+}) {
+  const shellCopy = getShellCopy(language);
+  const copy = shellCopy.settings;
+  const themeCopy = shellCopy.header;
+  const [formState, setFormState] = useState(settings);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    setFormState(settings);
+  }, [settings]);
+
   const summaryCards = useMemo(() => ([
-    { label: 'Theme', value: theme === 'dark' ? 'Dark' : 'Light' },
-    { label: 'Language', value: settings.language },
-    { label: 'Default page', value: settings.defaultPage },
-    { label: 'Density', value: settings.density }
-  ]), [settings.defaultPage, settings.density, settings.language, theme]);
+    { label: copy.summaryTheme, value: theme === 'dark' ? themeCopy.dark : themeCopy.light },
+    { label: copy.summaryLanguage, value: formState.language },
+    { label: copy.summaryDefaultPage, value: getDefaultPageLabel(formState.defaultPage, formState.language) },
+    { label: copy.summaryDensity, value: formState.density === 'Compact' ? copy.densityCompact : copy.densityComfortable }
+  ]), [copy, formState.defaultPage, formState.density, formState.language, theme, themeCopy.dark, themeCopy.light]);
 
   const handleSave = (event) => {
     event.preventDefault();
 
     try {
-      const nextSettings = { ...settings, theme };
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(nextSettings));
-      setSettings(nextSettings);
+      const nextSettings = { ...formState, theme };
+      onSaveSettings?.(nextSettings);
+      setFormState(nextSettings);
       setError('');
-      setNotice('Settings saved successfully.');
+      setNotice(copy.saveSuccess);
       window.setTimeout(() => setNotice(''), 2200);
     } catch (saveError) {
       console.error('Failed to save settings:', saveError);
       setNotice('');
-      setError('Settings could not be saved locally.');
+      setError(copy.saveError);
     }
   };
 
   const handleThemeSelect = (nextTheme) => {
     onThemeChange?.(nextTheme);
-    setSettings((current) => ({ ...current, theme: nextTheme }));
+    setFormState((current) => ({ ...current, theme: nextTheme }));
     setNotice('');
   };
 
   const roleLabel = getRoleLabel(user);
   const mobileStatus = mobileInstall?.isInstalled
-    ? 'Installed'
+    ? copy.mobileInstalled
     : mobileInstall?.canInstall
-      ? 'Ready to install'
-      : 'Use a supported mobile browser';
+      ? copy.mobileReady
+      : copy.mobileBrowser;
 
   return (
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Settings</h1>
-          <p>Manage workspace preferences, interface density, theme, and quick navigation.</p>
+          <h1>{copy.title}</h1>
+          <p>{copy.subtitle}</p>
         </div>
       </div>
 
-      <StatusBanner tone="error" title="Settings could not be saved" message={error} />
-      <StatusBanner tone="success" title="Settings updated" message={notice} />
+      <StatusBanner tone="error" title={copy.saveErrorTitle} message={error} />
+      <StatusBanner tone="success" title={copy.saveSuccessTitle} message={notice} />
 
       <div className="management-summary-grid">
         {summaryCards.map((item) => (
@@ -83,7 +82,7 @@ function Settings({ user, onNavigate, theme, onThemeChange, mobileInstall }) {
           </div>
         ))}
         <div className="management-summary-card">
-          <span className="management-summary-label">Mobile pilot</span>
+          <span className="management-summary-label">{copy.summaryMobile}</span>
           <strong>{mobileStatus}</strong>
         </div>
       </div>
@@ -91,14 +90,17 @@ function Settings({ user, onNavigate, theme, onThemeChange, mobileInstall }) {
       <form className="exam-form-card" onSubmit={handleSave}>
         <div className="exam-form-header">
           <div>
-            <h3>Workspace preferences</h3>
-            <p>Choose how CampusOS should feel when you open it every day.</p>
+            <h3>{copy.workspaceTitle}</h3>
+            <p>{copy.workspaceSubtitle}</p>
           </div>
         </div>
         <div className="exam-form-grid">
           <label className="exam-form-field">
-            <span className="exam-form-label">Language</span>
-            <select value={settings.language} onChange={(event) => setSettings({ ...settings, language: event.target.value })}>
+            <span className="exam-form-label">{copy.language}</span>
+            <select
+              value={formState.language}
+              onChange={(event) => setFormState({ ...formState, language: event.target.value })}
+            >
               <option>English</option>
               <option>Russian</option>
               <option>Kyrgyz</option>
@@ -106,74 +108,83 @@ function Settings({ user, onNavigate, theme, onThemeChange, mobileInstall }) {
           </label>
 
           <label className="exam-form-field">
-            <span className="exam-form-label">Default page</span>
-            <select value={settings.defaultPage} onChange={(event) => setSettings({ ...settings, defaultPage: event.target.value })}>
-              <option value="dashboard">Dashboard</option>
-              <option value="courses">Courses</option>
-              <option value="schedule">Schedule</option>
-              <option value="profile">Profile</option>
-              <option value="messages">Messages</option>
+            <span className="exam-form-label">{copy.defaultPage}</span>
+            <select
+              value={formState.defaultPage}
+              onChange={(event) => setFormState({ ...formState, defaultPage: event.target.value })}
+            >
+              <option value="dashboard">{getDefaultPageLabel('dashboard', formState.language)}</option>
+              <option value="courses">{getDefaultPageLabel('courses', formState.language)}</option>
+              <option value="schedule">{getDefaultPageLabel('schedule', formState.language)}</option>
+              <option value="profile">{getDefaultPageLabel('profile', formState.language)}</option>
+              <option value="messages">{getDefaultPageLabel('messages', formState.language)}</option>
             </select>
           </label>
 
           <label className="exam-form-field">
-            <span className="exam-form-label">Notifications</span>
-            <select value={settings.reminderMode} onChange={(event) => setSettings({ ...settings, reminderMode: event.target.value })}>
-              <option>All notifications</option>
-              <option>Only important</option>
-              <option>Only exams</option>
-              <option>Off</option>
+            <span className="exam-form-label">{copy.notifications}</span>
+            <select
+              value={formState.reminderMode}
+              onChange={(event) => setFormState({ ...formState, reminderMode: event.target.value })}
+            >
+              <option value="All notifications">{copy.reminderAll}</option>
+              <option value="Only important">{copy.reminderImportant}</option>
+              <option value="Only exams">{copy.reminderExam}</option>
+              <option value="Off">{copy.reminderOff}</option>
             </select>
           </label>
 
           <label className="exam-form-field">
-            <span className="exam-form-label">Layout density</span>
-            <select value={settings.density} onChange={(event) => setSettings({ ...settings, density: event.target.value })}>
-              <option>Comfortable</option>
-              <option>Compact</option>
+            <span className="exam-form-label">{copy.density}</span>
+            <select
+              value={formState.density}
+              onChange={(event) => setFormState({ ...formState, density: event.target.value })}
+            >
+              <option value="Comfortable">{copy.densityComfortable}</option>
+              <option value="Compact">{copy.densityCompact}</option>
             </select>
           </label>
 
           <label className="exam-form-field">
-            <span className="exam-form-label">Theme</span>
+            <span className="exam-form-label">{copy.theme}</span>
             <select value={theme} onChange={(event) => handleThemeSelect(event.target.value)}>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
+              <option value="light">{themeCopy.light}</option>
+              <option value="dark">{themeCopy.dark}</option>
             </select>
           </label>
         </div>
 
         <div className="portal-actions">
-          <button type="submit" className="btn-primary">Save settings</button>
+          <button type="submit" className="btn-primary">{copy.saveButton}</button>
         </div>
       </form>
 
       <section className="exam-form-card mobile-pilot-card">
         <div className="exam-form-header">
           <div>
-            <h3>Mobile pilot</h3>
-            <p>CampusOS now supports a PWA-first mobile install flow for Android-style home screen access.</p>
+            <h3>{copy.mobileTitle}</h3>
+            <p>{copy.mobileSubtitle}</p>
           </div>
         </div>
         <div className="portal-records">
           <div className="portal-row">
             <div>
-              <span className="portal-kicker">Direction</span>
-              <strong>PWA-first, Capacitor-ready</strong>
+              <span className="portal-kicker">{copy.mobileDirection}</span>
+              <strong>{copy.mobileDirectionValue}</strong>
             </div>
-            <p className="page-context-note">We are using the web app as the first mobile pilot so the same product can be installed now and wrapped later if store distribution becomes necessary.</p>
+            <p className="page-context-note">{copy.mobileDirectionBody}</p>
           </div>
           <div className="portal-row">
             <div>
-              <span className="portal-kicker">Install status</span>
+              <span className="portal-kicker">{copy.mobileStatus}</span>
               <strong>{mobileStatus}</strong>
             </div>
             <p className="page-context-note">
               {mobileInstall?.isInstalled
-                ? 'CampusOS is already installed on this device.'
+                ? copy.mobileInstalledBody
                 : mobileInstall?.canInstall
-                  ? 'Use the install button below to add CampusOS to the home screen.'
-                  : 'If the install button is missing, open CampusOS in Chrome or Edge on Android and use the browser install option.'}
+                  ? copy.mobileReadyBody
+                  : copy.mobileBrowserBody}
             </p>
           </div>
         </div>
@@ -185,11 +196,11 @@ function Settings({ user, onNavigate, theme, onThemeChange, mobileInstall }) {
               onClick={() => mobileInstall.installApp?.()}
               disabled={mobileInstall.installing}
             >
-              {mobileInstall.installing ? 'Installing...' : 'Install CampusOS app'}
+              {mobileInstall.installing ? copy.mobileInstalling : copy.mobileInstallButton}
             </button>
           ) : (
             <button type="button" className="btn-secondary" disabled>
-              {mobileInstall?.isInstalled ? 'Already installed' : 'Install from mobile browser'}
+              {mobileInstall?.isInstalled ? copy.mobileInstalledButton : copy.mobileBrowserButton}
             </button>
           )}
         </div>
@@ -197,14 +208,14 @@ function Settings({ user, onNavigate, theme, onThemeChange, mobileInstall }) {
 
       <div className="management-toolbar">
         <div>
-          <span className="management-summary-label">Quick actions</span>
+          <span className="management-summary-label">{copy.quickActions}</span>
           <strong>{user?.name || 'CampusOS user'}</strong>
-          <p className="page-context-note">Signed in as {roleLabel}. Jump straight into your most-used workspace pages.</p>
+          <p className="page-context-note">{copy.quickActionsBody.replace('{role}', roleLabel)}</p>
         </div>
         <div className="management-filters">
-          <button className="management-filter-chip" onClick={() => onNavigate('profile')}>Open profile</button>
-          <button className="management-filter-chip" onClick={() => onNavigate('messages')}>Open messages</button>
-          <button className="management-filter-chip" onClick={() => onNavigate('schedule')}>Open schedule</button>
+          <button className="management-filter-chip" onClick={() => onNavigate('profile')}>{copy.openProfile}</button>
+          <button className="management-filter-chip" onClick={() => onNavigate('messages')}>{copy.openMessages}</button>
+          <button className="management-filter-chip" onClick={() => onNavigate('schedule')}>{copy.openSchedule}</button>
         </div>
       </div>
     </div>

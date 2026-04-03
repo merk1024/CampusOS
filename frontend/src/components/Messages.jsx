@@ -39,13 +39,13 @@ const AUDIENCE_OPTIONS = [
   { value: 'course', label: 'Specific course' }
 ];
 
-const formatDateTime = (value) => {
+const formatDateTime = (value, locale = 'en-GB') => {
   if (!value) return 'Date unavailable';
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Date unavailable';
 
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -70,7 +70,7 @@ const normalizeNotificationSource = (notification) => {
   return INBOX_META[sourceType] ? sourceType : 'system';
 };
 
-function Messages({ user, onUnreadCountChange }) {
+function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
   const [announcements, setAnnouncements] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -520,7 +520,7 @@ function Messages({ user, onUnreadCountChange }) {
                       <h3>{announcement.title}</h3>
                       <div className="message-subline">
                         <span>{announcement.author_name || 'CampusOS'}</span>
-                        <span>{formatDateTime(announcement.created_at)}</span>
+                        <span>{formatDateTime(announcement.created_at, locale)}</span>
                       </div>
                     </div>
                     {canManage && (
@@ -569,7 +569,7 @@ function Messages({ user, onUnreadCountChange }) {
                       </div>
                       <h3>{notification.title}</h3>
                       <div className="message-subline">
-                        <span>{formatDateTime(notification.delivered_at || notification.created_at)}</span>
+                        <span>{formatDateTime(notification.delivered_at || notification.created_at, locale)}</span>
                         <span>{notification.status || 'delivered'}</span>
                       </div>
                     </div>

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 
 import { api } from '../api';
+import { getShellCopy } from '../appPreferences';
 import campusosHero from '../assets/campusos-hero.svg';
 
-function LoginPage({ onLogin, notice = '' }) {
+function LoginPage({ onLogin, notice = '', language = 'English' }) {
+  const copy = getShellCopy(language).login;
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -50,54 +52,32 @@ function LoginPage({ onLogin, notice = '' }) {
               className="login-brand-image"
             />
             <div className="login-brand-copy">
-              <strong>Academic operations, unified.</strong>
-              <p>
-                CampusOS brings courses, grading, attendance, and scheduling
-                into one calm workspace for students, instructors, and campus teams.
-              </p>
+              <strong>{copy.brandTitle}</strong>
+              <p>{copy.brandBody}</p>
             </div>
           </div>
           <div className="login-features">
-            <div className="feature">
-              <span className="feature-badge">CRS</span>
-              <div className="feature-copy">
-                <strong>Courses in one place</strong>
-                <span>Materials, assignments, and semester progress stay aligned.</span>
+            {copy.features.map((feature) => (
+              <div key={feature.badge} className="feature">
+                <span className="feature-badge">{feature.badge}</span>
+                <div className="feature-copy">
+                  <strong>{feature.title}</strong>
+                  <span>{feature.body}</span>
+                </div>
               </div>
-            </div>
-            <div className="feature">
-              <span className="feature-badge">GRD</span>
-              <div className="feature-copy">
-                <strong>Live academic progress</strong>
-                <span>Check grades, results, and performance signals without friction.</span>
-              </div>
-            </div>
-            <div className="feature">
-              <span className="feature-badge">SCH</span>
-              <div className="feature-copy">
-                <strong>Schedule visibility</strong>
-                <span>Stay on top of classes, exams, and attendance from one dashboard.</span>
-              </div>
-            </div>
-            <div className="feature">
-              <span className="feature-badge">MSG</span>
-              <div className="feature-copy">
-                <strong>Clear communication</strong>
-                <span>Announcements and updates reach the right people at the right time.</span>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
         <div className="login-right">
           <form className="login-form" onSubmit={handleSubmit}>
-            <h2>Welcome Back</h2>
-            <p className="login-subtitle">Sign in with your email or student number</p>
+            <h2>{copy.welcome}</h2>
+            <p className="login-subtitle">{copy.subtitle}</p>
 
             {(error || notice) && <div className="error-message">{error || notice}</div>}
 
             <div className="form-field">
-              <label htmlFor="campusos-login">Email or Student ID</label>
+              <label htmlFor="campusos-login">{copy.loginLabel}</label>
               <input
                 id="campusos-login"
                 type="text"
@@ -109,7 +89,7 @@ function LoginPage({ onLogin, notice = '' }) {
             </div>
 
             <div className="form-field">
-              <label htmlFor="campusos-password">Password</label>
+              <label htmlFor="campusos-password">{copy.passwordLabel}</label>
               <input
                 id="campusos-password"
                 type="password"
@@ -128,12 +108,12 @@ function LoginPage({ onLogin, notice = '' }) {
                   checked={rememberMe}
                   onChange={(event) => setRememberMe(event.target.checked)}
                 />
-                <span>Remember me</span>
+                <span>{copy.rememberMe}</span>
               </label>
             </div>
 
             <button type="submit" className="btn-login" disabled={loading}>
-              {loading ? 'Signing In...' : 'Sign In'}
+              {loading ? copy.signingIn : copy.signIn}
             </button>
           </form>
         </div>

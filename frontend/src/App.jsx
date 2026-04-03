@@ -26,16 +26,15 @@ import Settings from './components/Settings';
 import usePwaInstall from './hooks/usePwaInstall';
 import { getAccessiblePage } from './pageAccess';
 import { hasAdminAccess } from './roles';
-
-const SETTINGS_KEY = 'lms_app_settings';
-
-const DEFAULT_SETTINGS = {
-  language: 'English',
-  defaultPage: 'dashboard',
-  reminderMode: 'All notifications',
-  density: 'Comfortable',
-  theme: null
-};
+import {
+  readAppSettings,
+  resolveAppSettings,
+  writeAppSettings,
+  getLocaleCode,
+  getHtmlLangCode,
+  getReminderUnreadCount,
+  getShellCopy
+} from './appPreferences';
 
 const storage = {
   get(key) {
@@ -53,21 +52,6 @@ const storage = {
   }
 };
 
-const readAppSettings = () => {
-  try {
-    const value = JSON.parse(localStorage.getItem(SETTINGS_KEY));
-    return { ...DEFAULT_SETTINGS, ...(value || {}) };
-  } catch {
-    return { ...DEFAULT_SETTINGS };
-  }
-};
-
-const writeAppSettings = (patch) => {
-  const nextSettings = { ...readAppSettings(), ...patch };
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(nextSettings));
-  return nextSettings;
-};
-
 const getDefaultPage = () => readAppSettings().defaultPage || 'dashboard';
 const getRequestedPage = () => {
   if (typeof window === 'undefined') {
@@ -77,35 +61,22 @@ const getRequestedPage = () => {
   return new URLSearchParams(window.location.search).get('page') || '';
 };
 
-const getInitialTheme = () => {
-  const storedTheme = readAppSettings().theme;
-  if (storedTheme === 'dark' || storedTheme === 'light') {
-    return storedTheme;
-  }
-
-  if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
-    return 'dark';
-  }
-
-  return 'light';
-};
-
-function Sidebar({ activePage, setActivePage, isOpen, onClose, user }) {
+function Sidebar({ activePage, setActivePage, isOpen, onClose, user, labels }) {
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'DB' },
-    { id: 'courses', label: 'Courses', icon: 'CRS' },
-    { id: 'schedule', label: 'Schedule', icon: 'SCH' },
-    { id: 'exams', label: 'Exams', icon: 'EXM' },
-    { id: 'grades', label: 'Grades', icon: 'GRD' },
-    { id: 'assignments', label: 'Assignments', icon: 'ASN' },
-    { id: 'attendance', label: 'Attendance', icon: 'ATT' },
-    { id: 'messages', label: 'Messages', icon: 'MSG' },
-    { id: 'profile', label: 'Profile', icon: 'PRF' }
+    { id: 'dashboard', label: labels.dashboard, icon: 'DB' },
+    { id: 'courses', label: labels.courses, icon: 'CRS' },
+    { id: 'schedule', label: labels.schedule, icon: 'SCH' },
+    { id: 'exams', label: labels.exams, icon: 'EXM' },
+    { id: 'grades', label: labels.grades, icon: 'GRD' },
+    { id: 'assignments', label: labels.assignments, icon: 'ASN' },
+    { id: 'attendance', label: labels.attendance, icon: 'ATT' },
+    { id: 'messages', label: labels.messages, icon: 'MSG' },
+    { id: 'profile', label: labels.profile, icon: 'PRF' }
   ];
 
   if (hasAdminAccess(user)) {
-    menuItems.push({ id: 'userManagement', label: 'User Management', icon: 'USR' });
-    menuItems.push({ id: 'integrations', label: 'Integrations', icon: 'INT' });
+    menuItems.push({ id: 'userManagement', label: labels.userManagement, icon: 'USR' });
+    menuItems.push({ id: 'integrations', label: labels.integrations, icon: 'INT' });
   }
 
   const handleNavigate = (page) => {
@@ -137,23 +108,29 @@ function Sidebar({ activePage, setActivePage, isOpen, onClose, user }) {
 }
 
 export default function App() {
+  const [appSettings, setAppSettings] = useState(() => resolveAppSettings(readAppSettings()));
   const [user, setUser] = useState(null);
   const [activePage, setActivePage] = useState(() => getRequestedPage() || getDefaultPage());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [theme, setTheme] = useState(getInitialTheme);
   const [authNotice, setAuthNotice] = useState('');
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const mobileInstall = usePwaInstall();
+  const theme = appSettings.theme;
+  const locale = getLocaleCode(appSettings.language);
+  const shellCopy = getShellCopy(appSettings.language);
+  const effectiveMessageUnreadCount = appSettings.reminderMode === 'Off' ? 0 : messageUnreadCount;
   const resolvedActivePage = user
-    ? getAccessiblePage(user, activePage || getDefaultPage())
+    ? getAccessiblePage(user, activePage || appSettings.defaultPage || getDefaultPage())
     : activePage;
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.density = appSettings.density === 'Compact' ? 'compact' : 'comfortable';
+    document.documentElement.lang = getHtmlLangCode(appSettings.language);
     document.documentElement.style.colorScheme = theme;
-    writeAppSettings({ theme });
-  }, [theme]);
+    writeAppSettings(appSettings);
+  }, [appSettings, theme]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -197,7 +174,7 @@ export default function App() {
   useEffect(() => {
     const handleAuthSessionExpired = (event) => {
       setUser(null);
-      setActivePage(getRequestedPage() || getDefaultPage());
+      setActivePage(getRequestedPage() || appSettings.defaultPage || getDefaultPage());
       setSidebarOpen(false);
       setAuthNotice(event.detail?.message || SESSION_EXPIRED_MESSAGE);
       setMessageUnreadCount(0);
@@ -208,7 +185,7 @@ export default function App() {
     return () => {
       window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleAuthSessionExpired);
     };
-  }, []);
+  }, [appSettings.defaultPage]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -248,6 +225,10 @@ export default function App() {
       return undefined;
     }
 
+    if (appSettings.reminderMode === 'Off') {
+      return undefined;
+    }
+
     let cancelled = false;
 
     const refreshMessageNotifications = async () => {
@@ -257,7 +238,10 @@ export default function App() {
           return;
         }
 
-        const unreadCount = Number(response?.summary?.unread || 0);
+        const unreadCount = getReminderUnreadCount(
+          response?.notifications || [],
+          appSettings.reminderMode
+        );
         setMessageUnreadCount(activePage === 'messages' ? 0 : unreadCount);
       } catch (error) {
         if (!cancelled) {
@@ -273,7 +257,7 @@ export default function App() {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [activePage, user]);
+  }, [activePage, appSettings.reminderMode, user]);
 
   useEffect(() => {
     if (!user) {
@@ -317,7 +301,7 @@ export default function App() {
   const handleLogin = (userData) => {
     setUser(userData);
     storage.set('lms_user', userData);
-    setActivePage(getAccessiblePage(userData, getRequestedPage() || getDefaultPage()));
+    setActivePage(getAccessiblePage(userData, getRequestedPage() || appSettings.defaultPage || getDefaultPage()));
     setAuthNotice('');
   };
 
@@ -330,7 +314,7 @@ export default function App() {
 
     setUser(null);
     clearAuthSession();
-    setActivePage(getRequestedPage() || getDefaultPage());
+    setActivePage(getRequestedPage() || appSettings.defaultPage || getDefaultPage());
     setSidebarOpen(false);
     setAuthNotice('');
     setMessageUnreadCount(0);
@@ -341,11 +325,18 @@ export default function App() {
   };
 
   const handleThemeChange = (nextTheme) => {
-    setTheme(nextTheme);
+    setAppSettings((current) => ({ ...current, theme: nextTheme }));
   };
 
   const handleThemeToggle = () => {
-    setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark'));
+    setAppSettings((current) => ({
+      ...current,
+      theme: current.theme === 'dark' ? 'light' : 'dark'
+    }));
+  };
+
+  const handleSettingsSave = (nextSettings) => {
+    setAppSettings(resolveAppSettings(nextSettings));
   };
 
   const handleNavigate = (page) => {
@@ -355,7 +346,7 @@ export default function App() {
   const renderPage = () => {
     switch (resolvedActivePage) {
       case 'dashboard':
-        return <Dashboard user={user} onNavigate={handleNavigate} />;
+        return <Dashboard user={user} onNavigate={handleNavigate} locale={locale} />;
       case 'courses':
         return <CoursesPage user={user} />;
       case 'schedule':
@@ -372,6 +363,7 @@ export default function App() {
         return (
           <Messages
             user={user}
+            locale={locale}
             onUnreadCountChange={handleMessageUnreadSync}
           />
         );
@@ -382,8 +374,11 @@ export default function App() {
           <Settings
             user={user}
             onNavigate={handleNavigate}
+            settings={appSettings}
+            language={appSettings.language}
             theme={theme}
             onThemeChange={handleThemeChange}
+            onSaveSettings={handleSettingsSave}
             mobileInstall={mobileInstall}
           />
         );
@@ -392,7 +387,7 @@ export default function App() {
       case 'integrations':
         return <IntegrationCenter user={user} />;
       default:
-        return <Dashboard user={user} onNavigate={handleNavigate} />;
+        return <Dashboard user={user} onNavigate={handleNavigate} locale={locale} />;
     }
   };
 
@@ -400,13 +395,13 @@ export default function App() {
     return (
       <div className="loading-screen">
         <div className="loading-spinner"></div>
-        <p>Loading...</p>
+        <p>{shellCopy.app.loading}</p>
       </div>
     );
   }
 
   if (!user) {
-    return <LoginPage onLogin={handleLogin} notice={authNotice} />;
+    return <LoginPage onLogin={handleLogin} notice={authNotice} language={appSettings.language} />;
   }
 
   return (
@@ -414,12 +409,13 @@ export default function App() {
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <Header
         user={user}
+        language={appSettings.language}
         onLogout={handleLogout}
         onNavigate={handleNavigate}
         onMenuToggle={() => setSidebarOpen((value) => !value)}
         theme={theme}
         onToggleTheme={handleThemeToggle}
-        messageUnreadCount={messageUnreadCount}
+        messageUnreadCount={effectiveMessageUnreadCount}
         mobileInstall={mobileInstall}
       />
       <div className="app-body">
@@ -429,10 +425,11 @@ export default function App() {
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           user={user}
+          labels={shellCopy.nav}
         />
         <main id="main-content" className="main-content" tabIndex="-1">{renderPage()}</main>
       </div>
-      <Footer theme={theme} />
+      <Footer theme={theme} language={appSettings.language} />
     </div>
   );
 }

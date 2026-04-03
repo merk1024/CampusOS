@@ -4,6 +4,7 @@ import campusosBrandDark from '../assets/campusos-brand-dark.svg';
 import campusosBrandLight from '../assets/campusos-brand-light.svg';
 import campusosMobileDark from '../assets/campusos-mobile-dark.svg';
 import campusosMobileLight from '../assets/campusos-mobile-light.svg';
+import { getShellCopy } from '../appPreferences';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { getRoleLabel } from '../roles';
 
@@ -107,11 +108,13 @@ function Header({
   onLogout,
   onNavigate,
   onMenuToggle,
+  language,
   theme,
   onToggleTheme,
   messageUnreadCount = 0,
   mobileInstall
 }) {
+  const copy = getShellCopy(language).header;
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef(null);
   const isCompactBrand = useMediaQuery('(max-width: 768px)');
@@ -172,14 +175,14 @@ function Header({
   return (
     <header className="header">
       <div className="header-left">
-        <button type="button" className="menu-btn" onClick={onMenuToggle} aria-label="Open navigation">
+        <button type="button" className="menu-btn" onClick={onMenuToggle} aria-label={copy.openNavigation}>
           <MenuIcon />
         </button>
-        <button type="button" className="logo" onClick={() => handleNavigate('dashboard')} aria-label="Open dashboard">
+        <button type="button" className="logo" onClick={() => handleNavigate('dashboard')} aria-label={copy.openDashboard}>
           <span className="logo-media">
             <img src={activeBrandLogo} alt="CampusOS" className="logo-image" />
           </span>
-          <span className="logo-chip">Portal</span>
+          <span className="logo-chip">{copy.portal}</span>
         </button>
       </div>
 
@@ -188,7 +191,7 @@ function Header({
           <span className="search-icon">
             <SearchIcon />
           </span>
-          <input type="text" placeholder="Search courses, assignments..." aria-label="Search CampusOS content" />
+          <input type="text" placeholder={copy.searchPlaceholder} aria-label={copy.searchLabel} />
         </div>
       </div>
 
@@ -197,15 +200,15 @@ function Header({
           type="button"
           className={`theme-toggle ${theme === 'dark' ? 'active' : ''}`}
           onClick={onToggleTheme}
-          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          aria-label={theme === 'dark' ? copy.switchToLight : copy.switchToDark}
           aria-pressed={theme === 'dark'}
-          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          title={theme === 'dark' ? copy.switchToLight : copy.switchToDark}
         >
           {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-          <span className="theme-toggle-label">{theme === 'dark' ? 'Light' : 'Dark'}</span>
+          <span className="theme-toggle-label">{theme === 'dark' ? copy.light : copy.dark}</span>
         </button>
 
-        <button type="button" className="icon-btn" onClick={() => handleNavigate('messages')} aria-label="Open messages" title="Messages">
+        <button type="button" className="icon-btn" onClick={() => handleNavigate('messages')} aria-label={copy.openMessages} title={copy.messages}>
           <BellIcon />
           {messageUnreadCount > 0 && (
             <span className="badge" aria-live="polite">{messageUnreadCount > 99 ? '99+' : messageUnreadCount}</span>
@@ -216,19 +219,19 @@ function Header({
             type="button"
             className="icon-btn install-app-btn"
             onClick={handleInstallClick}
-            aria-label="Install CampusOS app"
-            title="Install CampusOS app"
+            aria-label={copy.installApp}
+            title={copy.installApp}
             disabled={mobileInstall.installing}
           >
             <InstallIcon />
           </button>
         )}
-        <button type="button" className="icon-btn" onClick={() => handleNavigate('settings')} aria-label="Open settings" title="Settings">
+        <button type="button" className="icon-btn" onClick={() => handleNavigate('settings')} aria-label={copy.openSettings} title={copy.settings}>
           <SettingsIcon />
         </button>
 
         <div className="user-menu-wrapper" ref={userMenuRef}>
-          <button type="button" className="user-btn" onClick={() => setShowUserMenu((value) => !value)} aria-expanded={showUserMenu} aria-haspopup="menu" aria-label="Open user menu">
+          <button type="button" className="user-btn" onClick={() => setShowUserMenu((value) => !value)} aria-expanded={showUserMenu} aria-haspopup="menu" aria-label={copy.openUserMenu}>
             <div className="user-avatar">{avatarLabel}</div>
             <div className="user-details">
               <div className="user-name">{firstName}</div>
@@ -238,10 +241,10 @@ function Header({
 
           {showUserMenu && (
             <div className="user-dropdown" role="menu">
-              <button type="button" className="dropdown-item" role="menuitem" onClick={() => handleNavigate('profile')}>Profile</button>
-              <button type="button" className="dropdown-item" role="menuitem" onClick={() => handleNavigate('settings')}>Settings</button>
+              <button type="button" className="dropdown-item" role="menuitem" onClick={() => handleNavigate('profile')}>{copy.profile}</button>
+              <button type="button" className="dropdown-item" role="menuitem" onClick={() => handleNavigate('settings')}>{copy.settings}</button>
               <div className="dropdown-divider"></div>
-              <button type="button" className="dropdown-item" role="menuitem" onClick={handleLogoutClick}>Logout</button>
+              <button type="button" className="dropdown-item" role="menuitem" onClick={handleLogoutClick}>{copy.logout}</button>
             </div>
           )}
         </div>
