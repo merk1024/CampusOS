@@ -457,16 +457,25 @@
 
 .att-toolbar {
   display: flex;
-  justify-content: space-between;
-  align-items: end;
+  flex-direction: column;
+  align-items: stretch;
   gap: 1rem;
   margin-bottom: 1rem;
 }
 
 .att-toolbar-main {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
-  flex: 1 1 360px;
+  align-items: end;
+}
+
+.att-toolbar-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: end;
+  gap: 0.9rem 1rem;
 }
 
 .att-search,
@@ -484,10 +493,25 @@
   flex: 0 0 180px;
 }
 
+.att-filter-compact {
+  flex: 0 0 180px;
+}
+
+.att-bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.7rem;
+  flex: 1 1 480px;
+}
+
 .att-quick-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 0.7rem;
+  flex: 0 1 auto;
 }
 
 .att-layout-switch {
@@ -519,6 +543,7 @@
   font: inherit;
 }
 
+.att-bulk-actions button,
 .att-quick-actions button {
   min-height: 46px;
   padding: 0.75rem 1rem;
@@ -529,9 +554,24 @@
   transition: var(--transition);
 }
 
+.att-bulk-actions button:hover,
 .att-quick-actions button:hover {
   transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--accent) 42%, var(--border) 58%);
+}
+
+.att-bulk-actions button:disabled,
+.att-quick-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.att-toolbar-note {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  padding: 0.8rem 0.2rem;
 }
 
 .att-roster-scroll {
@@ -883,8 +923,10 @@
     flex-direction: column;
   }
 
+  .att-toolbar-secondary,
   .att-analytics-range {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .att-filter {
@@ -919,10 +961,21 @@
 
   .att-quick-actions {
     width: 100%;
+    justify-content: stretch;
   }
 
+  .att-bulk-actions {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .att-bulk-actions button,
   .att-quick-actions button {
     flex: 1 1 150px;
+  }
+
+  .att-toolbar-note {
+    padding: 0;
   }
 
   .att-analytics-kpi {

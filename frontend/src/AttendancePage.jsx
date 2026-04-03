@@ -432,6 +432,7 @@ function TeacherAttendance({ user }) {
   const [compactMode, setCompactMode] = useState(initialPreferences.compactMode);
   const [rosterFilter, setRosterFilter] = useState(initialPreferences.rosterFilter);
   const [layoutMode, setLayoutMode] = useState(initialPreferences.layoutMode);
+  const [bulkStatus, setBulkStatus] = useState('present');
 
   useEffect(() => {
     writeAttendancePreferences({ compactMode });
@@ -549,6 +550,7 @@ function TeacherAttendance({ user }) {
   const draftSummary = buildDraftSummary(students, draftStatuses);
   const isAdmin = hasAdminAccess(user);
   const hasRosterFilters = rosterFilter !== 'all' || search.trim() !== '';
+  const visibleCount = filteredStudents.length;
   const handleAnalyticsRangeChange = (field, value) => {
     setAnalyticsRange((current) => {
       if (!value) {
@@ -759,7 +761,7 @@ function TeacherAttendance({ user }) {
               <div className="att-toolbar">
                 <div className="att-toolbar-main">
                   <label className="att-search">
-                    <span>Search student</span>
+                    <span>Student</span>
                     <input
                       type="search"
                       value={search}
@@ -770,7 +772,7 @@ function TeacherAttendance({ user }) {
                   </label>
 
                   <label className="att-filter">
-                    <span>Show rows</span>
+                    <span>Rows</span>
                     <select value={rosterFilter} onChange={(event) => setRosterFilter(event.target.value)}>
                       <option value="all">All rows</option>
                       <option value="unmarked">Only pending</option>
@@ -781,33 +783,59 @@ function TeacherAttendance({ user }) {
                   </label>
                 </div>
 
-                <div className="att-quick-actions">
-                  {STATUS_OPTIONS.map((option) => (
-                    <button key={option.value} type="button" onClick={() => applyStatusToVisible(option.value)}>
-                      Visible {option.label.toLowerCase()}
-                    </button>
-                  ))}
-                  <button type="button" onClick={() => applyStatusToVisible('')}>Clear visible</button>
-                  <button type="button" onClick={() => setCompactMode((value) => !value)}>
-                    {compactMode ? 'Comfort view' : 'Compact view'}
-                  </button>
-                  <div className="att-layout-switch" role="tablist" aria-label="Attendance layout">
+                <div className="att-toolbar-secondary">
+                  <div className="att-bulk-actions">
+                    <label className="att-filter att-filter-compact">
+                      <span>Visible action</span>
+                      <select value={bulkStatus} onChange={(event) => setBulkStatus(event.target.value)}>
+                        {STATUS_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </label>
                     <button
                       type="button"
-                      className={layoutMode === 'cards' ? 'active' : ''}
-                      onClick={() => setLayoutMode('cards')}
+                      onClick={() => applyStatusToVisible(bulkStatus)}
+                      disabled={visibleCount === 0}
                     >
-                      Cards
+                      Apply to visible
                     </button>
                     <button
                       type="button"
-                      className={layoutMode === 'table' ? 'active' : ''}
-                      onClick={() => setLayoutMode('table')}
+                      onClick={() => applyStatusToVisible('')}
+                      disabled={visibleCount === 0}
                     >
-                      Table
+                      Clear visible
                     </button>
+                    <span className="att-toolbar-note">
+                      {visibleCount === 0
+                        ? 'No visible students right now'
+                        : `${visibleCount} visible student${visibleCount === 1 ? '' : 's'}`}
+                    </span>
                   </div>
-                  <button type="button" onClick={resetDraftToSaved}>Reset</button>
+
+                  <div className="att-quick-actions">
+                    <button type="button" onClick={() => setCompactMode((value) => !value)}>
+                      {compactMode ? 'Comfort view' : 'Compact view'}
+                    </button>
+                    <div className="att-layout-switch" role="tablist" aria-label="Attendance layout">
+                      <button
+                        type="button"
+                        className={layoutMode === 'cards' ? 'active' : ''}
+                        onClick={() => setLayoutMode('cards')}
+                      >
+                        Cards
+                      </button>
+                      <button
+                        type="button"
+                        className={layoutMode === 'table' ? 'active' : ''}
+                        onClick={() => setLayoutMode('table')}
+                      >
+                        Table
+                      </button>
+                    </div>
+                    <button type="button" onClick={resetDraftToSaved}>Reset</button>
+                  </div>
                 </div>
               </div>
 
