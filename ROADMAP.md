@@ -67,7 +67,7 @@ Goal: turn CampusOS into a convenient unified portal on top of existing universi
 
 Goal: make the product not only operational, but analytical.
 
-- `x` performance dashboards for students and groups
+- `√` performance dashboards for students and groups
 - `√` attendance analytics
 - `√` risk flags for academic problems
 - `x` expanded announcements / notification flows

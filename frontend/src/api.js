@@ -294,6 +294,16 @@ export const api = {
     });
   },
 
+  async getPerformanceDashboard(from, to) {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+
+    return request(`/ops/performance-dashboard?${params.toString()}`, {
+      headers: getHeaders()
+    });
+  },
+
   async getEnrolledCourses() {
     return request('/courses/enrolled', { headers: getHeaders() });
   },

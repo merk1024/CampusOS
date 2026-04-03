@@ -828,6 +828,94 @@ test('teacher and student can read academic risk flags for their scope', async (
   assert.ok(studentFlags.body.snapshot.reasons.length >= 1);
 });
 
+test('teacher and student can read performance dashboards for their scope', async () => {
+  const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  const studentSession = await login('240141052', process.env.SEED_STUDENT_PASSWORD);
+
+  const sessionsResult = await request('/api/attendance/management/sessions?date=2026-03-28', {
+    headers: authHeaders(teacherSession.token)
+  });
+
+  assert.equal(sessionsResult.response.status, 200, JSON.stringify(sessionsResult.body));
+  const targetSession = sessionsResult.body.sessions.find((session) => session.course_code) || sessionsResult.body.sessions[0];
+  assert.ok(targetSession, 'Expected a session for the performance dashboard test');
+
+  const sessionDetail = await request(`/api/attendance/management/session/${targetSession.id}?date=2026-03-28`, {
+    headers: authHeaders(teacherSession.token)
+  });
+
+  assert.equal(sessionDetail.response.status, 200, JSON.stringify(sessionDetail.body));
+  const rosterSlice = sessionDetail.body.students.slice(0, 2);
+  assert.ok(rosterSlice.length >= 1, 'Expected roster data for the performance dashboard test');
+
+  const attendanceSave = await request('/api/attendance/bulk', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      scheduleId: targetSession.id,
+      date: '2026-03-28',
+      records: rosterSlice.map((student, index) => ({
+        studentId: student.student_id,
+        status: index === 0 ? 'present' : 'late'
+      }))
+    })
+  });
+
+  assert.equal(attendanceSave.response.status, 200, JSON.stringify(attendanceSave.body));
+
+  const uniqueSubject = `Performance Dash ${Date.now()}`;
+  const createdExam = await request('/api/exams', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      group_name: 'CYB-23',
+      subject: uniqueSubject,
+      exam_date: '2026-04-18',
+      exam_time: '09:30',
+      room: 'B-101',
+      type: 'Quiz',
+      semester: 'Spring 2026',
+      students: rosterSlice.map((student) => student.student_id)
+    })
+  });
+
+  assert.equal(createdExam.response.status, 201, JSON.stringify(createdExam.body));
+
+  const gradeValues = [96, 78];
+  for (const [index, student] of rosterSlice.entries()) {
+    const gradeSave = await request('/api/grades', {
+      method: 'POST',
+      headers: authHeaders(teacherSession.token),
+      body: JSON.stringify({
+        examId: createdExam.body.exam.id,
+        studentId: student.student_id,
+        grade: gradeValues[index] || 84,
+        comments: 'Performance dashboard regression test'
+      })
+    });
+
+    assert.equal(gradeSave.response.status, 200, JSON.stringify(gradeSave.body));
+  }
+
+  const teacherDashboard = await request('/api/ops/performance-dashboard?from=2026-03-01&to=2026-04-30', {
+    headers: authHeaders(teacherSession.token)
+  });
+
+  assert.equal(teacherDashboard.response.status, 200, JSON.stringify(teacherDashboard.body));
+  assert.ok(teacherDashboard.body.summary.studentsTracked >= 1);
+  assert.ok(Array.isArray(teacherDashboard.body.groupPerformance));
+  assert.ok(Array.isArray(teacherDashboard.body.topStudents));
+  assert.ok(teacherDashboard.body.groupPerformance.length >= 1);
+
+  const studentDashboard = await request('/api/ops/performance-dashboard?from=2026-03-01&to=2026-04-30', {
+    headers: authHeaders(studentSession.token)
+  });
+
+  assert.equal(studentDashboard.response.status, 200, JSON.stringify(studentDashboard.body));
+  assert.equal(studentDashboard.body.studentSnapshot.studentId, '240141052');
+  assert.ok(studentDashboard.body.studentSnapshot.attendanceRate >= 0);
+});
+
 test('teacher can create an exam and publish a grade while student cannot submit grades', async () => {
   const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
   const studentSession = await login('240141052', process.env.SEED_STUDENT_PASSWORD);

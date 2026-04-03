@@ -1576,6 +1576,40 @@ body {
   color: var(--text);
 }
 
+.dashboard-performance-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.dashboard-performance-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.dashboard-performance-item {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+}
+
+.dashboard-performance-item.attention {
+  border-color: color-mix(in srgb, #f59e0b 28%, var(--border));
+  background: color-mix(in srgb, #f59e0b 7%, var(--surface-soft));
+}
+
+.dashboard-performance-item strong {
+  color: var(--text);
+}
+
+.dashboard-performance-item small {
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;

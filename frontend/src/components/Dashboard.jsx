@@ -30,10 +30,17 @@ function getRiskSeverityLabel(severity) {
   return 'Stable';
 }
 
+function formatMetricPercent(value) {
+  return `${Math.round(Number(value) || 0)}%`;
+}
+
 function Dashboard({ user, onNavigate }) {
   const [riskFlags, setRiskFlags] = useState(null);
   const [loadingRiskFlags, setLoadingRiskFlags] = useState(true);
   const [riskFlagsError, setRiskFlagsError] = useState('');
+  const [performanceDashboard, setPerformanceDashboard] = useState(null);
+  const [loadingPerformanceDashboard, setLoadingPerformanceDashboard] = useState(true);
+  const [performanceDashboardError, setPerformanceDashboardError] = useState('');
   const roleLabel = getRoleLabel(user);
   const firstName = user?.name?.split(' ')?.[0] || 'there';
   const displayName = user?.name?.trim() || 'Profile not set';
@@ -127,7 +134,25 @@ function Dashboard({ user, onNavigate }) {
     };
 
     loadRiskFlags();
-  }, [isStudent]);
+  }, [isStudent, user?.id]);
+
+  useEffect(() => {
+    const loadPerformanceDashboard = async () => {
+      try {
+        setLoadingPerformanceDashboard(true);
+        setPerformanceDashboardError('');
+        const response = await api.getPerformanceDashboard();
+        setPerformanceDashboard(response);
+      } catch (requestError) {
+        setPerformanceDashboard(null);
+        setPerformanceDashboardError(requestError.message || 'Failed to load performance dashboard.');
+      } finally {
+        setLoadingPerformanceDashboard(false);
+      }
+    };
+
+    loadPerformanceDashboard();
+  }, [user?.id]);
 
   const studentRiskSnapshot = riskFlags?.snapshot || null;
   const hasStudentRisk = studentRiskSnapshot && studentRiskSnapshot.severity !== 'ok';
@@ -137,6 +162,14 @@ function Dashboard({ user, onNavigate }) {
     criticalFlags: 0,
     watchFlags: 0
   };
+  const performanceSummary = performanceDashboard?.summary || {
+    studentsTracked: 0,
+    groupsTracked: 0,
+    averageGrade: null,
+    averageAttendanceRate: 0,
+    supportQueueSize: 0
+  };
+  const studentPerformance = performanceDashboard?.studentSnapshot || null;
 
   return (
     <div className="page">
@@ -264,6 +297,141 @@ function Dashboard({ user, onNavigate }) {
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="dash-card">
+          <div className="card-header">
+            <h3>{isStudent ? 'Performance Snapshot' : 'Performance Overview'}</h3>
+          </div>
+
+          <StatusBanner
+            tone="error"
+            title="Performance dashboard unavailable"
+            message={performanceDashboardError}
+          />
+
+          {loadingPerformanceDashboard ? (
+            <EmptyState
+              eyebrow="Performance"
+              title="Building performance overview"
+              description="CampusOS is aggregating grades and attendance into a role-specific performance dashboard."
+              compact
+              className="dashboard-inline-empty"
+            />
+          ) : isStudent ? (
+            studentPerformance ? (
+              <div className="dashboard-risk-shell">
+                <div className="dashboard-risk-summary">
+                  <div className="dashboard-risk-summary-card">
+                    <strong>{studentPerformance.averageGrade ?? 'No grades'}</strong>
+                    <span>Average grade</span>
+                  </div>
+                  <div className="dashboard-risk-summary-card">
+                    <strong>{formatMetricPercent(studentPerformance.attendanceRate)}</strong>
+                    <span>Attendance rate</span>
+                  </div>
+                  <div className="dashboard-risk-summary-card">
+                    <strong>{studentPerformance.totalGrades}</strong>
+                    <span>Graded assessments</span>
+                  </div>
+                  <div className="dashboard-risk-summary-card">
+                    <strong>{studentPerformance.attendanceRecords}</strong>
+                    <span>Attendance records</span>
+                  </div>
+                </div>
+
+                <div className="dashboard-performance-list">
+                  <div className="dashboard-performance-item">
+                    <span className="dashboard-context-label">Strongest subject</span>
+                    <strong>{studentPerformance.strongestSubject?.subject || 'Not enough data yet'}</strong>
+                    <small>
+                      {studentPerformance.strongestSubject
+                        ? `Average ${studentPerformance.strongestSubject.averageGrade}`
+                        : 'Grades will appear here after more assessments are published.'}
+                    </small>
+                  </div>
+                  <div className="dashboard-performance-item">
+                    <span className="dashboard-context-label">Needs attention</span>
+                    <strong>{studentPerformance.supportSubject?.subject || 'No current concern'}</strong>
+                    <small>
+                      {studentPerformance.supportSubject
+                        ? `Attendance ${formatMetricPercent(studentPerformance.supportSubject.attendanceRate)}`
+                        : 'CampusOS has not detected a weak subject area in the current window.'}
+                    </small>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <EmptyState
+                eyebrow="Performance"
+                title="No performance data yet"
+                description="Your grade and attendance dashboard will appear once academic records start coming in."
+                compact
+                className="dashboard-inline-empty"
+              />
+            )
+          ) : (
+            <div className="dashboard-risk-shell">
+              <div className="dashboard-risk-summary">
+                <div className="dashboard-risk-summary-card">
+                  <strong>{performanceSummary.averageGrade ?? 'No grades'}</strong>
+                  <span>Average grade</span>
+                </div>
+                <div className="dashboard-risk-summary-card">
+                  <strong>{formatMetricPercent(performanceSummary.averageAttendanceRate)}</strong>
+                  <span>Average attendance</span>
+                </div>
+                <div className="dashboard-risk-summary-card">
+                  <strong>{performanceSummary.groupsTracked}</strong>
+                  <span>Groups tracked</span>
+                </div>
+                <div className="dashboard-risk-summary-card">
+                  <strong>{performanceSummary.supportQueueSize}</strong>
+                  <span>Support queue</span>
+                </div>
+              </div>
+
+              <div className="dashboard-performance-columns">
+                <div className="dashboard-performance-list">
+                  <span className="dashboard-context-label">Group performance</span>
+                  {(performanceDashboard?.groupPerformance || []).slice(0, 4).map((group) => (
+                    <div key={group.groupName} className="dashboard-performance-item">
+                      <strong>{group.groupName}</strong>
+                      <small>
+                        {group.studentCount} students | Grade {group.averageGrade ?? 'No grades'} | Attendance {formatMetricPercent(group.attendanceRate)}
+                      </small>
+                    </div>
+                  ))}
+                  {!performanceDashboard?.groupPerformance?.length ? (
+                    <div className="dashboard-risk-clear">
+                      <strong>No group aggregates yet</strong>
+                      <span>Performance groups will appear once attendance and grades are available.</span>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="dashboard-performance-list">
+                  <span className="dashboard-context-label">Student highlights</span>
+                  {(performanceDashboard?.topStudents || []).slice(0, 3).map((student) => (
+                    <div key={student.studentId} className="dashboard-performance-item">
+                      <strong>{student.studentName}</strong>
+                      <small>
+                        {student.groupName} | Grade {student.averageGrade ?? 'No grades'} | Attendance {formatMetricPercent(student.attendanceRate)}
+                      </small>
+                    </div>
+                  ))}
+                  {(performanceDashboard?.supportQueue || []).slice(0, 2).map((student) => (
+                    <div key={`${student.studentId}-support`} className="dashboard-performance-item attention">
+                      <strong>{student.studentName}</strong>
+                      <small>
+                        Needs support | Grade {student.averageGrade ?? 'No grades'} | Attendance {formatMetricPercent(student.attendanceRate)}
+                      </small>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="dash-card">

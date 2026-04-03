@@ -7,6 +7,7 @@ const { runQueuedJobs } = require('../utils/platformOps');
 const { canManageAcademicRecords, hasAdminAccess, isStudentAccount } = require('../utils/access');
 
 const DEFAULT_RISK_WINDOW_DAYS = 45;
+const DEFAULT_PERFORMANCE_WINDOW_DAYS = 120;
 
 const normalizeDateInput = (value) => {
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
@@ -44,6 +45,14 @@ const getDefaultRiskRange = () => {
   };
 };
 
+const getDefaultPerformanceRange = () => {
+  const to = normalizeDateInput(new Date());
+  return {
+    from: shiftDateInput(to, -(DEFAULT_PERFORMANCE_WINDOW_DAYS - 1)),
+    to
+  };
+};
+
 const toRate = (value, total) => (
   total > 0 ? Math.round((Number(value) / Number(total)) * 100) : 0
 );
@@ -57,6 +66,101 @@ const buildInClause = (values) => {
     clause: `(${values.map(() => '?').join(', ')})`,
     params: values
   };
+};
+
+const getScopedStudentProfiles = async (user) => {
+  if (hasAdminAccess(user)) {
+    return db.all(
+      `SELECT id, student_id, name, group_name, subgroup_name
+       FROM users
+       WHERE role = 'student'
+       ORDER BY name`
+    );
+  }
+
+  if (canManageAcademicRecords(user)) {
+    return db.all(
+      `SELECT DISTINCT u.id, u.student_id, u.name, u.group_name, u.subgroup_name
+       FROM users u
+       JOIN course_enrollments ce ON ce.student_id = u.id
+       JOIN courses c ON c.id = ce.course_id
+       WHERE u.role = 'student'
+         AND c.teacher_id = ?
+       ORDER BY u.name`,
+      [user.id]
+    );
+  }
+
+  if (isStudentAccount(user) && user.student_id) {
+    return db.all(
+      `SELECT id, student_id, name, group_name, subgroup_name
+       FROM users
+       WHERE role = 'student'
+         AND student_id = ?`,
+      [user.student_id]
+    );
+  }
+
+  return [];
+};
+
+const getScopedAttendanceRecords = async ({ user, studentIds, from, to }) => {
+  const studentIdFilter = buildInClause(studentIds);
+  const params = [from, to, ...studentIdFilter.params];
+  let sql = `
+    SELECT
+      a.student_id,
+      a.status,
+      a.date,
+      COALESCE(c.name, s.subject, 'Scheduled class') AS subject,
+      COALESCE(u.group_name, s.group_name, 'No group') AS group_name
+    FROM attendance a
+    LEFT JOIN schedule s ON s.id = a.schedule_id
+    LEFT JOIN courses c ON c.id = s.course_id
+    LEFT JOIN users u ON u.student_id = a.student_id
+    WHERE a.date >= ?
+      AND a.date <= ?
+      AND a.student_id IN ${studentIdFilter.clause}
+  `;
+
+  if (canManageAcademicRecords(user) && !hasAdminAccess(user)) {
+    sql += `
+      AND (
+        c.teacher_id = ?
+        OR COALESCE(s.teacher, '') = ?
+        OR COALESCE(s.teacher, '') = ?
+      )
+    `;
+    params.push(user.id, user.name, user.email);
+  }
+
+  return db.all(sql, params);
+};
+
+const getScopedGradeRecords = async ({ user, studentIds, from, to }) => {
+  const studentIdFilter = buildInClause(studentIds);
+  const params = [...studentIdFilter.params, from, to];
+  let sql = `
+    SELECT
+      g.student_id,
+      g.grade,
+      COALESCE(e.subject, 'Assessment') AS subject,
+      COALESCE(u.group_name, e.group_name, 'No group') AS group_name,
+      COALESCE(e.exam_date, DATE(g.graded_at)) AS grade_date
+    FROM grades g
+    LEFT JOIN exams e ON e.id = g.exam_id
+    LEFT JOIN users u ON u.student_id = g.student_id
+    WHERE g.student_id IN ${studentIdFilter.clause}
+      AND COALESCE(e.exam_date, DATE(g.graded_at)) >= ?
+      AND COALESCE(e.exam_date, DATE(g.graded_at)) <= ?
+  `;
+
+  if (canManageAcademicRecords(user) && !hasAdminAccess(user)) {
+    sql += ' AND e.created_by = ?';
+    params.push(user.id);
+  }
+
+  return db.all(sql, params);
 };
 
 const createStudentSnapshot = (profile, attendance, grades) => {
@@ -126,6 +230,220 @@ const createStudentSnapshot = (profile, attendance, grades) => {
     severity,
     riskScore,
     reasons
+  };
+};
+
+const buildPerformanceDashboard = (profiles, attendanceRecords, gradeRecords, user) => {
+  const studentMap = new Map(
+    profiles.map((profile) => [
+      String(profile.student_id),
+      {
+        studentId: profile.student_id,
+        studentName: profile.name,
+        groupName: profile.group_name || 'No group',
+        subgroupName: profile.subgroup_name || null,
+        attendanceTotal: 0,
+        attendedCount: 0,
+        totalGrades: 0,
+        gradeSum: 0,
+        strongestSubjects: new Map(),
+        supportSubjects: new Map()
+      }
+    ])
+  );
+  const groupMap = new Map();
+
+  const ensureGroupEntry = (groupName) => {
+    if (!groupMap.has(groupName)) {
+      groupMap.set(groupName, {
+        groupName,
+        students: new Set(),
+        attendanceTotal: 0,
+        attendedCount: 0,
+        gradeTotal: 0,
+        gradeSum: 0,
+        failCount: 0
+      });
+    }
+
+    return groupMap.get(groupName);
+  };
+
+  attendanceRecords.forEach((record) => {
+    const entry = studentMap.get(String(record.student_id));
+    if (!entry) return;
+
+    entry.attendanceTotal += 1;
+    if (['present', 'late', 'excused'].includes(record.status)) {
+      entry.attendedCount += 1;
+    }
+
+    const subjectBucket = entry.supportSubjects.get(record.subject) || {
+      subject: record.subject,
+      grades: [],
+      attendanceTotal: 0,
+      attendedCount: 0
+    };
+    subjectBucket.attendanceTotal += 1;
+    if (['present', 'late', 'excused'].includes(record.status)) {
+      subjectBucket.attendedCount += 1;
+    }
+    entry.supportSubjects.set(record.subject, subjectBucket);
+
+    const groupEntry = ensureGroupEntry(record.group_name || entry.groupName || 'No group');
+    groupEntry.students.add(entry.studentId);
+    groupEntry.attendanceTotal += 1;
+    if (['present', 'late', 'excused'].includes(record.status)) {
+      groupEntry.attendedCount += 1;
+    }
+  });
+
+  gradeRecords.forEach((record) => {
+    const entry = studentMap.get(String(record.student_id));
+    if (!entry) return;
+
+    entry.totalGrades += 1;
+    entry.gradeSum += Number(record.grade || 0);
+
+    const strongestBucket = entry.strongestSubjects.get(record.subject) || {
+      subject: record.subject,
+      grades: []
+    };
+    strongestBucket.grades.push(Number(record.grade || 0));
+    entry.strongestSubjects.set(record.subject, strongestBucket);
+
+    const supportBucket = entry.supportSubjects.get(record.subject) || {
+      subject: record.subject,
+      grades: [],
+      attendanceTotal: 0,
+      attendedCount: 0
+    };
+    supportBucket.grades.push(Number(record.grade || 0));
+    entry.supportSubjects.set(record.subject, supportBucket);
+
+    const groupEntry = ensureGroupEntry(record.group_name || entry.groupName || 'No group');
+    groupEntry.students.add(entry.studentId);
+    groupEntry.gradeTotal += 1;
+    groupEntry.gradeSum += Number(record.grade || 0);
+    if (Number(record.grade || 0) < 60) {
+      groupEntry.failCount += 1;
+    }
+  });
+
+  const studentSnapshots = Array.from(studentMap.values())
+    .map((entry) => {
+      const attendanceRate = toRate(entry.attendedCount, entry.attendanceTotal);
+      const averageGrade = entry.totalGrades > 0
+        ? Math.round(entry.gradeSum / entry.totalGrades)
+        : null;
+
+      const strongestSubject = Array.from(entry.strongestSubjects.values())
+        .map((bucket) => ({
+          subject: bucket.subject,
+          averageGrade: Math.round(bucket.grades.reduce((sum, value) => sum + value, 0) / bucket.grades.length)
+        }))
+        .sort((left, right) => right.averageGrade - left.averageGrade)[0] || null;
+
+      const supportSubject = Array.from(entry.supportSubjects.values())
+        .map((bucket) => {
+          const averageGradeBySubject = bucket.grades.length
+            ? Math.round(bucket.grades.reduce((sum, value) => sum + value, 0) / bucket.grades.length)
+            : null;
+          const attendanceRateBySubject = toRate(bucket.attendedCount || 0, bucket.attendanceTotal || 0);
+          const supportScore = (
+            Math.max(0, 75 - (averageGradeBySubject ?? 75))
+            + Math.max(0, 80 - attendanceRateBySubject)
+          );
+
+          return {
+            subject: bucket.subject,
+            averageGrade: averageGradeBySubject,
+            attendanceRate: attendanceRateBySubject,
+            supportScore
+          };
+        })
+        .sort((left, right) => right.supportScore - left.supportScore)[0] || null;
+
+      return {
+        studentId: entry.studentId,
+        studentName: entry.studentName,
+        groupName: entry.groupName,
+        attendanceRate,
+        totalGrades: entry.totalGrades,
+        averageGrade,
+        attendanceRecords: entry.attendanceTotal,
+        strongestSubject,
+        supportSubject
+      };
+    })
+    .filter((entry) => entry.totalGrades > 0 || entry.attendanceRecords > 0);
+
+  const groupPerformance = Array.from(groupMap.values())
+    .map((entry) => ({
+      groupName: entry.groupName,
+      studentCount: entry.students.size,
+      attendanceRate: toRate(entry.attendedCount, entry.attendanceTotal),
+      averageGrade: entry.gradeTotal > 0 ? Math.round(entry.gradeSum / entry.gradeTotal) : null,
+      totalGrades: entry.gradeTotal,
+      failCount: entry.failCount
+    }))
+    .sort((left, right) => {
+      const leftComposite = (left.averageGrade ?? 0) + left.attendanceRate;
+      const rightComposite = (right.averageGrade ?? 0) + right.attendanceRate;
+      return rightComposite - leftComposite;
+    });
+
+  const topStudents = studentSnapshots
+    .filter((entry) => entry.averageGrade !== null)
+    .sort((left, right) => {
+      const rightComposite = (right.averageGrade ?? 0) + right.attendanceRate;
+      const leftComposite = (left.averageGrade ?? 0) + left.attendanceRate;
+      return rightComposite - leftComposite;
+    })
+    .slice(0, 5);
+
+  const supportQueue = studentSnapshots
+    .filter((entry) => (
+      entry.averageGrade !== null
+      ? entry.averageGrade < 70 || entry.attendanceRate < 75
+      : entry.attendanceRate < 75
+    ))
+    .sort((left, right) => {
+      const leftScore = Math.max(0, 75 - (left.averageGrade ?? 75)) + Math.max(0, 80 - left.attendanceRate);
+      const rightScore = Math.max(0, 75 - (right.averageGrade ?? 75)) + Math.max(0, 80 - right.attendanceRate);
+      return rightScore - leftScore;
+    })
+    .slice(0, 5);
+
+  const summary = {
+    studentsTracked: studentSnapshots.length,
+    groupsTracked: groupPerformance.length,
+    averageGrade: studentSnapshots.filter((entry) => entry.averageGrade !== null).length > 0
+      ? Math.round(
+          studentSnapshots
+            .filter((entry) => entry.averageGrade !== null)
+            .reduce((sum, entry) => sum + entry.averageGrade, 0)
+          / studentSnapshots.filter((entry) => entry.averageGrade !== null).length
+        )
+      : null,
+    averageAttendanceRate: studentSnapshots.length > 0
+      ? Math.round(
+          studentSnapshots.reduce((sum, entry) => sum + entry.attendanceRate, 0) / studentSnapshots.length
+        )
+      : 0,
+    supportQueueSize: supportQueue.length
+  };
+
+  const studentSnapshot = isStudentAccount(user)
+    ? (studentSnapshots[0] || null)
+    : null;
+
+  return {
+    summary,
+    groupPerformance: groupPerformance.slice(0, 6),
+    topStudents,
+    supportQueue,
+    studentSnapshot
   };
 };
 
@@ -330,6 +648,59 @@ router.get('/risk-flags', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Ops risk flags error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/performance-dashboard', auth, async (req, res) => {
+  try {
+    const defaultRange = getDefaultPerformanceRange();
+    const from = req.query.from ? normalizeDateInput(req.query.from) : defaultRange.from;
+    const to = req.query.to ? normalizeDateInput(req.query.to) : defaultRange.to;
+
+    if (!from || !to) {
+      return res.status(400).json({ error: 'Valid from and to dates are required' });
+    }
+
+    if (from > to) {
+      return res.status(400).json({ error: 'The start date must be earlier than the end date' });
+    }
+
+    const profiles = await getScopedStudentProfiles(req.user);
+    if (profiles.length === 0) {
+      return res.json({
+        from,
+        to,
+        summary: {
+          studentsTracked: 0,
+          groupsTracked: 0,
+          averageGrade: null,
+          averageAttendanceRate: 0,
+          supportQueueSize: 0
+        },
+        groupPerformance: [],
+        topStudents: [],
+        supportQueue: [],
+        studentSnapshot: null
+      });
+    }
+
+    const studentIds = profiles
+      .map((profile) => String(profile.student_id || '').trim())
+      .filter(Boolean);
+
+    const [attendanceRecords, gradeRecords] = await Promise.all([
+      getScopedAttendanceRecords({ user: req.user, studentIds, from, to }),
+      getScopedGradeRecords({ user: req.user, studentIds, from, to })
+    ]);
+
+    res.json({
+      from,
+      to,
+      ...buildPerformanceDashboard(profiles, attendanceRecords, gradeRecords, req.user)
+    });
+  } catch (error) {
+    console.error('Ops performance dashboard error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
