@@ -192,6 +192,7 @@ function Messages({ user, onAnnouncementsSync, onAnnouncementsViewed }) {
           <input
             type="text"
             placeholder="Search by title, content, author or type"
+            aria-label="Search announcements and messages"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />

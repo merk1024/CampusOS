@@ -65,14 +65,15 @@ function GradesTable({ grades, totalCount }) {
 
       <div className="data-table-scroll">
         <table className="data-table">
+          <caption className="sr-only">CampusOS gradebook table</caption>
           <thead>
             <tr>
-              <th>Subject</th>
-              <th>Type</th>
-              <th>Grade</th>
-              <th>Letter</th>
-              <th>Date</th>
-              <th>Comments</th>
+              <th scope="col">Subject</th>
+              <th scope="col">Type</th>
+              <th scope="col">Grade</th>
+              <th scope="col">Letter</th>
+              <th scope="col">Date</th>
+              <th scope="col">Comments</th>
             </tr>
           </thead>
           <tbody>
@@ -425,6 +426,7 @@ function Grades({ user }) {
           <input
             type="text"
             placeholder="Search by subject, type, comments, or grader"
+            aria-label="Search the gradebook"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />

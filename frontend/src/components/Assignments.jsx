@@ -330,6 +330,7 @@ function Assignments({ user }) {
           <input
             type="text"
             placeholder="Search by title or description"
+            aria-label="Search assignments"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />

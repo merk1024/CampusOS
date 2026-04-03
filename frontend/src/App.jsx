@@ -110,12 +110,14 @@ function Sidebar({ activePage, setActivePage, isOpen, onClose, user }) {
     <>
       {isOpen && <div className="sidebar-overlay" onClick={onClose}></div>}
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" aria-label="Primary navigation">
           {menuItems.map((item) => (
             <button
               key={item.id}
               className={`nav-item ${activePage === item.id ? 'active' : ''}`}
               onClick={() => handleNavigate(item.id)}
+              aria-current={activePage === item.id ? 'page' : undefined}
+              aria-label={`Open ${item.label}`}
             >
               <span className="nav-icon">{item.icon}</span>
               <span className="nav-label">{item.label}</span>
@@ -163,30 +165,28 @@ export default function App() {
 
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const savedUser = storage.get('lms_user');
 
-      if (token && savedUser) {
-        try {
-          const response = await api.getProfile();
-          setUser({
-            ...savedUser,
-            ...response.user,
-            isSuperadmin: response.user.is_superadmin ?? response.user.isSuperadmin ?? savedUser.isSuperadmin,
-            studentId: response.user.student_id ?? response.user.studentId ?? savedUser.studentId,
-            group: response.user.group_name ?? response.user.groupName ?? savedUser.group,
-            subgroup: response.user.subgroup_name ?? response.user.subgroupName ?? savedUser.subgroup
-          });
+      try {
+        const response = await api.getProfile();
+        setUser({
+          ...savedUser,
+          ...response.user,
+          isSuperadmin: response.user.is_superadmin ?? response.user.isSuperadmin ?? savedUser?.isSuperadmin,
+          studentId: response.user.student_id ?? response.user.studentId ?? savedUser?.studentId,
+          group: response.user.group_name ?? response.user.groupName ?? savedUser?.group,
+          subgroup: response.user.subgroup_name ?? response.user.subgroupName ?? savedUser?.subgroup
+        });
+        setAuthNotice('');
+      } catch (error) {
+        if (savedUser && isSessionErrorMessage(error?.message)) {
+          clearAuthSession();
+          storage.remove('lms_user');
+          setAuthNotice(SESSION_EXPIRED_MESSAGE);
+        } else if (savedUser) {
+          console.error('Failed to restore session, using saved profile:', error);
+          setUser(savedUser);
           setAuthNotice('');
-        } catch (error) {
-          if (isSessionErrorMessage(error?.message)) {
-            clearAuthSession();
-            setAuthNotice(SESSION_EXPIRED_MESSAGE);
-          } else {
-            console.error('Failed to restore session, using saved profile:', error);
-            setUser(savedUser);
-            setAuthNotice('');
-          }
         }
       }
 
@@ -234,6 +234,45 @@ export default function App() {
     };
   }, [activePage, user]);
 
+  useEffect(() => {
+    if (!user) {
+      return undefined;
+    }
+
+    const sendClientError = (payload) => {
+      api.reportClientError({
+        route: window.location.pathname,
+        userAgent: navigator.userAgent,
+        ...payload
+      }).catch(() => {});
+    };
+
+    const handleWindowError = (event) => {
+      sendClientError({
+        errorName: event.error?.name || 'Error',
+        message: event.error?.message || event.message || 'Unhandled browser error',
+        stack: event.error?.stack || null
+      });
+    };
+
+    const handleUnhandledRejection = (event) => {
+      const reason = event.reason;
+      sendClientError({
+        errorName: reason?.name || 'UnhandledRejection',
+        message: reason?.message || String(reason || 'Unhandled promise rejection'),
+        stack: reason?.stack || null
+      });
+    };
+
+    window.addEventListener('error', handleWindowError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleWindowError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, [user]);
+
   const handleLogin = (userData) => {
     setUser(userData);
     storage.set('lms_user', userData);
@@ -249,9 +288,7 @@ export default function App() {
     }
 
     setUser(null);
-    storage.remove('lms_user');
-    localStorage.removeItem('token');
-    sessionStorage.removeItem('token');
+    clearAuthSession();
     setActivePage(getDefaultPage());
     setSidebarOpen(false);
     setAuthNotice('');
@@ -353,6 +390,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <Header
         user={user}
         onLogout={handleLogout}
@@ -370,7 +408,7 @@ export default function App() {
           onClose={() => setSidebarOpen(false)}
           user={user}
         />
-        <main className="main-content">{renderPage()}</main>
+        <main id="main-content" className="main-content" tabIndex="-1">{renderPage()}</main>
       </div>
       <Footer theme={theme} />
     </div>

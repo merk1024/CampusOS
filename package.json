@@ -8,11 +8,14 @@
     "env:check:production": "npm --prefix backend run env:check -- --mode=production",
     "verify:web": "npm --prefix backend test && npm --prefix frontend run lint && npm --prefix frontend run build",
     "test:backend": "npm --prefix backend test",
+    "jobs:work": "npm --prefix backend run jobs:work",
     "audit:backend": "npm --prefix backend audit --omit=dev",
     "audit:frontend": "npm --prefix frontend audit --production",
     "scan:secrets": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/security/scan-secrets.ps1",
     "scan:zap": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/security/run-zap-baseline.ps1",
-    "export:security-docx": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/reporting/export-security-report-docx.ps1"
+    "export:security-docx": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/reporting/export-security-report-docx.ps1",
+    "backup:campusos": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/backup-campusos.ps1",
+    "restore:campusos": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/restore-campusos.ps1"
   },
   "dependencies": {
     "@vercel/speed-insights": "^2.0.0"

@@ -566,7 +566,7 @@ const createPostgresAdapter = () => {
       const hasReturning = /\breturning\b/i.test(normalizedSql);
 
       if (isInsert && !hasReturning) {
-        normalizedSql = `${normalizedSql.trim()} RETURNING id`;
+        normalizedSql = `${normalizedSql.trim()} RETURNING *`;
       }
 
       const result = await pool.query(normalizedSql, params);

@@ -172,6 +172,57 @@ CREATE TABLE IF NOT EXISTS attendance_audit_log (
     changed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS system_audit_log (
+    id SERIAL PRIMARY KEY,
+    entity_type TEXT NOT NULL,
+    entity_id TEXT,
+    action TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    details TEXT,
+    changed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    request_id TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS notification_inbox (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    source_type TEXT NOT NULL,
+    source_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'delivered' CHECK (status IN ('queued', 'delivered', 'failed', 'read')),
+    metadata TEXT,
+    is_read BOOLEAN DEFAULT FALSE,
+    delivered_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, source_type, source_id)
+);
+
+CREATE TABLE IF NOT EXISTS job_queue (
+    id SERIAL PRIMARY KEY,
+    job_type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    payload TEXT NOT NULL,
+    result_payload TEXT,
+    attempts INTEGER DEFAULT 0,
+    max_attempts INTEGER DEFAULT 3,
+    worker_name TEXT,
+    available_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    locked_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    last_error TEXT,
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version TEXT PRIMARY KEY,
+    description TEXT NOT NULL,
+    applied_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_student_id ON users(student_id);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
@@ -183,3 +234,7 @@ CREATE INDEX IF NOT EXISTS idx_assignments_due ON assignments(due_date);
 CREATE INDEX IF NOT EXISTS idx_attendance_student ON attendance(student_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
 CREATE INDEX IF NOT EXISTS idx_attendance_audit_student ON attendance_audit_log(student_id);
+CREATE INDEX IF NOT EXISTS idx_system_audit_created_at ON system_audit_log(created_at);
+CREATE INDEX IF NOT EXISTS idx_system_audit_entity ON system_audit_log(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_notification_inbox_user ON notification_inbox(user_id, is_read, created_at);
+CREATE INDEX IF NOT EXISTS idx_job_queue_status_available ON job_queue(status, available_at, created_at);

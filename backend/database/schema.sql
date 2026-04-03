@@ -1,6 +1,10 @@
 -- Alatoo University LMS Database Schema (SQLite)
 
 -- Drop existing tables if they exist
+DROP TABLE IF EXISTS job_queue;
+DROP TABLE IF EXISTS notification_inbox;
+DROP TABLE IF EXISTS system_audit_log;
+DROP TABLE IF EXISTS schema_migrations;
 DROP TABLE IF EXISTS attendance_audit_log;
 DROP TABLE IF EXISTS attendance;
 DROP TABLE IF EXISTS assignment_submissions;
@@ -200,6 +204,57 @@ CREATE TABLE attendance_audit_log (
     changed_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE system_audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL,
+    entity_id TEXT,
+    action TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    details TEXT,
+    changed_by INTEGER REFERENCES users(id),
+    request_id TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE notification_inbox (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    source_type TEXT NOT NULL,
+    source_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'delivered' CHECK (status IN ('queued', 'delivered', 'failed', 'read')),
+    metadata TEXT,
+    is_read INTEGER DEFAULT 0,
+    delivered_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, source_type, source_id)
+);
+
+CREATE TABLE job_queue (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    payload TEXT NOT NULL,
+    result_payload TEXT,
+    attempts INTEGER DEFAULT 0,
+    max_attempts INTEGER DEFAULT 3,
+    worker_name TEXT,
+    available_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    locked_at DATETIME,
+    completed_at DATETIME,
+    last_error TEXT,
+    created_by INTEGER REFERENCES users(id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE schema_migrations (
+    version TEXT PRIMARY KEY,
+    description TEXT NOT NULL,
+    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_student_id ON users(student_id);
@@ -212,3 +267,7 @@ CREATE INDEX idx_assignments_due ON assignments(due_date);
 CREATE INDEX idx_attendance_student ON attendance(student_id);
 CREATE INDEX idx_attendance_date ON attendance(date);
 CREATE INDEX idx_attendance_audit_student ON attendance_audit_log(student_id);
+CREATE INDEX idx_system_audit_created_at ON system_audit_log(created_at);
+CREATE INDEX idx_system_audit_entity ON system_audit_log(entity_type, entity_id);
+CREATE INDEX idx_notification_inbox_user ON notification_inbox(user_id, is_read, created_at);
+CREATE INDEX idx_job_queue_status_available ON job_queue(status, available_at, created_at);

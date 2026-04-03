@@ -10,58 +10,26 @@
 
 ## Current state
 
-CampusOS has moved beyond a training skeleton and already works as a real MVP for an academic portal.
+CampusOS is already operating as a real web MVP for academic workflows.
 
 ### Implemented
 
 - authentication by email and student ID
 - roles: `student`, `teacher`, `admin`, `superadmin`
-- user and profile management
-- course management and teacher assignment
-- student enrollment into courses
-- exams and grade entry
-- announcements / messages
-- assignments and academic records
-- schedules for groups, subgroups, and individual students
-- drag-to-copy in schedule management
-- attendance workspace for teachers and attendance history for students
+- profile and user management
+- course management, teacher assignment, and enrollment
+- exams, grades, attendance, assignments, and announcements
+- group, subgroup, and individual schedule management
+- import and reconciliation flows for pilot datasets
 - light and dark theme
-- Render deployment blueprint
-- SQLite / PostgreSQL dual database support
-- security scripts: audit, secret scan, ZAP baseline
-
----
-
-## Near-term priorities
-
-### 1. Stabilization
-
-- `√` cover critical backend routes with tests
-- `√` check role scenarios after recent UI changes
-- `√` align root API responses and service texts with the `CampusOS` brand
-- `√` remove remaining point CSS conflicts from old pages
-- `√` prepare staging configuration separately from production
-
-### 2. Data readiness
-
-- `√` add safe import for students, teachers, and courses from CSV / TSV
-- `√` prepare a read-only pipeline for university test exports
-- `√` normalize seeds into a more realistic pilot dataset
-- `√` document the mapping between external data and the current database schema
-- `√` add import support for `course_enrollments + schedule`
-
-### 3. Teacher workflow polish
-
-- `√` add faster tabular attendance workflow
-- `√` add batch editing for schedule
-- `√` improve teacher assignment and exam flows
-- `√` add audit trail for grade and attendance changes
+- SQLite and PostgreSQL support
+- CI, health checks, monitoring hooks, audit trails, and deploy documentation
 
 ---
 
 ## Product roadmap
 
-### Phase 1 — Web MVP hardening
+### Phase 1 - Web MVP hardening
 
 Goal: bring the current web platform to a stable pilot-ready state.
 
@@ -71,7 +39,7 @@ Goal: bring the current web platform to a stable pilot-ready state.
 - `√` make staging and production environment handling predictable
 - `√` formalize the seed / cleanup / deploy flow
 
-### Phase 2 — Admin and academic operations
+### Phase 2 - Admin and academic operations
 
 Goal: strengthen daily workflows for administration and teachers.
 
@@ -81,7 +49,7 @@ Goal: strengthen daily workflows for administration and teachers.
 - `√` generation of academic lists and operational reports
 - `√` import / export for administrative workflows
 
-### Phase 3 — Integration layer
+### Phase 3 - Integration layer
 
 Current progress:
 
@@ -95,7 +63,7 @@ Goal: turn CampusOS into a convenient unified portal on top of existing universi
 - `-` reconciliation layer for conflicting data
 - `-` manual override scenarios for administration
 
-### Phase 4 — Analytics and communication
+### Phase 4 - Analytics and communication
 
 Goal: make the product not only operational, but analytical.
 
@@ -105,12 +73,12 @@ Goal: make the product not only operational, but analytical.
 - `x` expanded announcements / notification flows
 - `x` faculty and dean office report exports
 
-### Phase 5 — Mobile direction
+### Phase 5 - Mobile direction
 
 Goal: move to a downloadable mobile app after the web version is stabilized.
 
-- `x` prepare a stable web API contract for a mobile client
-- `x` choose between PWA / Capacitor / separate Android client
+- `-` prepare a stable web API contract for a mobile client
+- `-` choose between PWA / Capacitor / separate Android client
 - `x` build a mobile pilot after the web MVP stabilizes
 
 ---
@@ -124,9 +92,9 @@ Goal: move to a downloadable mobile app after the web version is stabilized.
 - `√` SQLite support
 - `√` PostgreSQL support
 - `√` seed and cleanup scripts
-- `x` full schema version migrations
-- `-` broader audit logging
-- `x` background jobs / queue for imports and notifications
+- `√` full schema version migrations
+- `√` broader audit logging
+- `√` background jobs / queue for imports and notifications
 
 ### Frontend
 
@@ -135,9 +103,9 @@ Goal: move to a downloadable mobile app after the web version is stabilized.
 - `√` theme switcher
 - `√` branded UI
 - `√` optimized attendance workspace
-- `-` stronger form consistency across all admin pages
-- `-` better table mode for data-heavy pages
-- `x` broader accessibility pass
+- `√` stronger form consistency across all admin pages
+- `√` better table mode for data-heavy pages
+- `√` broader accessibility pass
 
 ### Security
 
@@ -148,9 +116,9 @@ Goal: move to a downloadable mobile app after the web version is stabilized.
 - `√` `eslint-plugin-security`
 - `√` local secret scan
 - `√` OWASP ZAP baseline
-- `-` remove remaining risky defaults from production configuration
-- `x` harden token storage strategy
-- `x` add a release security checklist
+- `√` remove remaining risky defaults from production configuration
+- `√` harden token storage strategy
+- `√` add a release security checklist
 
 ### DevOps
 
@@ -158,9 +126,9 @@ Goal: move to a downloadable mobile app after the web version is stabilized.
 - `√` PostgreSQL deployment path
 - `√` health endpoint
 - `√` CI pipeline
-- `-` automated tests in deploy gate
-- `x` error monitoring
-- `x` backup and restore playbook
+- `√` automated tests in deploy gate
+- `√` error monitoring
+- `√` backup and restore playbook
 
 ---
 
@@ -168,13 +136,11 @@ Goal: move to a downloadable mobile app after the web version is stabilized.
 
 ### 1. Web first
 
-Finish and stabilize the web platform first.  
-Android follows after the web MVP stops changing rapidly.
+Finish and stabilize the web platform first. Android follows after the web MVP stops changing rapidly.
 
 ### 2. Replace carefully
 
-CampusOS does not need to replace existing university systems immediately.  
-The more realistic path is to become a clean unified interface above the current systems first.
+CampusOS does not need to replace existing university systems immediately. The more realistic path is to become a clean unified interface above current systems first.
 
 ### 3. Operator-friendly UX
 
@@ -190,6 +156,6 @@ Priority is not only visual polish, but everyday operational speed:
 ## Success criteria for the next milestone
 
 - `-` pilot-ready web version without critical auth or data issues
-- `-` up-to-date documentation without mismatches against the code
+- `√` up-to-date documentation without mismatches against the code
 - `-` staging dataset close to realistic university data
 - `-` readiness to demo the system to teachers and administration

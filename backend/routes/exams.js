@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const db = require('../config/database');
+const { logSystemAudit } = require('../utils/platformOps');
 
 router.get('/', auth, async (req, res) => {
   try {
@@ -84,6 +85,22 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
     }
 
     const exam = await db.get('SELECT * FROM exams WHERE id = ?', [result.id]);
+
+    await logSystemAudit({
+      entityType: 'exam',
+      entityId: exam.id,
+      action: 'create',
+      summary: `${req.user.email} created exam "${exam.subject}" for ${exam.group_name}`,
+      details: {
+        type: exam.type,
+        exam_date: exam.exam_date,
+        exam_time: exam.exam_time,
+        students: students.length
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
+
     res.status(201).json({
       message: 'Exam created successfully',
       exam: { ...exam, students }
@@ -110,6 +127,15 @@ router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
       students = []
     } = req.body;
 
+    const existingExam = await db.get(
+      'SELECT id, subject, group_name, type, exam_date, exam_time FROM exams WHERE id = ?',
+      [req.params.id]
+    );
+
+    if (!existingExam) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
+
     const result = await db.run(
       `UPDATE exams
        SET group_name = ?, subject = ?, exam_date = ?, exam_time = ?, room = ?, type = ?, semester = ?
@@ -126,10 +152,6 @@ router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
       ]
     );
 
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Exam not found' });
-    }
-
     await db.run('DELETE FROM exam_students WHERE exam_id = ?', [req.params.id]);
 
     for (const studentId of students) {
@@ -140,6 +162,27 @@ router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
     }
 
     const exam = await db.get('SELECT * FROM exams WHERE id = ?', [req.params.id]);
+
+    await logSystemAudit({
+      entityType: 'exam',
+      entityId: req.params.id,
+      action: 'update',
+      summary: `${req.user.email} updated exam "${exam.subject}"`,
+      details: {
+        previous: existingExam,
+        current: {
+          subject: exam.subject,
+          group_name: exam.group_name,
+          type: exam.type,
+          exam_date: exam.exam_date,
+          exam_time: exam.exam_time,
+          students: students.length
+        }
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
+
     res.json({
       message: 'Exam updated successfully',
       exam: { ...exam, students }
@@ -152,12 +195,27 @@ router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
 
 router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
   try {
+    const existingExam = await db.get(
+      'SELECT id, subject, group_name, type, exam_date, exam_time FROM exams WHERE id = ?',
+      [req.params.id]
+    );
+
+    if (!existingExam) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
+
     await db.run('DELETE FROM exam_students WHERE exam_id = ?', [req.params.id]);
     const result = await db.run('DELETE FROM exams WHERE id = ?', [req.params.id]);
 
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Exam not found' });
-    }
+    await logSystemAudit({
+      entityType: 'exam',
+      entityId: req.params.id,
+      action: 'delete',
+      summary: `${req.user.email} deleted exam "${existingExam.subject}"`,
+      details: existingExam,
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
 
     res.json({ message: 'Exam deleted successfully' });
   } catch (error) {

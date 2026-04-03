@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
+const { getTokenFromRequest } = require('../utils/authCookies');
 const {
   hasAdminAccess,
   canManageAcademicRecords,
@@ -21,7 +22,7 @@ const isJwtValidationError = (error) => (
 // Verify JWT token
 const auth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const token = getTokenFromRequest(req);
     
     if (!token) {
       return res.status(401).json({ error: 'No authentication token, access denied' });

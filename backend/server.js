@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
@@ -8,6 +9,7 @@ const { randomUUID } = require('crypto');
 require('dotenv').config();
 
 const db = require('./config/database');
+const { captureMonitoringEvent } = require('./utils/monitoring');
 
 const app = express();
 const appEnvironment = process.env.APP_ENV || process.env.NODE_ENV || 'development';
@@ -26,6 +28,23 @@ const isAllowedOrigin = (origin) => {
   if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) return true;
   return allowedOriginPatterns.some((pattern) => pattern.test(origin));
 };
+
+const shouldTrustProxy = (() => {
+  const normalized = String(process.env.TRUST_PROXY || '').trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+    return true;
+  }
+
+  if (['0', 'false', 'no', 'off'].includes(normalized)) {
+    return false;
+  }
+
+  return appEnvironment !== 'development';
+})();
+
+if (shouldTrustProxy) {
+  app.set('trust proxy', 1);
+}
 
 app.use(helmet());
 app.use(compression());
@@ -56,6 +75,7 @@ app.use('/api/', limiter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 morgan.token('request-id', (req) => req.requestId || '-');
 morgan.token('user-id', (req) => String(req.user?.id || 'guest'));
@@ -80,6 +100,8 @@ app.use('/api/assignments', require('./routes/assignments'));
 app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/integrations', require('./routes/integrations'));
+app.use('/api/ops', require('./routes/ops'));
+app.use('/api/monitoring', require('./routes/monitoring'));
 
 const buildServiceStatusPayload = (requestId, status, details = {}) => ({
   service: 'CampusOS API',
@@ -168,6 +190,17 @@ app.get('/', (req, res) => {
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
+  captureMonitoringEvent({
+    source: 'backend',
+    message: err.message || 'Unhandled backend error',
+    requestId: req.requestId,
+    details: {
+      path: req.originalUrl,
+      method: req.method,
+      statusCode: err.statusCode || 500
+    }
+  }).catch(() => {});
+
   res.status(err.statusCode || 500).json({
     error: {
       message: err.message || 'Internal Server Error',
@@ -209,8 +242,37 @@ async function startServer(port = PORT) {
 if (require.main === module) {
   startServer().catch((error) => {
     console.error('Failed to start server:', error);
+    captureMonitoringEvent({
+      source: 'backend',
+      message: error.message || 'Failed to start CampusOS API',
+      details: {
+        stage: 'startup'
+      }
+    }).catch(() => {});
     process.exit(1);
   });
 }
+
+process.on('unhandledRejection', (error) => {
+  console.error('Unhandled promise rejection:', error);
+  captureMonitoringEvent({
+    source: 'backend',
+    message: error?.message || 'Unhandled promise rejection',
+    details: {
+      kind: 'unhandledRejection'
+    }
+  }).catch(() => {});
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error);
+  captureMonitoringEvent({
+    source: 'backend',
+    message: error?.message || 'Uncaught exception',
+    details: {
+      kind: 'uncaughtException'
+    }
+  }).catch(() => {});
+});
 
 module.exports = { app, startServer };

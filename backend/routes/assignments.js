@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const db = require('../config/database');
+const { logSystemAudit } = require('../utils/platformOps');
 
 // Get assignments
 router.get('/', auth, async (req, res) => {
@@ -31,6 +32,20 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
       'INSERT INTO assignments (title, description, due_date, max_grade, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [title, description, dueDate, maxGrade || 100, req.user.id]
     );
+
+    await logSystemAudit({
+      entityType: 'assignment',
+      entityId: result.rows[0].id,
+      action: 'create',
+      summary: `${req.user.email} created assignment "${title}"`,
+      details: {
+        dueDate,
+        maxGrade: maxGrade || 100
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
+
     res.status(201).json({ assignment: result.rows[0] });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });

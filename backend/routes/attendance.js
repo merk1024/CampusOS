@@ -5,6 +5,7 @@ const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const { hasAdminAccess } = require('../utils/access');
 const db = require('../config/database');
 const { logAttendanceChange } = require('../utils/auditTrail');
+const { logSystemAudit } = require('../utils/platformOps');
 
 const VALID_STATUSES = new Set(['present', 'absent', 'late', 'excused']);
 const DAY_ORDER_SQL = `
@@ -363,6 +364,23 @@ router.post('/bulk', auth, isTeacherOrAdmin, async (req, res) => {
     }
 
     const refreshedStudents = await getRosterForSchedule(session, date);
+
+    await logSystemAudit({
+      entityType: 'attendance',
+      entityId: `${scheduleId}:${date}`,
+      action: 'bulk-update',
+      summary: `${req.user.email} saved attendance for ${savedCount} student(s)`,
+      details: {
+        scheduleId,
+        date,
+        savedCount,
+        course_name: session.course_name || session.subject || null,
+        group_name: session.group_name || null
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
+
     res.json({
       message: 'Attendance saved successfully',
       date,
@@ -425,6 +443,21 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
       previousStatus: selectedStudent?.status || null,
       newStatus: status,
       changedBy: req.user.id
+    });
+
+    await logSystemAudit({
+      entityType: 'attendance',
+      entityId: `${scheduleId}:${studentId}:${date}`,
+      action: selectedStudent?.status ? 'update' : 'create',
+      summary: `${req.user.email} marked attendance for ${studentId}`,
+      details: {
+        scheduleId,
+        studentId,
+        date,
+        status
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
     });
 
     res.json({ attendance });

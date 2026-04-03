@@ -16,7 +16,7 @@ function LoginPage({ onLogin, notice = '' }) {
     setError('');
 
     try {
-      const response = await api.login(login, password);
+      const response = await api.login(login, password, rememberMe);
       const userData = {
         id: response.user.id,
         email: response.user.email,
@@ -26,17 +26,8 @@ function LoginPage({ onLogin, notice = '' }) {
         studentId: response.user.student_id ?? response.user.studentId,
         group: response.user.group_name ?? response.user.groupName,
         subgroup: response.user.subgroup_name ?? response.user.subgroupName,
-        avatar: response.user.avatar || response.user.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase(),
-        token: response.token
+        avatar: response.user.avatar || response.user.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
       };
-
-      if (rememberMe) {
-        localStorage.setItem('token', response.token);
-        sessionStorage.removeItem('token');
-      } else {
-        sessionStorage.setItem('token', response.token);
-        localStorage.removeItem('token');
-      }
 
       onLogin(userData);
     } catch (err) {
@@ -104,8 +95,9 @@ function LoginPage({ onLogin, notice = '' }) {
             {(error || notice) && <div className="error-message">{error || notice}</div>}
 
             <div className="form-field">
-              <label>Email or Student ID</label>
+              <label htmlFor="campusos-login">Email or Student ID</label>
               <input
+                id="campusos-login"
                 type="text"
                 value={login}
                 onChange={(event) => setLogin(event.target.value)}
@@ -115,8 +107,9 @@ function LoginPage({ onLogin, notice = '' }) {
             </div>
 
             <div className="form-field">
-              <label>Password</label>
+              <label htmlFor="campusos-password">Password</label>
               <input
+                id="campusos-password"
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -128,6 +121,7 @@ function LoginPage({ onLogin, notice = '' }) {
             <div className="form-row">
               <label className="checkbox">
                 <input
+                  id="campusos-remember-me"
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(event) => setRememberMe(event.target.checked)}

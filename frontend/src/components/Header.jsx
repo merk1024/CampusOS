@@ -173,7 +173,7 @@ function Header({
           <span className="search-icon">
             <SearchIcon />
           </span>
-          <input type="text" placeholder="Search courses, assignments..." />
+          <input type="text" placeholder="Search courses, assignments..." aria-label="Search CampusOS content" />
         </div>
       </div>
 
@@ -183,23 +183,25 @@ function Header({
           className={`theme-toggle ${theme === 'dark' ? 'active' : ''}`}
           onClick={onToggleTheme}
           aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          aria-pressed={theme === 'dark'}
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
         >
           {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
           <span className="theme-toggle-label">{theme === 'dark' ? 'Light' : 'Dark'}</span>
         </button>
 
-        <button type="button" className="icon-btn" onClick={() => handleNavigate('messages')} aria-label="Open messages">
+        <button type="button" className="icon-btn" onClick={() => handleNavigate('messages')} aria-label="Open messages" title="Messages">
           <BellIcon />
           {messageUnreadCount > 0 && (
-            <span className="badge">{messageUnreadCount > 99 ? '99+' : messageUnreadCount}</span>
+            <span className="badge" aria-live="polite">{messageUnreadCount > 99 ? '99+' : messageUnreadCount}</span>
           )}
         </button>
-        <button type="button" className="icon-btn" onClick={() => handleNavigate('settings')} aria-label="Open settings">
+        <button type="button" className="icon-btn" onClick={() => handleNavigate('settings')} aria-label="Open settings" title="Settings">
           <SettingsIcon />
         </button>
 
         <div className="user-menu-wrapper" ref={userMenuRef}>
-          <button type="button" className="user-btn" onClick={() => setShowUserMenu((value) => !value)} aria-expanded={showUserMenu} aria-haspopup="menu">
+          <button type="button" className="user-btn" onClick={() => setShowUserMenu((value) => !value)} aria-expanded={showUserMenu} aria-haspopup="menu" aria-label="Open user menu">
             <div className="user-avatar">{avatarLabel}</div>
             <div className="user-details">
               <div className="user-name">{firstName}</div>
@@ -209,10 +211,10 @@ function Header({
 
           {showUserMenu && (
             <div className="user-dropdown" role="menu">
-              <button type="button" className="dropdown-item" onClick={() => handleNavigate('profile')}>Profile</button>
-              <button type="button" className="dropdown-item" onClick={() => handleNavigate('settings')}>Settings</button>
+              <button type="button" className="dropdown-item" role="menuitem" onClick={() => handleNavigate('profile')}>Profile</button>
+              <button type="button" className="dropdown-item" role="menuitem" onClick={() => handleNavigate('settings')}>Settings</button>
               <div className="dropdown-divider"></div>
-              <button type="button" className="dropdown-item" onClick={handleLogoutClick}>Logout</button>
+              <button type="button" className="dropdown-item" role="menuitem" onClick={handleLogoutClick}>Logout</button>
             </div>
           )}
         </div>

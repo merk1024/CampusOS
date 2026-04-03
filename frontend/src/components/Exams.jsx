@@ -257,6 +257,7 @@ function Exams({ user }) {
           <input
             type="text"
             placeholder="Search by subject, group, teacher or room"
+            aria-label="Search exams"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />

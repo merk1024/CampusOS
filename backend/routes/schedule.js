@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const db = require('../config/database');
+const { logSystemAudit } = require('../utils/platformOps');
 
 const SCHEDULE_SELECT = `
   SELECT
@@ -229,6 +230,24 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
     );
 
     const inserted = await getScheduleById(result.id);
+
+    await logSystemAudit({
+      entityType: 'schedule',
+      entityId: inserted.id,
+      action: 'create',
+      summary: `${req.user.email} created schedule entry "${inserted.subject}"`,
+      details: {
+        day: inserted.day,
+        time_slot: inserted.time_slot,
+        group_name: inserted.group_name,
+        audience_type: inserted.audience_type,
+        subgroup_name: inserted.subgroup_name,
+        course_id: inserted.course_id
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
+
     res.status(201).json({ message: 'Schedule created', schedule: inserted });
   } catch (error) {
     console.error('Create schedule error:', error);
@@ -242,6 +261,11 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
 // Update schedule entry
 router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
   try {
+    const existingSchedule = await getScheduleById(req.params.id);
+    if (!existingSchedule) {
+      return res.status(404).json({ error: 'Schedule not found' });
+    }
+
     const normalized = await normalizeSchedulePayload(req.body);
 
     const result = await db.run(
@@ -272,11 +296,35 @@ router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
       ]
     );
 
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Schedule not found' });
-    }
-
     const updated = await getScheduleById(req.params.id);
+
+    await logSystemAudit({
+      entityType: 'schedule',
+      entityId: req.params.id,
+      action: 'update',
+      summary: `${req.user.email} updated schedule entry "${updated.subject}"`,
+      details: {
+        previous: {
+          day: existingSchedule.day,
+          time_slot: existingSchedule.time_slot,
+          group_name: existingSchedule.group_name,
+          audience_type: existingSchedule.audience_type,
+          subgroup_name: existingSchedule.subgroup_name,
+          course_id: existingSchedule.course_id
+        },
+        current: {
+          day: updated.day,
+          time_slot: updated.time_slot,
+          group_name: updated.group_name,
+          audience_type: updated.audience_type,
+          subgroup_name: updated.subgroup_name,
+          course_id: updated.course_id
+        }
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
+
     res.json({ message: 'Schedule updated', schedule: updated });
   } catch (error) {
     console.error('Update schedule error:', error);
@@ -290,11 +338,29 @@ router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
 // Delete schedule entry
 router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
   try {
-    const result = await db.run('DELETE FROM schedule WHERE id = ?', [req.params.id]);
-
-    if (result.changes === 0) {
+    const existingSchedule = await getScheduleById(req.params.id);
+    if (!existingSchedule) {
       return res.status(404).json({ error: 'Schedule not found' });
     }
+
+    const result = await db.run('DELETE FROM schedule WHERE id = ?', [req.params.id]);
+
+    await logSystemAudit({
+      entityType: 'schedule',
+      entityId: req.params.id,
+      action: 'delete',
+      summary: `${req.user.email} deleted schedule entry "${existingSchedule.subject}"`,
+      details: {
+        day: existingSchedule.day,
+        time_slot: existingSchedule.time_slot,
+        group_name: existingSchedule.group_name,
+        audience_type: existingSchedule.audience_type,
+        subgroup_name: existingSchedule.subgroup_name,
+        course_id: existingSchedule.course_id
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
 
     res.json({ message: 'Schedule deleted' });
   } catch (error) {

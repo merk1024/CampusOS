@@ -6,6 +6,12 @@ const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const db = require('../config/database');
 const { auth } = require('../middleware/auth');
+const {
+  AUTH_COOKIE_NAME,
+  buildAuthCookieOptions,
+  shouldExposeTokenResponse
+} = require('../utils/authCookies');
+const { logSystemAudit } = require('../utils/platformOps');
 
 const AUTH_USER_FIELDS = `
   id,
@@ -80,11 +86,22 @@ router.post(
         { expiresIn: process.env.JWT_EXPIRE || '7d' }
       );
 
-      res.status(201).json({
-        message: 'User registered successfully',
+      res.cookie(
+        AUTH_COOKIE_NAME,
         token,
+        buildAuthCookieOptions({ rememberMe: true })
+      );
+
+      const payload = {
+        message: 'User registered successfully',
         user
-      });
+      };
+
+      if (shouldExposeTokenResponse()) {
+        payload.token = token;
+      }
+
+      res.status(201).json(payload);
     } catch (error) {
       console.error('Register error:', error);
       res.status(500).json({ error: 'Server error' });
@@ -96,7 +113,8 @@ router.post(
   '/login',
   [
     body('login').trim().notEmpty(),
-    body('password').notEmpty()
+    body('password').notEmpty(),
+    body('rememberMe').optional().isBoolean()
   ],
   async (req, res) => {
     try {
@@ -105,7 +123,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { login, password } = req.body;
+      const { login, password, rememberMe } = req.body;
 
       const user = await db.get(
         'SELECT * FROM users WHERE email = ? OR student_id = ?',
@@ -144,9 +162,28 @@ router.post(
         { expiresIn: process.env.JWT_EXPIRE || '7d' }
       );
 
-      res.json({
-        message: 'Login successful',
+      res.cookie(
+        AUTH_COOKIE_NAME,
         token,
+        buildAuthCookieOptions({ rememberMe: Boolean(rememberMe) })
+      );
+
+      await logSystemAudit({
+        entityType: 'auth',
+        entityId: freshUser.id,
+        action: 'login',
+        summary: `${freshUser.email} signed in`,
+        details: {
+          rememberMe: Boolean(rememberMe),
+          role: freshUser.role,
+          loginIp: clientIp
+        },
+        changedBy: freshUser.id,
+        requestId: req.requestId
+      });
+
+      const payload = {
+        message: 'Login successful',
         user: {
           ...freshUser,
           isSuperadmin: Number(freshUser.is_superadmin || 0) === 1,
@@ -154,7 +191,13 @@ router.post(
           groupName: freshUser.group_name,
           subgroupName: freshUser.subgroup_name
         }
-      });
+      };
+
+      if (shouldExposeTokenResponse()) {
+        payload.token = token;
+      }
+
+      res.json(payload);
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ error: 'Server error' });
@@ -163,6 +206,23 @@ router.post(
 );
 
 router.post('/logout', auth, async (req, res) => {
+  res.clearCookie(
+    AUTH_COOKIE_NAME,
+    buildAuthCookieOptions({ clear: true })
+  );
+
+  await logSystemAudit({
+    entityType: 'auth',
+    entityId: req.user.id,
+    action: 'logout',
+    summary: `${req.user.email} signed out`,
+    details: {
+      role: req.user.role
+    },
+    changedBy: req.user.id,
+    requestId: req.requestId
+  });
+
   res.json({ message: 'Logout successful' });
 });
 
@@ -221,6 +281,15 @@ router.put(
         'UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
         [hashedPassword, req.user.id]
       );
+
+      await logSystemAudit({
+        entityType: 'auth',
+        entityId: req.user.id,
+        action: 'password-change',
+        summary: `${req.user.email} updated the account password`,
+        changedBy: req.user.id,
+        requestId: req.requestId
+      });
 
       res.json({ message: 'Password updated successfully' });
     } catch (error) {

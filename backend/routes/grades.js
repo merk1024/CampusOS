@@ -3,6 +3,7 @@ const router = express.Router();
 const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const db = require('../config/database');
 const { logGradeChange } = require('../utils/auditTrail');
+const { logSystemAudit } = require('../utils/platformOps');
 
 // @route   POST /api/grades
 // @desc    Add or update grade
@@ -46,6 +47,21 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
       previousComments: existing.rows[0]?.comments,
       newComments: result.rows[0]?.comments,
       changedBy: req.user.id
+    });
+
+    await logSystemAudit({
+      entityType: 'grade',
+      entityId: result.rows[0]?.id ?? `${examId}:${studentId}`,
+      action: existing.rows.length > 0 ? 'update' : 'create',
+      summary: `${req.user.email} ${existing.rows.length > 0 ? 'updated' : 'saved'} a grade for ${studentId}`,
+      details: {
+        examId,
+        studentId,
+        grade: result.rows[0]?.grade,
+        comments: result.rows[0]?.comments || null
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
     });
 
     res.json({

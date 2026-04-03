@@ -6,6 +6,7 @@ const { auth, isAdmin } = require('../middleware/auth');
 const db = require('../config/database');
 const { applyBulkUserImport, previewBulkUserImport } = require('../utils/bulkUserImport');
 const { hasAdminAccess, hasSuperadminAccess } = require('../utils/access');
+const { enqueueJob, logSystemAudit } = require('../utils/platformOps');
 
 const PROFILE_FIELDS = `
   id,
@@ -186,6 +187,18 @@ router.put('/profile/me', auth, async (req, res) => {
       [req.user.id]
     );
 
+    await logSystemAudit({
+      entityType: 'user-profile',
+      entityId: req.user.id,
+      action: 'update',
+      summary: `${req.user.email} updated the personal profile`,
+      details: {
+        userId: req.user.id
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
+
     res.json({ message: 'Profile updated', user });
   } catch (error) {
     console.error('Update profile error:', error);
@@ -274,6 +287,19 @@ router.post('/', auth, isAdmin, async (req, res) => {
       [result.id]
     );
 
+    await logSystemAudit({
+      entityType: 'user',
+      entityId: result.id,
+      action: 'create',
+      summary: `${req.user.email} created ${email}`,
+      details: {
+        role,
+        student_id
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
+
     res.status(201).json({ message: 'User created successfully', user });
   } catch (error) {
     console.error('Create user error:', error);
@@ -300,6 +326,30 @@ router.post('/bulk/preview', auth, isAdmin, async (req, res) => {
 router.post('/bulk/apply', auth, isAdmin, async (req, res) => {
   try {
     const result = await applyBulkUserImport(req.body?.csvText);
+
+    await logSystemAudit({
+      entityType: 'user',
+      entityId: 'bulk-import',
+      action: 'bulk-create',
+      summary: `${req.user.email} applied a bulk user import`,
+      details: result.summary,
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
+
+    await enqueueJob({
+      jobType: 'import.summary',
+      createdBy: req.user.id,
+      payload: {
+        notifyUserId: req.user.id,
+        sourceType: 'bulk-users',
+        sourceId: `bulk-users-${Date.now()}`,
+        title: 'CampusOS bulk user import finished',
+        message: `Created ${result.summary.created} user(s), skipped ${result.summary.skipped}, errors ${result.summary.errors}.`,
+        metadata: result.summary
+      }
+    });
+
     res.status(201).json(result);
   } catch (error) {
     console.error('Bulk user apply error:', error);
@@ -351,6 +401,19 @@ router.patch('/:id/status', auth, isAdmin, async (req, res) => {
       `SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`,
       [userId]
     );
+
+    await logSystemAudit({
+      entityType: 'user',
+      entityId: userId,
+      action: req.body.is_active ? 'restore' : 'disable',
+      summary: `${req.user.email} ${req.body.is_active ? 'restored' : 'disabled'} ${targetUser.email}`,
+      details: {
+        role: targetUser.role,
+        targetEmail: targetUser.email
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
 
     res.json({
       message: req.body.is_active ? 'Account restored successfully' : 'Account disabled successfully',
@@ -472,6 +535,18 @@ router.put('/:id', auth, async (req, res) => {
       `SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`,
       [req.params.id]
     );
+
+    await logSystemAudit({
+      entityType: 'user',
+      entityId: req.params.id,
+      action: 'update',
+      summary: `${req.user.email} updated ${user.email}`,
+      details: {
+        role: existingUser.role
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
 
     res.json({ message: 'Profile updated', user });
   } catch (error) {

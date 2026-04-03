@@ -477,6 +477,7 @@ function TeacherAttendance({ user }) {
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
                       placeholder="Name, student ID, group"
+                      aria-label="Search students in the attendance roster"
                     />
                   </label>
 
@@ -544,12 +545,13 @@ function TeacherAttendance({ user }) {
                   {layoutMode === 'table' ? (
                     <div className="att-roster-table-shell">
                       <table className="att-roster-table">
+                        <caption className="sr-only">Attendance roster table</caption>
                         <thead>
                           <tr>
-                            <th>Student</th>
-                            <th>Saved</th>
-                            <th>Draft</th>
-                            <th>Quick set</th>
+                            <th scope="col">Student</th>
+                            <th scope="col">Saved</th>
+                            <th scope="col">Draft</th>
+                            <th scope="col">Quick set</th>
                           </tr>
                         </thead>
                         <tbody>

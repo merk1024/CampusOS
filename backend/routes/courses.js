@@ -8,6 +8,7 @@ const {
 } = require('../middleware/auth');
 const db = require('../config/database');
 const { hasAdminAccess } = require('../utils/access');
+const { logSystemAudit } = require('../utils/platformOps');
 
 const COURSE_SELECT = `
   SELECT
@@ -185,6 +186,20 @@ router.post('/bulk/teacher-assignment', auth, isAdmin, async (req, res) => {
       foundCourses.map((course) => getCourseWithTeacher(course.id))
     );
 
+    await logSystemAudit({
+      entityType: 'course',
+      entityId: 'bulk-teacher-assignment',
+      action: 'bulk-assign-teacher',
+      summary: `${req.user.email} updated teacher assignment for ${refreshedCourses.length} course(s)`,
+      details: {
+        teacherId,
+        updatedCourseIds: refreshedCourses.map((course) => course.id),
+        missingCourseIds
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
+
     res.json({
       message: teacherId
         ? 'Teacher assignment updated for selected courses'
@@ -252,6 +267,22 @@ router.post('/bulk/enrollments', auth, isAdmin, async (req, res) => {
         created += 1;
       }
     }
+
+    await logSystemAudit({
+      entityType: 'enrollment',
+      entityId: 'bulk-enrollment',
+      action: 'bulk-enroll',
+      summary: `${req.user.email} processed bulk enrollment`,
+      details: {
+        created,
+        skipped,
+        matchedCourseIds: foundCourses.map((course) => course.id),
+        matchedStudentIds: students.map((student) => student.id),
+        missingIdentifiers
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
 
     res.json({
       message: 'Bulk enrollment processed',
@@ -427,6 +458,18 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
 
     const course = await getCourseWithTeacher(result.id);
 
+    await logSystemAudit({
+      entityType: 'course',
+      entityId: result.id,
+      action: 'create',
+      summary: `${req.user.email} created course ${course.code}`,
+      details: {
+        teacher_id: assignedTeacherId
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
+
     res.status(201).json({
       message: 'Course created successfully',
       course
@@ -471,6 +514,18 @@ router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
 
     const updatedCourse = await getCourseWithTeacher(req.params.id);
 
+    await logSystemAudit({
+      entityType: 'course',
+      entityId: req.params.id,
+      action: 'update',
+      summary: `${req.user.email} updated course ${updatedCourse.code}`,
+      details: {
+        teacher_id: assignedTeacherId
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
+
     res.json({
       message: 'Course updated successfully',
       course: updatedCourse
@@ -503,6 +558,18 @@ router.put('/:id/teacher', auth, async (req, res) => {
     await db.run('UPDATE courses SET teacher_id = ? WHERE id = ?', [teacherId, req.params.id]);
     const updatedCourse = await getCourseWithTeacher(req.params.id);
 
+    await logSystemAudit({
+      entityType: 'course',
+      entityId: req.params.id,
+      action: teacherId ? 'assign-teacher' : 'clear-teacher',
+      summary: `${req.user.email} ${teacherId ? 'assigned' : 'removed'} a teacher for ${updatedCourse.code}`,
+      details: {
+        teacher_id: teacherId
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
+
     res.json({
       message: teacherId ? 'Teacher assigned successfully' : 'Teacher removed successfully',
       course: updatedCourse
@@ -530,6 +597,19 @@ router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
     }
 
     await db.run('DELETE FROM courses WHERE id = ?', [req.params.id]);
+
+    await logSystemAudit({
+      entityType: 'course',
+      entityId: req.params.id,
+      action: 'delete',
+      summary: `${req.user.email} deleted course ${course.code}`,
+      details: {
+        courseCode: course.code,
+        courseName: course.name
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
 
     res.json({ message: 'Course deleted successfully' });
   } catch (error) {

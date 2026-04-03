@@ -19,6 +19,8 @@ process.env.SEED_STUDENT_PASSWORD = 'Student123!';
 const seed = require('../seeds/seed');
 const { startServer } = require('../server');
 const { SUPERADMIN_EMAIL } = require('../utils/access');
+const db = require('../config/database');
+const { runQueuedJobs } = require('../utils/platformOps');
 
 let server;
 let baseUrl;
@@ -131,6 +133,55 @@ test('GET /health returns request tracing metadata', async () => {
   assert.equal(body.database.client, 'sqlite');
   assert.equal(body.database.status, 'configured');
   assert.equal(typeof body.uptimeSeconds, 'number');
+});
+
+test('database migrations expose the current schema version and platform tables', async () => {
+  assert.equal(db.schemaVersion, '2026-04-02-005-platform-ops-tables');
+
+  const migrationRow = await db.get(
+    'SELECT version FROM schema_migrations WHERE version = ?',
+    ['2026-04-02-005-platform-ops-tables']
+  );
+  assert.ok(migrationRow);
+
+  const systemAuditTable = await db.get(
+    `SELECT name
+     FROM sqlite_master
+     WHERE type = 'table' AND name = ?`,
+    ['system_audit_log']
+  );
+  const notificationInboxTable = await db.get(
+    `SELECT name
+     FROM sqlite_master
+     WHERE type = 'table' AND name = ?`,
+    ['notification_inbox']
+  );
+  const jobQueueTable = await db.get(
+    `SELECT name
+     FROM sqlite_master
+     WHERE type = 'table' AND name = ?`,
+    ['job_queue']
+  );
+
+  assert.ok(systemAuditTable);
+  assert.ok(notificationInboxTable);
+  assert.ok(jobQueueTable);
+});
+
+test('login sets an auth cookie for browser sessions', async () => {
+  const { response, body } = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({
+      login: 'admin@alatoo.edu.kg',
+      password: process.env.SEED_ADMIN_PASSWORD,
+      rememberMe: true
+    })
+  });
+
+  assert.equal(response.status, 200, JSON.stringify(body));
+  const cookieHeader = response.headers.get('set-cookie');
+  assert.ok(cookieHeader?.includes('campusos_session='));
+  assert.ok(cookieHeader?.toLowerCase().includes('httponly'));
 });
 
 test('GET /ready verifies database readiness', async () => {
@@ -672,6 +723,19 @@ test('teacher can create an exam and publish a grade while student cannot submit
   const examId = createExamResult.body.exam.id;
   assert.ok(examId);
 
+  const examAudit = await db.get(
+    `SELECT *
+     FROM system_audit_log
+     WHERE entity_type = ?
+       AND entity_id = ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    ['exam', String(examId)]
+  );
+
+  assert.ok(examAudit);
+  assert.equal(examAudit.action, 'create');
+
   const blockedStudentAttempt = await request('/api/grades', {
     method: 'POST',
     headers: authHeaders(studentSession.token),
@@ -700,10 +764,84 @@ test('teacher can create an exam and publish a grade while student cannot submit
   assert.equal(teacherGradeAttempt.response.status, 200, JSON.stringify(teacherGradeAttempt.body));
   assert.equal(teacherGradeAttempt.body.grade.grade, 92);
 
+  const gradeAudit = await db.get(
+    `SELECT *
+     FROM system_audit_log
+     WHERE entity_type = ?
+       AND entity_id = ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    ['grade', String(teacherGradeAttempt.body.grade.id)]
+  );
+
+  assert.ok(gradeAudit);
+  assert.equal(gradeAudit.action, 'create');
+
   const studentGrades = await request('/api/grades/student/240141052', {
     headers: authHeaders(studentSession.token)
   });
 
   assert.equal(studentGrades.response.status, 200);
   assert.ok(studentGrades.body.grades.some((grade) => grade.exam_id === examId && grade.subject === uniqueSubject));
+});
+
+test('announcement creation writes system audit entries and queued notifications', async () => {
+  const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  const uniqueTitle = `CampusOS Notice ${Date.now()}`;
+
+  const createdAnnouncement = await request('/api/announcements', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      title: uniqueTitle,
+      content: 'Regression test for background notification delivery.',
+      type: 'important',
+      isPinned: true
+    })
+  });
+
+  assert.equal(createdAnnouncement.response.status, 201, JSON.stringify(createdAnnouncement.body));
+
+  const auditEntry = await db.get(
+    `SELECT *
+     FROM system_audit_log
+     WHERE entity_type = ?
+       AND entity_id = ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    ['announcement', String(createdAnnouncement.body.announcement.id)]
+  );
+
+  assert.ok(auditEntry);
+  assert.equal(auditEntry.action, 'create');
+
+  const queuedNotification = await db.get(
+    `SELECT *
+     FROM job_queue
+     WHERE job_type = ?
+       AND status = ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    ['notification.broadcast', 'pending']
+  );
+
+  assert.ok(queuedNotification);
+
+  const workerResult = await runQueuedJobs({
+    workerName: 'test-worker',
+    limit: 10
+  });
+
+  assert.ok(workerResult.processedCount >= 1);
+
+  const deliveredNotification = await db.get(
+    `SELECT *
+     FROM notification_inbox
+     WHERE source_type = ?
+       AND source_id = ?
+     LIMIT 1`,
+    ['announcement', String(createdAnnouncement.body.announcement.id)]
+  );
+
+  assert.ok(deliveredNotification);
 });

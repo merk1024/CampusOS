@@ -348,16 +348,17 @@ function UserManagement({ user }) {
             </div>
             <div className="data-table-scroll">
               <table className="data-table">
+                <caption className="sr-only">Bulk import preview rows for user creation</caption>
                 <thead>
                   <tr>
-                    <th>Row</th>
-                    <th>Action</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Student ID</th>
-                    <th>Group</th>
-                    <th>Note</th>
+                    <th scope="col">Row</th>
+                    <th scope="col">Action</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">Student ID</th>
+                    <th scope="col">Group</th>
+                    <th scope="col">Note</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -392,13 +393,14 @@ function UserManagement({ user }) {
           </div>
           <div className="data-table-scroll">
             <table className="data-table">
+              <caption className="sr-only">Generated temporary passwords after bulk user creation</caption>
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Student ID</th>
-                  <th>Temporary password</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Role</th>
+                  <th scope="col">Student ID</th>
+                  <th scope="col">Temporary password</th>
                 </tr>
               </thead>
               <tbody>
@@ -422,6 +424,7 @@ function UserManagement({ user }) {
           <input
             type="text"
             placeholder="Search by name, email, student ID or faculty"
+            aria-label="Search the user directory"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />
@@ -442,9 +445,9 @@ function UserManagement({ user }) {
 
       {showCreateForm && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="create-user-dialog-title">
             <div className="modal-header">
-              <h2>Create New User</h2>
+              <h2 id="create-user-dialog-title">Create New User</h2>
               <button
                 type="button"
                 className="modal-close"
@@ -576,17 +579,18 @@ function UserManagement({ user }) {
         ) : (
           <div className="data-table-scroll">
             <table className="data-table">
+              <caption className="sr-only">CampusOS user directory table</caption>
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Student ID</th>
-                  <th>Group</th>
-                  <th>Subgroup</th>
-                  <th>Faculty</th>
-                  <th>Actions</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Role</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Student ID</th>
+                  <th scope="col">Group</th>
+                  <th scope="col">Subgroup</th>
+                  <th scope="col">Faculty</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody>

@@ -58,6 +58,13 @@ const requireNonPlaceholder = (key, message) => {
   }
 };
 
+const readBooleanEnv = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return null;
+};
+
 const dbClient = read('DB_CLIENT') || (hasValue('DATABASE_URL') ? 'postgres' : 'sqlite');
 
 requireValue('FRONTEND_URL', 'FRONTEND_URL is required so the API can allow the correct frontend origin.');
@@ -93,6 +100,19 @@ if (mode === 'development') {
 
   if (!/^https:\/\//i.test(read('FRONTEND_URL'))) {
     warnings.push('FRONTEND_URL should usually use https:// outside local development.');
+  }
+
+  if (readBooleanEnv(read('AUTH_COOKIE_SECURE')) === false) {
+    errors.push('AUTH_COOKIE_SECURE must not be false for staging or production.');
+  }
+
+  const sameSite = String(read('AUTH_COOKIE_SAMESITE') || '').trim().toLowerCase();
+  if (sameSite && !['none', 'lax', 'strict'].includes(sameSite)) {
+    errors.push('AUTH_COOKIE_SAMESITE must be one of: none, lax, strict.');
+  }
+
+  if (sameSite && sameSite !== 'none') {
+    warnings.push('AUTH_COOKIE_SAMESITE should usually be none when frontend and API are deployed on different origins.');
   }
 }
 

@@ -32,7 +32,11 @@ const SESSION_ERROR_MESSAGES = new Set([
   SESSION_EXPIRED_MESSAGE
 ]);
 
-const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
+const hasKnownSession = () => (
+  Boolean(localStorage.getItem('lms_user'))
+  || Boolean(localStorage.getItem('token'))
+  || Boolean(sessionStorage.getItem('token'))
+);
 
 export const isSessionErrorMessage = (message) => SESSION_ERROR_MESSAGES.has(message);
 
@@ -72,12 +76,15 @@ const request = async (path, options = {}) => {
   const { skipAuthHandling = false, ...fetchOptions } = options;
 
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, fetchOptions);
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      credentials: 'include',
+      ...fetchOptions
+    });
 
     if (!response.ok) {
       const errorMessage = await getErrorMessage(response, 'Request failed');
 
-      if (!skipAuthHandling && response.status === 401 && getToken() && isSessionErrorMessage(errorMessage)) {
+      if (!skipAuthHandling && response.status === 401 && hasKnownSession() && isSessionErrorMessage(errorMessage)) {
         notifySessionExpired();
         throw new Error(SESSION_EXPIRED_MESSAGE);
       }
@@ -95,20 +102,18 @@ const request = async (path, options = {}) => {
 };
 
 const getHeaders = () => {
-  const token = getToken();
   return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
+    'Content-Type': 'application/json'
   };
 };
 
 export const api = {
-  async login(login, password) {
+  async login(login, password, rememberMe = false) {
     return request('/auth/login', {
       skipAuthHandling: true,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ login, password })
+      body: JSON.stringify({ login, password, rememberMe })
     });
   },
 
@@ -435,6 +440,15 @@ export const api = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ scheduleId, studentId, date, status })
+    });
+  },
+
+  async reportClientError(payload) {
+    return request('/monitoring/frontend-error', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+      skipAuthHandling: true
     });
   }
 };

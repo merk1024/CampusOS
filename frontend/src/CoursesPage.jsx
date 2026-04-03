@@ -1458,7 +1458,7 @@ export default function CoursesPage({ user }) {
             </div>
           )}
 
-          <input className="lms-search" placeholder="Search by course title or code" value={search} onChange={(event) => setSearch(event.target.value)} />
+          <input className="lms-search" placeholder="Search by course title or code" aria-label="Search courses" value={search} onChange={(event) => setSearch(event.target.value)} />
           {hasSearch && (
             <button type="button" className="management-filter-chip lms-clear-search" onClick={() => setSearch('')}>
               Clear search

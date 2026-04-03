@@ -61,6 +61,21 @@ Recommended order for a full reset:
 2. `npm run seed:demo`
 3. `npm run verify:web`
 
+## Background jobs and notifications
+
+CampusOS now includes a lightweight job queue for notification fan-out and import summaries.
+
+Run the worker manually when needed:
+
+- `npm run jobs:work`
+- `npm --prefix backend run jobs:work`
+
+Recommended usage:
+
+1. Trigger the worker after bulk imports, announcement publishing, or manual integration analysis.
+2. Check `/api/ops/jobs` to confirm queue status.
+3. Check `/api/ops/notifications/me` or the database inbox table for delivered notifications.
+
 ## Render deploy flow
 
 Blueprint files:
@@ -104,6 +119,44 @@ If you need an explicit temporary fallback during troubleshooting:
 - `PGSSLMODE=disable`
 
 Do not leave conflicting values like `PGSSL_REJECT_UNAUTHORIZED=true` together with the self-signed override.
+
+## Monitoring and error reporting
+
+CampusOS supports optional webhook-based error monitoring:
+
+- set `MONITORING_WEBHOOK_URL` if you want backend and client errors forwarded to an external alert destination
+
+Useful endpoints and flows:
+
+- `/health` for basic uptime checks
+- `/ready` for DB-backed readiness checks
+- `/api/monitoring/frontend-error` for authenticated client-side error reports
+- `X-Request-Id` response header for tracing individual failures in logs
+
+Recommended verification:
+
+1. Confirm request IDs appear in deploy logs.
+2. Confirm at least one handled backend error reaches the monitoring webhook if enabled.
+3. Confirm at least one client error report is written through the monitoring route.
+
+## Backup and restore
+
+Use the dedicated scripts for backup and restore:
+
+- `npm run backup:campusos -- -Mode sqlite`
+- `npm run backup:campusos -- -Mode postgres`
+- `npm run restore:campusos -- -Mode sqlite -InputPath <path>`
+- `npm run restore:campusos -- -Mode postgres -InputPath <path>`
+
+Full procedure:
+
+- see [BACKUP_RESTORE_PLAYBOOK.md](./BACKUP_RESTORE_PLAYBOOK.md)
+
+## Release security checklist
+
+Before staging or production releases:
+
+- see [SECURITY_RELEASE_CHECKLIST.md](./SECURITY_RELEASE_CHECKLIST.md)
 
 ## Verification
 

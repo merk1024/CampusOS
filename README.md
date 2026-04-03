@@ -13,6 +13,7 @@ It combines courses, schedule, exams, grades, assignments, attendance, announcem
 - exams and grade entry
 - assignments and announcements
 - attendance management for teachers and attendance history for students
+- system audit logs, grade and attendance audit trails, and queued notification delivery
 - profile and settings pages
 - light and dark theme
 - SQLite for local work and PostgreSQL for deployed environments
@@ -29,7 +30,7 @@ Backend:
 
 - Node.js
 - Express
-- JWT authentication
+- JWT authentication with HttpOnly cookie sessions
 
 Quality and security:
 
@@ -140,11 +141,14 @@ Root scripts:
 - `npm run env:check:production`
 - `npm run verify:web`
 - `npm run test:backend`
+- `npm run jobs:work`
 - `npm run audit:backend`
 - `npm run audit:frontend`
 - `npm run scan:secrets`
 - `npm run scan:zap`
 - `npm run export:security-docx`
+- `npm run backup:campusos -- -Mode sqlite`
+- `npm run restore:campusos -- -Mode sqlite -InputPath .\backups\campusos-local.db`
 
 ## Continuous integration
 
@@ -196,6 +200,7 @@ Backend scripts:
 - `npm --prefix backend run seed`
 - `npm --prefix backend run cleanup-demo-data`
 - `npm --prefix backend run env:check`
+- `npm --prefix backend run jobs:work`
 - `npm --prefix backend run import:pilot`
 - `npm --prefix backend run import:pilot:apply`
 - `npm --prefix backend run import:pilot:preview`
@@ -218,6 +223,13 @@ Before your first deploy:
 Render PostgreSQL note:
 
 - if your Render PostgreSQL connection uses a self-signed certificate, set `PGSSL_ALLOW_SELF_SIGNED=true`
+
+Monitoring and session hardening notes:
+
+- CampusOS now uses secure HttpOnly auth cookies instead of browser-stored JWT tokens
+- optional backend alert forwarding can be enabled with `MONITORING_WEBHOOK_URL`
+- frontend client errors can be posted back to `/api/monitoring/frontend-error`
+- admin operational audit and job queue endpoints are available under `/api/ops`
 
 Full operations flow:
 
@@ -254,6 +266,8 @@ The next product step is to harden the web experience for a pilot launch. Androi
 - [ROADMAP.md](./ROADMAP.md)
 - [docs/OPERATIONS_RUNBOOK.md](./docs/OPERATIONS_RUNBOOK.md)
 - [docs/DATA_IMPORT_MAPPING.md](./docs/DATA_IMPORT_MAPPING.md)
+- [docs/SECURITY_RELEASE_CHECKLIST.md](./docs/SECURITY_RELEASE_CHECKLIST.md)
+- [docs/BACKUP_RESTORE_PLAYBOOK.md](./docs/BACKUP_RESTORE_PLAYBOOK.md)
 
 ## Author
 
