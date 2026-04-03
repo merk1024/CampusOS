@@ -830,9 +830,28 @@ body {
   transform: translateY(-2px);
 }
 
+.icon-btn:disabled,
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.66;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .icon-btn svg {
   width: 1.15rem;
   height: 1.15rem;
+}
+
+.install-app-btn {
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  background: color-mix(in srgb, var(--surface-soft) 84%, var(--accent) 16%);
+}
+
+.install-app-btn:hover {
+  background: color-mix(in srgb, var(--surface-soft-hover) 76%, var(--accent) 24%);
 }
 
 .badge {
@@ -2930,6 +2949,28 @@ body {
   line-height: 1.55;
 }
 
+.mobile-pilot-card {
+  margin-top: 1.5rem;
+}
+
+.mobile-pilot-card .portal-records {
+  margin-bottom: 1rem;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  overflow: hidden;
+}
+
+.mobile-pilot-card .portal-row {
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  gap: 1rem;
+}
+
+.mobile-pilot-card .portal-row > div:first-child strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--text);
+}
+
 @media (max-width: 768px) {
   .portal-summary-card {
     flex-direction: column;
@@ -2943,6 +2984,10 @@ body {
   .portal-row {
     grid-template-columns: 1fr;
     gap: 0.35rem;
+  }
+
+  .mobile-pilot-card .portal-row {
+    grid-template-columns: 1fr;
   }
 
   .portal-separator {

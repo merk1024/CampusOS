@@ -1,0 +1,44 @@
+{
+  "name": "CampusOS",
+  "short_name": "CampusOS",
+  "description": "CampusOS is the mobile-ready academic portal for students, teachers, and campus operations.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#081327",
+  "theme_color": "#081327",
+  "icons": [
+    {
+      "src": "/pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open schedule",
+      "short_name": "Schedule",
+      "url": "/?page=schedule",
+      "description": "Jump straight into the weekly schedule."
+    },
+    {
+      "name": "Open messages",
+      "short_name": "Messages",
+      "url": "/?page=messages",
+      "description": "Review inbox items and announcements."
+    }
+  ]
+}

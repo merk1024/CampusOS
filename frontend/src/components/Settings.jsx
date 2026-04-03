@@ -21,7 +21,7 @@ const readSettings = () => {
   }
 };
 
-function Settings({ user, onNavigate, theme, onThemeChange }) {
+function Settings({ user, onNavigate, theme, onThemeChange, mobileInstall }) {
   const [settings, setSettings] = useState(readSettings);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -57,6 +57,11 @@ function Settings({ user, onNavigate, theme, onThemeChange }) {
   };
 
   const roleLabel = getRoleLabel(user);
+  const mobileStatus = mobileInstall?.isInstalled
+    ? 'Installed'
+    : mobileInstall?.canInstall
+      ? 'Ready to install'
+      : 'Use a supported mobile browser';
 
   return (
     <div className="page">
@@ -77,6 +82,10 @@ function Settings({ user, onNavigate, theme, onThemeChange }) {
             <strong>{item.value}</strong>
           </div>
         ))}
+        <div className="management-summary-card">
+          <span className="management-summary-label">Mobile pilot</span>
+          <strong>{mobileStatus}</strong>
+        </div>
       </div>
 
       <form className="exam-form-card" onSubmit={handleSave}>
@@ -138,6 +147,53 @@ function Settings({ user, onNavigate, theme, onThemeChange }) {
           <button type="submit" className="btn-primary">Save settings</button>
         </div>
       </form>
+
+      <section className="exam-form-card mobile-pilot-card">
+        <div className="exam-form-header">
+          <div>
+            <h3>Mobile pilot</h3>
+            <p>CampusOS now supports a PWA-first mobile install flow for Android-style home screen access.</p>
+          </div>
+        </div>
+        <div className="portal-records">
+          <div className="portal-row">
+            <div>
+              <span className="portal-kicker">Direction</span>
+              <strong>PWA-first, Capacitor-ready</strong>
+            </div>
+            <p className="page-context-note">We are using the web app as the first mobile pilot so the same product can be installed now and wrapped later if store distribution becomes necessary.</p>
+          </div>
+          <div className="portal-row">
+            <div>
+              <span className="portal-kicker">Install status</span>
+              <strong>{mobileStatus}</strong>
+            </div>
+            <p className="page-context-note">
+              {mobileInstall?.isInstalled
+                ? 'CampusOS is already installed on this device.'
+                : mobileInstall?.canInstall
+                  ? 'Use the install button below to add CampusOS to the home screen.'
+                  : 'If the install button is missing, open CampusOS in Chrome or Edge on Android and use the browser install option.'}
+            </p>
+          </div>
+        </div>
+        <div className="portal-actions">
+          {mobileInstall?.canInstall ? (
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => mobileInstall.installApp?.()}
+              disabled={mobileInstall.installing}
+            >
+              {mobileInstall.installing ? 'Installing...' : 'Install CampusOS app'}
+            </button>
+          ) : (
+            <button type="button" className="btn-secondary" disabled>
+              {mobileInstall?.isInstalled ? 'Already installed' : 'Install from mobile browser'}
+            </button>
+          )}
+        </div>
+      </section>
 
       <div className="management-toolbar">
         <div>

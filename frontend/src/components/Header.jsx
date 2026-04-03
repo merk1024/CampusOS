@@ -45,6 +45,16 @@ function BellIcon() {
   );
 }
 
+function InstallIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 4V14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M8.5 10.5L12 14L15.5 10.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 18H19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function SettingsIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -99,7 +109,8 @@ function Header({
   onMenuToggle,
   theme,
   onToggleTheme,
-  messageUnreadCount = 0
+  messageUnreadCount = 0,
+  mobileInstall
 }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef(null);
@@ -154,6 +165,10 @@ function Header({
     onLogout?.();
   };
 
+  const handleInstallClick = async () => {
+    await mobileInstall?.installApp?.();
+  };
+
   return (
     <header className="header">
       <div className="header-left">
@@ -196,6 +211,18 @@ function Header({
             <span className="badge" aria-live="polite">{messageUnreadCount > 99 ? '99+' : messageUnreadCount}</span>
           )}
         </button>
+        {mobileInstall?.canInstall && (
+          <button
+            type="button"
+            className="icon-btn install-app-btn"
+            onClick={handleInstallClick}
+            aria-label="Install CampusOS app"
+            title="Install CampusOS app"
+            disabled={mobileInstall.installing}
+          >
+            <InstallIcon />
+          </button>
+        )}
         <button type="button" className="icon-btn" onClick={() => handleNavigate('settings')} aria-label="Open settings" title="Settings">
           <SettingsIcon />
         </button>

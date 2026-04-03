@@ -23,6 +23,7 @@ import Messages from './components/Messages';
 import Profile from './components/Profile';
 import Schedule from './components/Schedule';
 import Settings from './components/Settings';
+import usePwaInstall from './hooks/usePwaInstall';
 import { getAccessiblePage } from './pageAccess';
 import { hasAdminAccess } from './roles';
 
@@ -68,6 +69,13 @@ const writeAppSettings = (patch) => {
 };
 
 const getDefaultPage = () => readAppSettings().defaultPage || 'dashboard';
+const getRequestedPage = () => {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  return new URLSearchParams(window.location.search).get('page') || '';
+};
 
 const getInitialTheme = () => {
   const storedTheme = readAppSettings().theme;
@@ -130,12 +138,13 @@ function Sidebar({ activePage, setActivePage, isOpen, onClose, user }) {
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [activePage, setActivePage] = useState(getDefaultPage);
+  const [activePage, setActivePage] = useState(() => getRequestedPage() || getDefaultPage());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(getInitialTheme);
   const [authNotice, setAuthNotice] = useState('');
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
+  const mobileInstall = usePwaInstall();
   const resolvedActivePage = user
     ? getAccessiblePage(user, activePage || getDefaultPage())
     : activePage;
@@ -149,7 +158,7 @@ export default function App() {
   useEffect(() => {
     const handleAuthSessionExpired = (event) => {
       setUser(null);
-      setActivePage(getDefaultPage());
+      setActivePage(getRequestedPage() || getDefaultPage());
       setSidebarOpen(false);
       setAuthNotice(event.detail?.message || SESSION_EXPIRED_MESSAGE);
       setMessageUnreadCount(0);
@@ -269,7 +278,7 @@ export default function App() {
   const handleLogin = (userData) => {
     setUser(userData);
     storage.set('lms_user', userData);
-    setActivePage(getAccessiblePage(userData, getDefaultPage()));
+    setActivePage(getAccessiblePage(userData, getRequestedPage() || getDefaultPage()));
     setAuthNotice('');
   };
 
@@ -282,7 +291,7 @@ export default function App() {
 
     setUser(null);
     clearAuthSession();
-    setActivePage(getDefaultPage());
+    setActivePage(getRequestedPage() || getDefaultPage());
     setSidebarOpen(false);
     setAuthNotice('');
     setMessageUnreadCount(0);
@@ -336,6 +345,7 @@ export default function App() {
             onNavigate={handleNavigate}
             theme={theme}
             onThemeChange={handleThemeChange}
+            mobileInstall={mobileInstall}
           />
         );
       case 'userManagement':
@@ -371,6 +381,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={handleThemeToggle}
         messageUnreadCount={messageUnreadCount}
+        mobileInstall={mobileInstall}
       />
       <div className="app-body">
         <Sidebar

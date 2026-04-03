@@ -16,6 +16,7 @@ It combines courses, schedule, exams, grades, assignments, attendance, announcem
 - system audit logs, grade and attendance audit trails, and queued notification delivery
 - profile and settings pages
 - light and dark theme
+- installable PWA-first mobile pilot
 - SQLite for local work and PostgreSQL for deployed environments
 
 ## Stack
@@ -257,9 +258,13 @@ Reference files:
 
 ## Product direction
 
-CampusOS is currently being developed as a stable web MVP first.
+CampusOS started as a stable web MVP first and now has a PWA-first mobile pilot.
 
-The next product step is to harden the web experience for a pilot launch. Android or mobile packaging comes after the web platform stops changing rapidly.
+Chosen mobile path:
+
+- mobile pilot: installable PWA
+- future packaging path: Capacitor if store distribution is needed
+- deferred path: separate Android client only if the product later outgrows the shared web shell
 
 ## Documentation
 
@@ -268,6 +273,7 @@ The next product step is to harden the web experience for a pilot launch. Androi
 - [docs/DATA_IMPORT_MAPPING.md](./docs/DATA_IMPORT_MAPPING.md)
 - [docs/SECURITY_RELEASE_CHECKLIST.md](./docs/SECURITY_RELEASE_CHECKLIST.md)
 - [docs/BACKUP_RESTORE_PLAYBOOK.md](./docs/BACKUP_RESTORE_PLAYBOOK.md)
+- [docs/MOBILE_API_CONTRACT.md](./docs/MOBILE_API_CONTRACT.md)
 
 ## Author
 
