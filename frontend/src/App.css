@@ -1665,6 +1665,10 @@ body {
 
 /* Tablet and Mobile */
 @media (max-width: 768px) {
+  .app.sidebar-open .main-content {
+    pointer-events: none;
+  }
+
   .login-page {
     padding: 1rem;
   }

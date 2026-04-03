@@ -410,7 +410,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app ${sidebarOpen ? 'sidebar-open' : ''}`}>
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <Header
         user={user}
