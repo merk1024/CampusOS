@@ -5,6 +5,14 @@ import StatusBanner from './StatusBanner';
 import { canManageAcademicRecords, hasAdminAccess, isStudentAccount } from '../roles';
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const mobileDayLabels = {
+  Monday: 'Mon',
+  Tuesday: 'Tue',
+  Wednesday: 'Wed',
+  Thursday: 'Thu',
+  Friday: 'Fri',
+  Saturday: 'Sat'
+};
 const dayAliases = {
   Monday: ['Monday', 'РџРѕРЅРµРґРµР»СЊРЅРёРє'],
   Tuesday: ['Tuesday', 'Р’С‚РѕСЂРЅРёРє'],
@@ -263,6 +271,19 @@ function Schedule() {
 
     return canEdit ? sections : sections.filter((section) => section.items.length > 0);
   }, [canEdit, filteredSchedule]);
+  const mobileDayTabs = useMemo(() => (
+    mobileScheduleSections.map((section) => ({
+      day: section.day,
+      shortLabel: mobileDayLabels[section.day] || section.day.slice(0, 3),
+      count: section.items.length
+    }))
+  ), [mobileScheduleSections]);
+  const [activeMobileDay, setActiveMobileDay] = useState(days[0]);
+  const activeMobileSection = useMemo(() => (
+    mobileScheduleSections.find((section) => section.day === activeMobileDay)
+    || mobileScheduleSections[0]
+    || null
+  ), [activeMobileDay, mobileScheduleSections]);
 
   const scheduleMap = useMemo(() => new Map(filteredSchedule.map((item) => [`${item.day}__${item.time_slot}`, item])), [filteredSchedule]);
   const mergedBlocks = useMemo(() => {
@@ -387,6 +408,28 @@ function Schedule() {
   useEffect(() => {
     setSelectedBatchIds((current) => current.filter((id) => filteredSchedule.some((item) => String(item.id) === String(id))));
   }, [filteredSchedule]);
+
+  useEffect(() => {
+    if (!mobileScheduleSections.length) {
+      return;
+    }
+
+    const preferredDay = mobileScheduleSections.find((section) => section.items.length > 0)?.day
+      || mobileScheduleSections[0]?.day
+      || days[0];
+
+    if (!mobileDayTabs.some((tab) => tab.day === activeMobileDay)) {
+      setActiveMobileDay(preferredDay);
+      return;
+    }
+
+    if (!canEdit) {
+      const activeTab = mobileDayTabs.find((tab) => tab.day === activeMobileDay);
+      if (!activeTab?.count) {
+        setActiveMobileDay(preferredDay);
+      }
+    }
+  }, [activeMobileDay, canEdit, mobileDayTabs, mobileScheduleSections]);
 
   const reloadSchedule = async (nextGroup = selectedGroup) => {
     const entries = await loadSchedule();
@@ -1045,29 +1088,45 @@ function Schedule() {
         </div>
       )}
 
-      {canRenderScheduleView && (
-        <div className="schedule-mobile-stack" aria-label="Mobile schedule view">
-          {mobileScheduleSections.map((section) => (
-            <section key={section.day} className="schedule-mobile-day">
+      {canRenderScheduleView && activeMobileSection && (
+        <>
+          <div className="schedule-mobile-tabs" role="tablist" aria-label="Schedule day tabs">
+            {mobileDayTabs.map((tab) => (
+              <button
+                key={tab.day}
+                type="button"
+                role="tab"
+                aria-selected={activeMobileDay === tab.day}
+                className={`schedule-mobile-tab ${activeMobileDay === tab.day ? 'active' : ''}`}
+                onClick={() => setActiveMobileDay(tab.day)}
+              >
+                <span>{tab.shortLabel}</span>
+                <small>{tab.count}</small>
+              </button>
+            ))}
+          </div>
+
+          <div className="schedule-mobile-stack" aria-label="Mobile schedule view">
+            <section key={activeMobileSection.day} className="schedule-mobile-day">
               <div className="schedule-mobile-day-head">
                 <div>
-                  <strong>{section.day}</strong>
-                  <span>{section.items.length} class{section.items.length === 1 ? '' : 'es'}</span>
+                  <strong>{activeMobileSection.day}</strong>
+                  <span>{activeMobileSection.items.length} class{activeMobileSection.items.length === 1 ? '' : 'es'}</span>
                 </div>
                 {canEdit && (
                   <button
                     type="button"
                     className="schedule-mobile-add"
-                    onClick={() => openQuickAddForDay(section.day)}
+                    onClick={() => openQuickAddForDay(activeMobileSection.day)}
                   >
                     Add
                   </button>
                 )}
               </div>
 
-              {section.items.length > 0 ? (
+              {activeMobileSection.items.length > 0 ? (
                 <div className="schedule-mobile-list">
-                  {section.items.map((item) => {
+                  {activeMobileSection.items.map((item) => {
                     const mobileStyle = getScheduleCardStyle(item);
                     const content = (
                       <>
@@ -1106,8 +1165,8 @@ function Schedule() {
                 </div>
               )}
             </section>
-          ))}
-        </div>
+          </div>
+        </>
       )}
 
       {needsSubgroup ? (

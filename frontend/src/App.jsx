@@ -112,6 +112,7 @@ export default function App() {
   const [appSettings, setAppSettings] = useState(() => resolveAppSettings(readAppSettings()));
   const [user, setUser] = useState(null);
   const [activePage, setActivePage] = useState(() => getRequestedPage() || getDefaultPage());
+  const [lastWorkspacePage, setLastWorkspacePage] = useState(() => getRequestedPage() || getDefaultPage());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [authNotice, setAuthNotice] = useState('');
@@ -302,7 +303,9 @@ export default function App() {
   const handleLogin = (userData) => {
     setUser(userData);
     storage.set('lms_user', userData);
-    setActivePage(getAccessiblePage(userData, getRequestedPage() || appSettings.defaultPage || getDefaultPage()));
+    const nextPage = getAccessiblePage(userData, getRequestedPage() || appSettings.defaultPage || getDefaultPage());
+    setActivePage(nextPage);
+    setLastWorkspacePage(nextPage);
     setAuthNotice('');
   };
 
@@ -341,7 +344,11 @@ export default function App() {
   };
 
   const handleNavigate = (page) => {
-    setActivePage(getAccessiblePage(user, page));
+    const nextPage = getAccessiblePage(user, page);
+    if (!['privacy', 'terms', 'support'].includes(nextPage)) {
+      setLastWorkspacePage(nextPage);
+    }
+    setActivePage(nextPage);
   };
 
   const renderPage = () => {
@@ -384,11 +391,11 @@ export default function App() {
           />
         );
       case 'privacy':
-        return <InfoCenter page="privacy" onNavigate={handleNavigate} />;
+        return <InfoCenter page="privacy" onNavigate={handleNavigate} user={user} contextPage={lastWorkspacePage} />;
       case 'terms':
-        return <InfoCenter page="terms" onNavigate={handleNavigate} />;
+        return <InfoCenter page="terms" onNavigate={handleNavigate} user={user} contextPage={lastWorkspacePage} />;
       case 'support':
-        return <InfoCenter page="support" onNavigate={handleNavigate} />;
+        return <InfoCenter page="support" onNavigate={handleNavigate} user={user} contextPage={lastWorkspacePage} />;
       case 'userManagement':
         return <UserManagement user={user} />;
       case 'integrations':

@@ -25,6 +25,7 @@ const API_TARGET = (() => {
 
 export const AUTH_SESSION_EXPIRED_EVENT = 'campusos:auth-session-expired';
 export const SESSION_EXPIRED_MESSAGE = 'Session expired. Please sign in again.';
+const GENERIC_SERVER_ERROR_MESSAGES = new Set(['Server error', 'Request failed']);
 const SESSION_ERROR_MESSAGES = new Set([
   'Token is not valid',
   'No authentication token, access denied',
@@ -67,13 +68,94 @@ const parseJsonSafely = async (response) => {
   }
 };
 
+const getFriendlyRequestMessage = (path, method = 'GET') => {
+  const normalizedPath = String(path || '').split('?')[0];
+  const normalizedMethod = String(method || 'GET').toUpperCase();
+
+  if (normalizedPath.startsWith('/attendance/analytics')) {
+    return 'Attendance analytics are temporarily unavailable. Please try again in a moment.';
+  }
+
+  if (normalizedPath.startsWith('/attendance/management')) {
+    return normalizedMethod === 'GET'
+      ? 'CampusOS could not open the attendance workspace right now.'
+      : 'CampusOS could not update the attendance workspace right now.';
+  }
+
+  if (normalizedPath === '/attendance' || normalizedPath.startsWith('/attendance/bulk')) {
+    return 'CampusOS could not save attendance right now. Please try again.';
+  }
+
+  if (normalizedPath.startsWith('/attendance')) {
+    return 'CampusOS could not load attendance right now. Please try again in a moment.';
+  }
+
+  if (normalizedPath.startsWith('/schedule')) {
+    return normalizedMethod === 'GET'
+      ? 'CampusOS could not load the active schedule right now.'
+      : 'CampusOS could not update the schedule right now.';
+  }
+
+  if (normalizedPath.startsWith('/announcements')) {
+    return normalizedMethod === 'GET'
+      ? 'CampusOS could not load announcements right now.'
+      : 'CampusOS could not publish or update the announcement right now.';
+  }
+
+  if (normalizedPath.startsWith('/assignments')) {
+    return normalizedMethod === 'GET'
+      ? 'CampusOS could not load assignments right now.'
+      : 'CampusOS could not save assignment changes right now.';
+  }
+
+  if (normalizedPath.startsWith('/grades')) {
+    return normalizedMethod === 'GET'
+      ? 'CampusOS could not load grades right now.'
+      : 'CampusOS could not save grade changes right now.';
+  }
+
+  if (normalizedPath.startsWith('/exams')) {
+    return normalizedMethod === 'GET'
+      ? 'CampusOS could not load exams right now.'
+      : 'CampusOS could not save exam changes right now.';
+  }
+
+  if (normalizedPath.startsWith('/courses')) {
+    return normalizedMethod === 'GET'
+      ? 'CampusOS could not load courses right now.'
+      : 'CampusOS could not update course data right now.';
+  }
+
+  if (normalizedPath.startsWith('/users')) {
+    return normalizedMethod === 'GET'
+      ? 'CampusOS could not load user records right now.'
+      : 'CampusOS could not save user changes right now.';
+  }
+
+  if (normalizedPath.startsWith('/integrations')) {
+    return 'CampusOS could not load the integration workspace right now.';
+  }
+
+  if (normalizedPath.startsWith('/ops/performance-dashboard')) {
+    return 'Performance dashboard is temporarily unavailable. Please try again in a moment.';
+  }
+
+  if (normalizedPath.startsWith('/ops/risk-flags')) {
+    return 'Academic risk indicators are temporarily unavailable. Please try again in a moment.';
+  }
+
+  return 'CampusOS ran into a temporary server problem. Please try again in a moment.';
+};
+
 const getErrorMessage = async (response, fallbackMessage) => {
   const payload = await parseJsonSafely(response);
-  return payload?.error?.message || payload?.error || payload?.message || fallbackMessage;
+  const message = payload?.error?.message || payload?.error || payload?.message || fallbackMessage;
+  return GENERIC_SERVER_ERROR_MESSAGES.has(String(message || '').trim()) ? fallbackMessage : message;
 };
 
 const request = async (path, options = {}) => {
   const { skipAuthHandling = false, ...fetchOptions } = options;
+  const fallbackErrorMessage = getFriendlyRequestMessage(path, fetchOptions.method);
 
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -82,7 +164,7 @@ const request = async (path, options = {}) => {
     });
 
     if (!response.ok) {
-      const errorMessage = await getErrorMessage(response, 'Request failed');
+      const errorMessage = await getErrorMessage(response, fallbackErrorMessage);
 
       if (!skipAuthHandling && response.status === 401 && hasKnownSession() && isSessionErrorMessage(errorMessage)) {
         notifySessionExpired();

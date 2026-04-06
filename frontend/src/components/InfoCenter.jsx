@@ -1,3 +1,7 @@
+import { useMemo, useState } from 'react';
+
+import StatusBanner from './StatusBanner';
+
 const PAGE_CONTENT = {
   privacy: {
     eyebrow: 'Legal',
@@ -98,8 +102,80 @@ const PAGE_CONTENT = {
   }
 };
 
-function InfoCenter({ page = 'privacy', onNavigate }) {
+const SUPPORT_TRACKS = [
+  {
+    id: 'login',
+    title: 'Login or session problem',
+    description: 'Use this when sign-in fails, the session expires too often, or the account is unexpectedly blocked.',
+    nextStep: 'Open Messages first, then contact an admin if the issue remains.'
+  },
+  {
+    id: 'schedule',
+    title: 'Schedule mismatch',
+    description: 'Use this when the class time, room, subject, or assigned student/group does not look correct.',
+    nextStep: 'Verify the day, group, and student details before reporting it.'
+  },
+  {
+    id: 'attendance',
+    title: 'Attendance issue',
+    description: 'Use this when a student status, roster, or attendance summary does not match the class reality.',
+    nextStep: 'Include the lesson date, course name, and affected student ID.'
+  },
+  {
+    id: 'grades',
+    title: 'Grades or exam issue',
+    description: 'Use this when an exam, grade, or score history looks incorrect or is missing.',
+    nextStep: 'Include the course, exam title, and expected score or status.'
+  }
+];
+
+const formatSupportRole = (user) => {
+  if (!user) return 'Unknown role';
+  if (user.isSuperadmin) return 'Super Admin';
+  if (!user.role) return 'Unknown role';
+  return String(user.role).charAt(0).toUpperCase() + String(user.role).slice(1);
+};
+
+const formatSupportTimestamp = () => (
+  new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date())
+);
+
+function InfoCenter({ page = 'privacy', onNavigate, user = null, contextPage = 'dashboard' }) {
   const content = PAGE_CONTENT[page] || PAGE_CONTENT.privacy;
+  const [supportNotice, setSupportNotice] = useState('');
+  const [supportError, setSupportError] = useState('');
+  const supportDetails = useMemo(() => ([
+    `CampusOS support details`,
+    `Time: ${formatSupportTimestamp()}`,
+    `User: ${user?.name || 'Unknown user'}`,
+    `Email: ${user?.email || 'No email available'}`,
+    `Role: ${formatSupportRole(user)}`,
+    `Student ID: ${user?.studentId || user?.student_id || 'N/A'}`,
+    `Group: ${user?.group || 'N/A'}`,
+    `Subgroup: ${user?.subgroup || 'N/A'}`,
+    `Last workspace: ${contextPage || 'dashboard'}`,
+    `Current page: ${content.title}`,
+    `Browser URL: ${typeof window !== 'undefined' ? window.location.href : 'N/A'}`,
+    `Describe the issue:`
+  ].join('\n')), [content.title, contextPage, user]);
+
+  const handleCopySupportDetails = async () => {
+    try {
+      await navigator.clipboard.writeText(supportDetails);
+      setSupportError('');
+      setSupportNotice('Support details copied. Paste them into Messages or send them to the administrator.');
+      window.setTimeout(() => setSupportNotice(''), 2600);
+    } catch {
+      setSupportNotice('');
+      setSupportError('Clipboard access is unavailable in this browser. Copy the details manually from the support card below.');
+    }
+  };
 
   return (
     <div className="page">
@@ -110,6 +186,62 @@ function InfoCenter({ page = 'privacy', onNavigate }) {
           <p>{content.intro}</p>
         </div>
       </div>
+
+      {page === 'support' ? (
+        <>
+          <StatusBanner tone="error" title="Support action unavailable" message={supportError} />
+          <StatusBanner tone="success" title="Support details ready" message={supportNotice} />
+
+          <div className="info-center-grid info-center-grid-support">
+            <section className="info-center-card info-center-card-emphasis">
+              <h3>Quick support packet</h3>
+              <div className="info-center-list">
+                <p>Use this packet when you report an issue to an administrator, teacher, or support operator.</p>
+              </div>
+              <div className="support-meta-grid">
+                <div className="support-meta-item">
+                  <span>Account</span>
+                  <strong>{user?.email || 'No email available'}</strong>
+                </div>
+                <div className="support-meta-item">
+                  <span>Role</span>
+                  <strong>{formatSupportRole(user)}</strong>
+                </div>
+                <div className="support-meta-item">
+                  <span>Last workspace</span>
+                  <strong>{contextPage || 'dashboard'}</strong>
+                </div>
+                <div className="support-meta-item">
+                  <span>Time</span>
+                  <strong>{formatSupportTimestamp()}</strong>
+                </div>
+              </div>
+              <pre className="support-copy-card">{supportDetails}</pre>
+              <div className="portal-actions info-center-actions">
+                <button type="button" className="btn-primary" onClick={handleCopySupportDetails}>
+                  Copy support details
+                </button>
+                <button type="button" className="btn-secondary" onClick={() => onNavigate?.('messages')}>
+                  Open Messages
+                </button>
+              </div>
+            </section>
+
+            <section className="info-center-card">
+              <h3>Common issue paths</h3>
+              <div className="support-track-list">
+                {SUPPORT_TRACKS.map((track) => (
+                  <article key={track.id} className="support-track-card">
+                    <strong>{track.title}</strong>
+                    <p>{track.description}</p>
+                    <span>{track.nextStep}</span>
+                  </article>
+                ))}
+              </div>
+            </section>
+          </div>
+        </>
+      ) : null}
 
       <div className="info-center-grid">
         {content.sections.map((section) => (

@@ -1114,6 +1114,10 @@ body {
   gap: 1rem;
 }
 
+.info-center-grid-support {
+  margin-bottom: 1rem;
+}
+
 .info-center-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1131,6 +1135,11 @@ body {
   font-size: 1.05rem;
 }
 
+.info-center-card-emphasis {
+  border-color: color-mix(in srgb, var(--border) 68%, var(--accent) 32%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--accent) 8%), var(--surface));
+}
+
 .info-center-list {
   display: flex;
   flex-direction: column;
@@ -1145,6 +1154,83 @@ body {
 
 .info-center-actions {
   margin-top: 1.25rem;
+}
+
+.support-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.8rem;
+}
+
+.support-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 50%, var(--surf2) 50%);
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent 18%);
+}
+
+.support-meta-item span {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.support-meta-item strong {
+  color: var(--text);
+  font-size: 0.96rem;
+  line-height: 1.45;
+}
+
+.support-copy-card {
+  margin: 0;
+  padding: 1rem 1.05rem;
+  border-radius: 18px;
+  border: 1px dashed color-mix(in srgb, var(--border) 76%, var(--accent) 24%);
+  background: color-mix(in srgb, var(--surface) 54%, var(--surf2) 46%);
+  color: var(--text-light);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.84rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.support-track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.support-track-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 84%, transparent 16%);
+  background: color-mix(in srgb, var(--surface) 52%, var(--surf2) 48%);
+}
+
+.support-track-card strong {
+  color: var(--text);
+  font-size: 0.98rem;
+}
+
+.support-track-card p,
+.support-track-card span {
+  margin: 0;
+  color: var(--text-light);
+  line-height: 1.55;
+}
+
+.support-track-card span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 /* App Body */
@@ -3893,6 +3979,10 @@ body {
     display: none;
   }
 
+  .schedule-mobile-tabs {
+    display: flex;
+  }
+
   .schedule-mobile-stack {
     display: block;
     margin: 12px 0 22px;
@@ -3984,6 +4074,50 @@ body {
 
 .schedule-mobile-stack {
   display: none;
+}
+
+.schedule-mobile-tabs {
+  display: none;
+  gap: 10px;
+  margin: 10px 0 12px;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  scrollbar-width: none;
+}
+
+.schedule-mobile-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.schedule-mobile-tab {
+  display: inline-grid;
+  justify-items: center;
+  gap: 0.18rem;
+  min-width: 72px;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.24));
+  border-radius: 16px;
+  background: var(--surface, #ffffff);
+  color: var(--muted-text, #64748b);
+  font: inherit;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.schedule-mobile-tab span {
+  color: var(--text-color, #0f172a);
+  font-size: 0.9rem;
+}
+
+.schedule-mobile-tab small {
+  color: var(--muted-text, #64748b);
+  font-size: 0.72rem;
+}
+
+.schedule-mobile-tab.active {
+  border-color: color-mix(in srgb, var(--accent-color, #2563eb) 44%, transparent);
+  background: color-mix(in srgb, var(--surface, #ffffff) 88%, var(--accent-color, #2563eb) 12%);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.16);
 }
 
 .schedule-mobile-day {
