@@ -70,6 +70,20 @@ const normalizeNotificationSource = (notification) => {
   return INBOX_META[sourceType] ? sourceType : 'system';
 };
 
+const buildFilterCountMap = (items, getKey, keys) => {
+  const initial = Object.fromEntries(keys.map((key) => [key, 0]));
+
+  items.forEach((item) => {
+    const key = getKey(item);
+    if (initial[key] !== undefined) {
+      initial[key] += 1;
+    }
+  });
+
+  initial.all = items.length;
+  return initial;
+};
+
 function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
   const [announcements, setAnnouncements] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -152,6 +166,25 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
     imports: notifications.filter((notification) => normalizeNotificationSource(notification) === 'import').length
   }), [notifications]);
 
+  const announcementTypeCounts = useMemo(() => (
+    buildFilterCountMap(
+      announcements,
+      (announcement) => (TYPE_META[announcement.type] ? announcement.type : 'general'),
+      Object.keys(TYPE_META)
+    )
+  ), [announcements]);
+
+  const inboxTypeCounts = useMemo(() => {
+    const counts = buildFilterCountMap(
+      notifications,
+      (notification) => normalizeNotificationSource(notification),
+      Object.keys(INBOX_META)
+    );
+
+    counts.unread = notifications.filter((notification) => !notification.is_read).length;
+    return counts;
+  }, [notifications]);
+
   const filteredAnnouncements = useMemo(() => (
     announcements
       .filter((announcement) => (
@@ -204,6 +237,24 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
       })
       .sort((left, right) => new Date(right.created_at) - new Date(left.created_at))
   ), [notifications, inboxFilter, searchTerm]);
+
+  const hasActiveAnnouncementFilters = searchTerm.trim() !== '' || typeFilter !== 'all';
+  const hasActiveInboxFilters = searchTerm.trim() !== '' || inboxFilter !== 'all';
+  const activeCount = activeView === 'announcements' ? filteredAnnouncements.length : filteredNotifications.length;
+  const activeTotal = activeView === 'announcements' ? announcements.length : notifications.length;
+  const activeFilterLabel = activeView === 'announcements'
+    ? TYPE_META[typeFilter]?.label || TYPE_META.all.label
+    : INBOX_META[inboxFilter]?.label || INBOX_META.all.label;
+  const selectedAudienceCourse = courses.find((course) => String(course.id) === String(formData.courseId));
+  const audiencePreview = formData.audienceScope === 'group'
+    ? (formData.audienceValue.trim() ? `This announcement will target: ${formData.audienceValue.trim()}` : 'Add one or more groups or subgroups to target a specific cohort.')
+    : formData.audienceScope === 'course'
+      ? (selectedAudienceCourse?.name
+        ? `This announcement will target the course: ${selectedAudienceCourse.name}`
+        : 'Select a course to route this announcement to enrolled students and linked staff.')
+      : AUDIENCE_OPTIONS.find((option) => option.value === formData.audienceScope)?.label
+        ? `Audience: ${AUDIENCE_OPTIONS.find((option) => option.value === formData.audienceScope)?.label}`
+        : 'Choose who should receive this announcement.';
 
   const resetComposer = () => {
     setFormData(EMPTY_FORM);
@@ -366,6 +417,7 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
                   onClick={() => setTypeFilter(typeKey)}
                 >
                   {meta.label}
+                  <span className="management-filter-chip-count">{announcementTypeCounts[typeKey] || 0}</span>
                 </button>
               ))
             : Object.entries(INBOX_META).map(([filterKey, meta]) => (
@@ -376,8 +428,31 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
                   onClick={() => setInboxFilter(filterKey)}
                 >
                   {meta.label}
+                  <span className="management-filter-chip-count">{inboxTypeCounts[filterKey] || 0}</span>
                 </button>
               ))}
+        </div>
+        <div className="messages-toolbar-footer">
+          <span className="messages-toolbar-note">
+            {activeView === 'announcements' ? 'Announcements' : 'Inbox'}: {activeCount} of {activeTotal} visible
+            {' '}| Filter: {activeFilterLabel}
+          </span>
+          {(activeView === 'announcements' ? hasActiveAnnouncementFilters : hasActiveInboxFilters) && (
+            <button
+              type="button"
+              className="btn-secondary messages-inline-action"
+              onClick={() => {
+                setSearchTerm('');
+                if (activeView === 'announcements') {
+                  setTypeFilter('all');
+                } else {
+                  setInboxFilter('all');
+                }
+              }}
+            >
+              Clear filters
+            </button>
+          )}
         </div>
       </div>
 
@@ -456,6 +531,7 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
                 </select>
               </label>
             )}
+            <div className="message-audience-preview">{audiencePreview}</div>
             <label className="exam-form-field exam-form-field-wide">
               <span className="exam-form-label">Content</span>
               <textarea

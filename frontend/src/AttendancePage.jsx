@@ -102,6 +102,18 @@ const formatDate = (value) => {
 
 const formatPercentage = (value) => `${Math.round(Number(value) || 0)}%`;
 
+const buildStudentSearchText = (student) => (
+  [
+    student?.name,
+    student?.student_id,
+    student?.group_name,
+    student?.subgroup_name
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+);
+
 const buildDraftSummary = (students, draftStatuses) => {
   const summary = { ...EMPTY_SUMMARY, total: students.length };
 
@@ -433,6 +445,8 @@ function TeacherAttendance({ user }) {
   const [rosterFilter, setRosterFilter] = useState(initialPreferences.rosterFilter);
   const [layoutMode, setLayoutMode] = useState(initialPreferences.layoutMode);
   const [bulkStatus, setBulkStatus] = useState('present');
+  const [quickQuery, setQuickQuery] = useState('');
+  const [quickStudentId, setQuickStudentId] = useState('');
 
   useEffect(() => {
     writeAttendancePreferences({ compactMode });
@@ -530,17 +544,7 @@ function TeacherAttendance({ user }) {
   }, [selectedDate, selectedSessionId]);
 
   const filteredStudents = students.filter((student) => {
-    const haystack = [
-      student.name,
-      student.student_id,
-      student.group_name,
-      student.subgroup_name
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
-
-    const matchesSearch = haystack.includes(search.trim().toLowerCase());
+    const matchesSearch = buildStudentSearchText(student).includes(search.trim().toLowerCase());
     const currentStatus = draftStatuses[student.student_id] || 'unmarked';
     const matchesFilter = rosterFilter === 'all' || currentStatus === rosterFilter;
 
@@ -551,6 +555,13 @@ function TeacherAttendance({ user }) {
   const isAdmin = hasAdminAccess(user);
   const hasRosterFilters = rosterFilter !== 'all' || search.trim() !== '';
   const visibleCount = filteredStudents.length;
+  const quickMatches = quickQuery.trim()
+    ? students.filter((student) => buildStudentSearchText(student).includes(quickQuery.trim().toLowerCase())).slice(0, 6)
+    : [];
+  const activeQuickStudent = quickMatches.find((student) => String(student.student_id) === String(quickStudentId))
+    || quickMatches[0]
+    || null;
+  const activeQuickDraft = activeQuickStudent ? (draftStatuses[activeQuickStudent.student_id] || '') : '';
   const handleAnalyticsRangeChange = (field, value) => {
     setAnalyticsRange((current) => {
       if (!value) {
@@ -589,6 +600,18 @@ function TeacherAttendance({ user }) {
     setDraftStatuses(
       Object.fromEntries(students.map((student) => [student.student_id, student.status || '']))
     );
+  };
+
+  const handleQuickMark = (status) => {
+    if (!activeQuickStudent) {
+      return;
+    }
+
+    setStudentDraftStatus(activeQuickStudent.student_id, status);
+    setError('');
+    setNotice(`${activeQuickStudent.name} marked as ${STATUS_LABELS[status]}.`);
+    setQuickQuery('');
+    setQuickStudentId('');
   };
 
   const handleSave = async () => {
@@ -757,6 +780,95 @@ function TeacherAttendance({ user }) {
               </div>
 
               <AttendanceSummary summary={draftSummary} />
+
+              <section className="att-quick-mark">
+                <div className="att-quick-mark-head">
+                  <div>
+                    <h4>Quick check-in</h4>
+                    <p>Enter a student ID or name, then mark attendance without scrolling through the full roster.</p>
+                  </div>
+                  <span>{selectedSession?.group_name || 'Current class'}</span>
+                </div>
+
+                <label className="att-search att-quick-mark-search">
+                  <span>Lookup student</span>
+                  <input
+                    type="search"
+                    value={quickQuery}
+                    onChange={(event) => {
+                      setQuickQuery(event.target.value);
+                      setQuickStudentId('');
+                    }}
+                    placeholder="Student ID, name, or subgroup"
+                    aria-label="Quick attendance lookup"
+                  />
+                </label>
+
+                {quickQuery.trim() ? (
+                  <>
+                    <div className="att-quick-mark-list">
+                      {quickMatches.length > 0 ? (
+                        quickMatches.map((student) => {
+                          const isActive = activeQuickStudent && String(activeQuickStudent.student_id) === String(student.student_id);
+                          return (
+                            <button
+                              key={student.student_id}
+                              type="button"
+                              className={`att-quick-match ${isActive ? 'active' : ''}`}
+                              onClick={() => setQuickStudentId(student.student_id)}
+                            >
+                              <strong>{student.name}</strong>
+                              <span>
+                                {student.student_id}
+                                {student.subgroup_name ? ` | ${student.subgroup_name}` : ''}
+                              </span>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="att-quick-empty">
+                          No students matched this lookup. Try another ID, surname, or subgroup.
+                        </div>
+                      )}
+                    </div>
+
+                    {activeQuickStudent ? (
+                      <div className="att-quick-mark-current">
+                        <div>
+                          <strong>{activeQuickStudent.name}</strong>
+                          <span>
+                            {activeQuickStudent.student_id}
+                            {activeQuickStudent.group_name ? ` | ${activeQuickStudent.group_name}` : ''}
+                            {activeQuickStudent.subgroup_name ? ` | ${activeQuickStudent.subgroup_name}` : ''}
+                          </span>
+                        </div>
+                        <div className="att-quick-mark-statuses">
+                          <span>Saved: <StatusBadge status={activeQuickStudent.status} /></span>
+                          <span>Draft: <StatusBadge status={activeQuickDraft || 'unmarked'} /></span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="att-quick-empty">
+                    Start typing to find a student in the selected class.
+                  </div>
+                )}
+
+                <div className="att-quick-mark-actions">
+                  {STATUS_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`att-quick-mark-btn ${option.value}`}
+                      onClick={() => handleQuickMark(option.value)}
+                      disabled={!activeQuickStudent}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
 
               <div className="att-toolbar">
                 <div className="att-toolbar-main">
