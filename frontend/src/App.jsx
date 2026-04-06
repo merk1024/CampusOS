@@ -17,6 +17,7 @@ import Exams from './components/Exams';
 import Footer from './components/Footer';
 import Grades from './components/Grades';
 import Header from './components/Header';
+import InfoCenter from './components/InfoCenter';
 import IntegrationCenter from './components/IntegrationCenter';
 import LoginPage from './components/LoginPage';
 import Messages from './components/Messages';
@@ -382,6 +383,12 @@ export default function App() {
             mobileInstall={mobileInstall}
           />
         );
+      case 'privacy':
+        return <InfoCenter page="privacy" onNavigate={handleNavigate} />;
+      case 'terms':
+        return <InfoCenter page="terms" onNavigate={handleNavigate} />;
+      case 'support':
+        return <InfoCenter page="support" onNavigate={handleNavigate} />;
       case 'userManagement':
         return <UserManagement user={user} />;
       case 'integrations':
@@ -429,7 +436,7 @@ export default function App() {
         />
         <main id="main-content" className="main-content" tabIndex="-1">{renderPage()}</main>
       </div>
-      <Footer theme={theme} language={appSettings.language} />
+      <Footer theme={theme} language={appSettings.language} onNavigate={handleNavigate} />
     </div>
   );
 }

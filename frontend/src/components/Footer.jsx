@@ -5,7 +5,7 @@ import campusosMobileLight from '../assets/campusos-mobile-light.svg';
 import { getShellCopy } from '../appPreferences';
 import useMediaQuery from '../hooks/useMediaQuery';
 
-function Footer({ theme = 'light', language = 'English' }) {
+function Footer({ theme = 'light', language = 'English', onNavigate }) {
   const year = new Date().getFullYear();
   const copy = getShellCopy(language).footer;
   const isCompactBrand = useMediaQuery('(max-width: 768px)');
@@ -26,9 +26,9 @@ function Footer({ theme = 'light', language = 'English' }) {
         </div>
         <div className="footer-right">
           <div className="footer-links">
-            <a href="#" className="footer-link">{copy.privacy}</a>
-            <a href="#" className="footer-link">{copy.terms}</a>
-            <a href="#" className="footer-link">{copy.support}</a>
+            <button type="button" className="footer-link" onClick={() => onNavigate?.('privacy')}>{copy.privacy}</button>
+            <button type="button" className="footer-link" onClick={() => onNavigate?.('terms')}>{copy.terms}</button>
+            <button type="button" className="footer-link" onClick={() => onNavigate?.('support')}>{copy.support}</button>
           </div>
         </div>
       </div>

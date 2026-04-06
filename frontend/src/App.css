@@ -1076,14 +1076,75 @@ body {
 }
 
 .footer-link {
+  appearance: none;
+  background: transparent;
+  border: none;
   color: var(--text-muted);
   text-decoration: none;
   font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
   transition: color 0.2s;
 }
 
 .footer-link:hover {
   color: var(--accent);
+}
+
+.footer-link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent 55%);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.page-kicker {
+  display: inline-flex;
+  margin-bottom: 0.45rem;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.info-center-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.info-center-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1.2rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.info-center-card h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.info-center-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.info-center-list p {
+  margin: 0;
+  color: var(--text-light);
+  line-height: 1.65;
+}
+
+.info-center-actions {
+  margin-top: 1.25rem;
 }
 
 /* App Body */

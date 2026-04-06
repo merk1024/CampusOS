@@ -10,7 +10,10 @@ const SHARED_PAGES = new Set([
   'attendance',
   'messages',
   'profile',
-  'settings'
+  'settings',
+  'privacy',
+  'terms',
+  'support'
 ]);
 
 const ADMIN_ONLY_PAGES = new Set([
