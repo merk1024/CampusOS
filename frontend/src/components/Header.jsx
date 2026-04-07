@@ -7,6 +7,7 @@ import campusosMobileLight from '../assets/campusos-mobile-light.svg';
 import { getShellCopy } from '../appPreferences';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { getRoleLabel } from '../roles';
+import AvatarBadge from './AvatarBadge';
 
 function MenuIcon() {
   return (
@@ -123,14 +124,6 @@ function Header({
   const activeBrandLogo = isCompactBrand ? mobileBrandLogo : brandLogo;
   const displayName = user?.name?.trim() || user?.email || 'User';
   const firstName = displayName.split(/\s+/)[0] || 'User';
-  const avatarLabel = user?.avatar?.trim()
-    || displayName
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((part) => part[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase();
 
   useEffect(() => {
     if (!showUserMenu) {
@@ -232,7 +225,7 @@ function Header({
 
         <div className="user-menu-wrapper" ref={userMenuRef}>
           <button type="button" className="user-btn" onClick={() => setShowUserMenu((value) => !value)} aria-expanded={showUserMenu} aria-haspopup="menu" aria-label={copy.openUserMenu}>
-            <div className="user-avatar">{avatarLabel}</div>
+            <AvatarBadge user={user} className="user-avatar" title={displayName} />
             <div className="user-details">
               <div className="user-name">{firstName}</div>
               <div className="user-role">{getRoleLabel(user)}</div>

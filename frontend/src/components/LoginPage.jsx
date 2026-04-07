@@ -30,7 +30,7 @@ function LoginPage({ onLogin, notice = '', language = 'English' }) {
         subgroup: response.user.subgroup_name ?? response.user.subgroupName,
         lastLoginAt: response.user.last_login_at ?? response.user.lastLoginAt,
         lastLoginIp: response.user.last_login_ip ?? response.user.lastLoginIp,
-        avatar: response.user.avatar || response.user.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
+        avatar: response.user.avatar || ''
       };
 
       onLogin(userData);

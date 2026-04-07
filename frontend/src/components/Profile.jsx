@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import EmptyState from './EmptyState';
 import StatusBanner from './StatusBanner';
+import AvatarBadge from './AvatarBadge';
 import { getRoleLabel } from '../roles';
 
 function formatDate(value) {
@@ -214,9 +215,7 @@ function Profile() {
 
       <div className="portal-profile">
         <div className="portal-summary-card">
-          <div className="profile-avatar-large">
-            {profile.avatar || profile.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}
-          </div>
+          <AvatarBadge user={profile} className="profile-avatar-large" title={profile.name} />
           <div className="portal-summary-copy">
             <span className="portal-kicker">CampusOS account</span>
             <h2>{profile.name}</h2>
