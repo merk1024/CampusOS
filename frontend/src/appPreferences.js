@@ -8,6 +8,8 @@ export const DEFAULT_APP_SETTINGS = {
   theme: null
 };
 
+const SUPPORTED_LANGUAGES = ['English', 'Kyrgyz'];
+
 const LANGUAGE_TO_LOCALE = {
   English: 'en-GB',
   Russian: 'ru-RU',
@@ -18,6 +20,25 @@ const LANGUAGE_TO_HTML_LANG = {
   English: 'en',
   Russian: 'ru',
   Kyrgyz: 'ky'
+};
+
+const LANGUAGE_LABELS = {
+  English: {
+    English: 'English',
+    Kyrgyz: 'Англисче'
+  },
+  Kyrgyz: {
+    English: 'Kyrgyz',
+    Kyrgyz: 'Кыргызча'
+  }
+};
+
+const normalizeLanguage = (language) => {
+  if (language === 'Russian') {
+    return 'Kyrgyz';
+  }
+
+  return SUPPORTED_LANGUAGES.includes(language) ? language : 'English';
 };
 
 const PAGE_LABELS = {
@@ -425,7 +446,11 @@ const SHELL_COPY = {
 
 export const readAppSettings = () => {
   try {
-    return { ...DEFAULT_APP_SETTINGS, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}) };
+    const stored = { ...DEFAULT_APP_SETTINGS, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}) };
+    return {
+      ...stored,
+      language: normalizeLanguage(stored.language)
+    };
   } catch {
     return { ...DEFAULT_APP_SETTINGS };
   }
@@ -452,13 +477,19 @@ export const resolveStoredTheme = (storedTheme) => {
 export const resolveAppSettings = (settings = DEFAULT_APP_SETTINGS) => ({
   ...DEFAULT_APP_SETTINGS,
   ...settings,
+  language: normalizeLanguage(settings.language),
   theme: resolveStoredTheme(settings.theme)
 });
 
-export const getLocaleCode = (language) => LANGUAGE_TO_LOCALE[language] || LANGUAGE_TO_LOCALE.English;
-export const getHtmlLangCode = (language) => LANGUAGE_TO_HTML_LANG[language] || LANGUAGE_TO_HTML_LANG.English;
-export const getShellCopy = (language) => SHELL_COPY[language] || SHELL_COPY.English;
-export const getDefaultPageLabel = (pageId, language) => PAGE_LABELS[pageId]?.[language] || PAGE_LABELS[pageId]?.English || pageId;
+export const getLocaleCode = (language) => LANGUAGE_TO_LOCALE[normalizeLanguage(language)] || LANGUAGE_TO_LOCALE.English;
+export const getHtmlLangCode = (language) => LANGUAGE_TO_HTML_LANG[normalizeLanguage(language)] || LANGUAGE_TO_HTML_LANG.English;
+export const getShellCopy = (language) => SHELL_COPY[normalizeLanguage(language)] || SHELL_COPY.English;
+export const getDefaultPageLabel = (pageId, language) => PAGE_LABELS[pageId]?.[normalizeLanguage(language)] || PAGE_LABELS[pageId]?.English || pageId;
+export const getLanguageLabel = (language, uiLanguage = 'English') => (
+  LANGUAGE_LABELS[normalizeLanguage(language)]?.[normalizeLanguage(uiLanguage)]
+  || LANGUAGE_LABELS[normalizeLanguage(language)]?.English
+  || normalizeLanguage(language)
+);
 
 export const getReminderUnreadCount = (notifications = [], reminderMode = DEFAULT_APP_SETTINGS.reminderMode) => {
   const unreadNotifications = notifications.filter((notification) => !notification.is_read);

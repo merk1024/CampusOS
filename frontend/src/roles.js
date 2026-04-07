@@ -29,13 +29,33 @@ export const getRoleKey = (user) => (
     : (user?.role || 'user')
 );
 
-export const getRoleLabel = (user) => {
-  if (isSuperadmin(user)) {
-    return 'Super Admin';
+const ROLE_LABELS = {
+  English: {
+    superadmin: 'Super Admin',
+    admin: 'Admin',
+    teacher: 'Teacher',
+    student: 'Student',
+    user: 'User'
+  },
+  Kyrgyz: {
+    superadmin: 'Башкы админ',
+    admin: 'Админ',
+    teacher: 'Окутуучу',
+    student: 'Студент',
+    user: 'Колдонуучу'
+  }
+};
+
+export const getRoleLabel = (user, language = 'English') => {
+  const labels = ROLE_LABELS[language] || ROLE_LABELS.English;
+  const roleKey = getRoleKey(user);
+
+  if (labels[roleKey]) {
+    return labels[roleKey];
   }
 
   if (!user?.role) {
-    return 'User';
+    return labels.user;
   }
 
   return user.role[0].toUpperCase() + user.role.slice(1);

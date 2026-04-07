@@ -228,7 +228,7 @@ function Header({
             <AvatarBadge user={user} className="user-avatar" title={displayName} />
             <div className="user-details">
               <div className="user-name">{firstName}</div>
-              <div className="user-role">{getRoleLabel(user)}</div>
+              <div className="user-role">{getRoleLabel(user, language)}</div>
             </div>
           </button>
 

@@ -5,9 +5,251 @@ import EmptyState from './EmptyState';
 import StatusBanner from './StatusBanner';
 import { canManageAcademicRecords, getRoleLabel, hasAdminAccess, isStudentAccount } from '../roles';
 
-function formatLastSeen(value, locale = 'en-GB') {
+function getDashboardCopy(language = 'English') {
+  if (language === 'Kyrgyz') {
+    return {
+      firstNameFallback: 'досум',
+      displayNameFallback: 'Профиль толтурулган эмес',
+      greeting: (name) => `Кош келиңиз, ${name}!`,
+      intro: 'Аккаунтуңуз даяр. Тирүү маалыматтар система жаңырган сайын ушул жерде көрүнөт.',
+      accountMetaStudent: (studentId) => `Студент ID: ${studentId}`,
+      accountMetaLogin: (email) => `Кирүү: ${email}`,
+      accountMetaMissing: 'Кирүү маалыматы азырынча жеткиликтүү эмес',
+      groupNotSet: 'Коюлган эмес',
+      heroKicker: 'CampusOS иш мейкиндиги',
+      identityLinked: 'Студенттик профиль туташкан',
+      emailIdentity: 'Email аркылуу иденттүүлүк',
+      workspaceModes: {
+        admin: 'Администрация иш мейкиндиги',
+        manager: 'Академиялык операциялар мейкиндиги',
+        student: 'Студенттик иш мейкиндиги'
+      },
+      nextFocus: {
+        admin: 'Колдонуучулар тизмесин, интеграцияларды жана академиялык операцияларды текшериңиз.',
+        manager: 'Бүгүнкү окутуу агымын улантуу үчүн катышуу же экзамендерди ачыңыз.',
+        student: 'Окуу агымын улантуу үчүн жадылыңызды, билдирүүлөрдү же бааларды ачыңыз.'
+      },
+      status: {
+        authTitle: 'Ийгиликтүү авторизацияланды',
+        authSubtitle: 'Сеансыңыз активдүү жана портал колдонууга даяр.',
+        accountTitle: 'Аккаунт профили'
+      },
+      stats: {
+        currentRole: 'Учурдагы роль',
+        accountOwner: 'Аккаунт ээси',
+        group: 'Топ'
+      },
+      sections: {
+        portalStatus: 'Портал абалы',
+        quickActions: 'Тез аракеттер',
+        sessionSnapshot: 'Сеанс көрүнүшү',
+        workspaceNotes: 'Иш мейкиндигинин жазуулары',
+        reports: 'Факультет жана деканат отчеттору',
+        studentPerformance: 'Жеке көрсөткүчтөр',
+        teamPerformance: 'Топтук көрсөткүчтөр',
+        studentRisk: 'Академиялык абал',
+        teamRisk: 'Академиялык тобокелдиктер'
+      },
+      context: {
+        displayName: 'Көрсөтүлүүчү ат',
+        role: 'Роль',
+        lastSeen: 'Акыркы көрүнүш',
+        nextStep: 'Кийинки кадам',
+        studentNext: 'Бааларды жана жадыбалды текшериңиз',
+        managerNext: 'Операциялык иш мейкиндигин караңыз'
+      },
+      reports: {
+        unavailableTitle: 'Отчет экспорттоо жеткиликсиз',
+        readyTitle: 'Отчет даяр',
+        from: 'Башталышы',
+        to: 'Аягы',
+        facultyTitle: 'Факультет боюнча CSV',
+        facultyDescription: 'Катышуу, баа абалы, белгиленген студенттер жана support queue факультет боюнча.',
+        deanTitle: 'Деканат кийлигишүү CSV',
+        deanDescription: 'Тобокелдик деңгээли, себептери, куратору жана кийинки аракети бар студенттер.',
+        preparing: 'Даярдалууда...',
+        exportFaculty: 'Факультет экспорттоо',
+        exportDean: 'Деканат экспорттоо',
+        facultyExported: 'Факультет отчету экспорттолду.',
+        facultyExportFailed: 'Факультет отчетун экспорттоо ишке ашкан жок.',
+        deanExported: 'Деканат отчету экспорттолду.',
+        deanExportFailed: 'Деканат отчетун экспорттоо ишке ашкан жок.'
+      },
+      performance: {
+        unavailableTitle: 'Көрсөткүч панели жеткиликсиз',
+        eyebrow: 'Көрсөткүчтөр',
+        loadingTitle: 'Көрсөткүч панели даярдалып жатат',
+        loadingDescription: 'CampusOS баалар менен катышууну рольго жараша бириктирип жатат.',
+        noDataTitle: 'Азырынча көрсөткүч маалымат жок',
+        noDataDescription: 'Академиялык жазуулар түшө баштаганда бул панель пайда болот.',
+        averageGrade: 'Орточо баа',
+        attendanceRate: 'Катышуу пайызы',
+        gradedAssessments: 'Бааланган иштер',
+        attendanceRecords: 'Катышуу жазуулары',
+        strongestSubject: 'Эң күчтүү сабак',
+        strongestFallback: 'Азырынча маалымат жетишсиз',
+        strongestEmpty: 'Кошумча баалар жарыялангандан кийин бул жерде көрүнөт.',
+        supportSubject: 'Көңүл буруу керек',
+        supportFallback: 'Азырынча көйгөй жок',
+        supportEmpty: 'CampusOS бул аралыкта алсыз сабакты байкаган жок.',
+        averageAttendance: 'Орточо катышуу',
+        groupsTracked: 'Көзөмөлдөгү топтор',
+        supportQueue: 'Колдоо кезеги',
+        groupPerformance: 'Топ көрсөткүчү',
+        studentHighlights: 'Студенттик басымдар',
+        noGroupsTitle: 'Топтук жыйынтык азырынча жок',
+        noGroupsDescription: 'Катышуу жана баалар пайда болгондо топтук көрсөткүчтөр көрүнөт.',
+        needsSupport: 'Колдоо керек',
+        studentsUnit: 'студент'
+      },
+      risk: {
+        unavailableTitle: 'Тобокелдик сигналдары жеткиликсиз',
+        eyebrow: 'Академиялык сигналдар',
+        loadingTitle: 'Тобокелдик сигналдары даярдалууда',
+        loadingDescription: 'CampusOS катышуу жана баа моделдерин текшерип, мүмкүн болгон академиялык көйгөйлөрдү издеп жатат.',
+        noRecordsTitle: 'Азырынча академиялык жазуу жок',
+        noRecordsDescription: 'Катышуу жана баалар профилиңизге түшө баштаганда сигналдар көрүнөт.',
+        attendance: 'Катышуу',
+        averageGrade: 'Орточо баа',
+        activeTitle: 'Активдүү академиялык тобокелдик жок',
+        activeDescription: 'Акыркы катышуу жана баа көрсөткүчтөрү туруктуу көрүнөт.',
+        reviewPrompt: 'Акыркы жазууларды текшерүү үчүн катышуу жана баалар бөлүмүн ачыңыз, керек болсо окутуучу менен сүйлөшүңүз.',
+        flaggedStudents: 'Белгиленген студенттер',
+        critical: 'Оор',
+        watch: 'Көзөмөл',
+        stable: 'Туруктуу',
+        studentsEvaluated: 'Бааланган студенттер',
+        noFlaggedTitle: 'Учурда белгиленген студенттер жок',
+        noFlaggedDescription: 'Текшерилген топ боюнча катышуу жана баа сигналдары туруктуу көрүнөт.'
+      },
+      noGrades: 'Баалар жок',
+      lastSeenFallback: 'Кийинки ийгиликтүү жаңылануудан кийин сеанс маалыматы көрүнөт.'
+    };
+  }
+
+  return {
+    firstNameFallback: 'there',
+    displayNameFallback: 'Profile not set',
+    greeting: (name) => `Welcome back, ${name}!`,
+    intro: 'Your account is ready. Live data will appear here as it is added to the system.',
+    accountMetaStudent: (studentId) => `Student ID: ${studentId}`,
+    accountMetaLogin: (email) => `Login: ${email}`,
+    accountMetaMissing: 'Login details are not available yet',
+    groupNotSet: 'Not set',
+    heroKicker: 'CampusOS workspace',
+    identityLinked: 'Student identity linked',
+    emailIdentity: 'Email-based identity',
+    workspaceModes: {
+      admin: 'Administration workspace',
+      manager: 'Academic operations workspace',
+      student: 'Student workspace'
+    },
+    nextFocus: {
+      admin: 'Check user directory, integrations, and academic operations.',
+      manager: "Open attendance or exams to continue today's teaching workflow.",
+      student: 'Open your schedule, messages, or grades to continue your study flow.'
+    },
+    status: {
+      authTitle: 'Authenticated successfully',
+      authSubtitle: 'Your session is active and the portal is ready to use.',
+      accountTitle: 'Account profile'
+    },
+    stats: {
+      currentRole: 'Current role',
+      accountOwner: 'Account owner',
+      group: 'Group'
+    },
+    sections: {
+      portalStatus: 'Portal Status',
+      quickActions: 'Quick Actions',
+      sessionSnapshot: 'Session Snapshot',
+      workspaceNotes: 'Workspace Notes',
+      reports: 'Faculty & Dean Reports',
+      studentPerformance: 'Performance Snapshot',
+      teamPerformance: 'Performance Overview',
+      studentRisk: 'Academic Health',
+      teamRisk: 'Academic Risk Flags'
+    },
+    context: {
+      displayName: 'Display name',
+      role: 'Role',
+      lastSeen: 'Last seen',
+      nextStep: 'Profile next step',
+      studentNext: 'Check grades and schedule',
+      managerNext: 'Review operational workspace'
+    },
+    reports: {
+      unavailableTitle: 'Report export unavailable',
+      readyTitle: 'Report export ready',
+      from: 'From',
+      to: 'To',
+      facultyTitle: 'Faculty overview CSV',
+      facultyDescription: 'Attendance, grade health, flagged students, and support queue by faculty.',
+      deanTitle: 'Dean office intervention CSV',
+      deanDescription: 'Flagged students with severity, reasons, advisor, and follow-up focus.',
+      preparing: 'Preparing...',
+      exportFaculty: 'Export faculty',
+      exportDean: 'Export dean office',
+      facultyExported: 'Faculty overview exported.',
+      facultyExportFailed: 'Faculty overview export failed.',
+      deanExported: 'Dean office report exported.',
+      deanExportFailed: 'Dean office report export failed.'
+    },
+    performance: {
+      unavailableTitle: 'Performance dashboard unavailable',
+      eyebrow: 'Performance',
+      loadingTitle: 'Building performance overview',
+      loadingDescription: 'CampusOS is aggregating grades and attendance into a role-specific performance dashboard.',
+      noDataTitle: 'No performance data yet',
+      noDataDescription: 'Your grade and attendance dashboard will appear once academic records start coming in.',
+      averageGrade: 'Average grade',
+      attendanceRate: 'Attendance rate',
+      gradedAssessments: 'Graded assessments',
+      attendanceRecords: 'Attendance records',
+      strongestSubject: 'Strongest subject',
+      strongestFallback: 'Not enough data yet',
+      strongestEmpty: 'Grades will appear here after more assessments are published.',
+      supportSubject: 'Needs attention',
+      supportFallback: 'No current concern',
+      supportEmpty: 'CampusOS has not detected a weak subject area in the current window.',
+      averageAttendance: 'Average attendance',
+      groupsTracked: 'Groups tracked',
+      supportQueue: 'Support queue',
+      groupPerformance: 'Group performance',
+      studentHighlights: 'Student highlights',
+      noGroupsTitle: 'No group aggregates yet',
+      noGroupsDescription: 'Performance groups will appear once attendance and grades are available.',
+      needsSupport: 'Needs support',
+      studentsUnit: 'students'
+    },
+    risk: {
+      unavailableTitle: 'Risk flags unavailable',
+      eyebrow: 'Academic signals',
+      loadingTitle: 'Building risk signals',
+      loadingDescription: 'CampusOS is reviewing attendance and grade patterns to detect possible academic problems.',
+      noRecordsTitle: 'No academic records yet',
+      noRecordsDescription: 'Risk flags will appear once attendance and grades start coming into your profile.',
+      attendance: 'Attendance',
+      averageGrade: 'Average grade',
+      activeTitle: 'No active academic risk flags',
+      activeDescription: 'Your recent attendance and grade patterns look stable in CampusOS.',
+      reviewPrompt: 'Open attendance and grades to review the latest records and speak with your instructor if needed.',
+      flaggedStudents: 'Flagged students',
+      critical: 'Critical',
+      watch: 'Watch',
+      stable: 'Stable',
+      studentsEvaluated: 'Students evaluated',
+      noFlaggedTitle: 'No flagged students in the current review window',
+      noFlaggedDescription: 'Attendance and grade signals look stable for the currently evaluated population.'
+    },
+    noGrades: 'No grades',
+    lastSeenFallback: 'Session details will appear after the next authenticated refresh.'
+  };
+}
+
+function formatLastSeen(value, locale = 'en-GB', fallback = 'Session details will appear after the next authenticated refresh.') {
   if (!value) {
-    return 'Session details will appear after the next authenticated refresh.';
+    return fallback;
   }
 
   const parsed = new Date(value);
@@ -24,10 +266,10 @@ function formatLastSeen(value, locale = 'en-GB') {
   });
 }
 
-function getRiskSeverityLabel(severity) {
-  if (severity === 'critical') return 'Critical';
-  if (severity === 'watch') return 'Watch';
-  return 'Stable';
+function getRiskSeverityLabel(severity, riskCopy) {
+  if (severity === 'critical') return riskCopy.critical;
+  if (severity === 'watch') return riskCopy.watch;
+  return riskCopy.stable;
 }
 
 function formatMetricPercent(value) {
@@ -82,7 +324,8 @@ function downloadCsvFile(filename, headers, rows) {
   URL.revokeObjectURL(url);
 }
 
-function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
+function Dashboard({ user, onNavigate, locale = 'en-GB', language = 'English' }) {
+  const copy = getDashboardCopy(language);
   const [riskFlags, setRiskFlags] = useState(null);
   const [loadingRiskFlags, setLoadingRiskFlags] = useState(true);
   const [riskFlagsError, setRiskFlagsError] = useState('');
@@ -93,28 +336,28 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
   const [reportNotice, setReportNotice] = useState('');
   const [reportError, setReportError] = useState('');
   const [exportingReport, setExportingReport] = useState('');
-  const roleLabel = getRoleLabel(user);
-  const firstName = user?.name?.split(' ')?.[0] || 'there';
-  const displayName = user?.name?.trim() || 'Profile not set';
+  const roleLabel = getRoleLabel(user, language);
+  const firstName = user?.name?.split(' ')?.[0] || copy.firstNameFallback;
+  const displayName = user?.name?.trim() || copy.displayNameFallback;
   const isStudent = isStudentAccount(user);
   const canManage = canManageAcademicRecords(user);
   const isAdmin = hasAdminAccess(user);
   const accountMeta = user?.studentId
-    ? `Student ID: ${user.studentId}`
+    ? copy.accountMetaStudent(user.studentId)
     : user?.email
-      ? `Login: ${user.email}`
-      : 'Login details are not available yet';
-  const groupLabel = user?.group || 'Not set';
+      ? copy.accountMetaLogin(user.email)
+      : copy.accountMetaMissing;
+  const groupLabel = user?.group || copy.groupNotSet;
   const workspaceMode = isAdmin
-    ? 'Administration workspace'
+    ? copy.workspaceModes.admin
     : canManage
-      ? 'Academic operations workspace'
-      : 'Student workspace';
+      ? copy.workspaceModes.manager
+      : copy.workspaceModes.student;
   const nextFocus = isAdmin
-    ? 'Check user directory, integrations, and academic operations.'
+    ? copy.nextFocus.admin
     : canManage
       ? 'Open attendance or exams to continue today’s teaching workflow.'
-      : 'Open your schedule, messages, or grades to continue your study flow.';
+      : copy.nextFocus.student;
   const actionCards = isAdmin
     ? [
         { id: 'userManagement', label: 'Manage users', description: 'Create, disable, or restore accounts.', icon: 'USR' },
@@ -136,22 +379,40 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
           { id: 'messages', label: 'Messages', description: 'Read announcements, exam notices, and updates.', icon: 'MSG' }
         ];
   const quickNotes = isAdmin
-    ? [
-        'Use the operations hub in Courses for bulk teacher assignment and roster exports.',
-        'Integrations stay read-only unless you explicitly apply an override.',
-        'System audit and queue activity are available through the ops endpoints.'
-      ]
+    ? (language === 'Kyrgyz'
+        ? [
+            'Courses бөлүмүндөгү operations hub аркылуу массалык дайындап, roster экспорттой аласыз.',
+            'Интеграциялар override кол менен колдонулмайынча read-only бойдон калат.',
+            'Системалык audit жана queue активдүүлүгү ops endpoint аркылуу жеткиликтүү.'
+          ]
+        : [
+            'Use the operations hub in Courses for bulk teacher assignment and roster exports.',
+            'Integrations stay read-only unless you explicitly apply an override.',
+            'System audit and queue activity are available through the ops endpoints.'
+          ])
     : canManage
-      ? [
-          'Attendance table mode is optimized for fast roster marking.',
-          'Exam and assignment flows support duplication for repeated academic structures.',
-          'Messages can be published directly to the user inbox flow.'
-        ]
-      : [
-          'Course cards only appear after enrollment or linked academic assignment.',
-          'Grades and attendance update as teachers publish live records.',
-          'Profile settings help keep your academic identity up to date.'
-        ];
+      ? (language === 'Kyrgyz'
+          ? [
+              'Катышуу таблица режими roster белгилөөнү ылдамдатууга ылайыкташкан.',
+              'Экзамен жана тапшырма агымдары кайталанма структуралар үчүн duplication колдойт.',
+              'Билдирүүлөрдү түз эле колдонуучунун inbox агымына жарыялоого болот.'
+            ]
+          : [
+              'Attendance table mode is optimized for fast roster marking.',
+              'Exam and assignment flows support duplication for repeated academic structures.',
+              'Messages can be published directly to the user inbox flow.'
+            ])
+      : (language === 'Kyrgyz'
+          ? [
+              'Курс карталары катталгандан кийин же академиялык байланыш пайда болгондо гана көрүнөт.',
+              'Баалар жана катышуу окутуучулар жазууну жарыялаган сайын жаңыланат.',
+              'Профиль жөндөөлөрү академиялык маалыматты так кармоого жардам берет.'
+            ]
+          : [
+              'Course cards only appear after enrollment or linked academic assignment.',
+              'Grades and attendance update as teachers publish live records.',
+              'Profile settings help keep your academic identity up to date.'
+            ]);
   const displayNextFocus = sanitizeUiCopy(nextFocus);
   const displayActionCards = actionCards.map((item) => ({
     ...item,
@@ -161,8 +422,8 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
   const displayQuickNotes = quickNotes.map((item) => sanitizeUiCopy(item));
   const statusItems = [
     {
-      title: 'Authenticated successfully',
-      subtitle: 'Your session is active and the portal is ready to use.',
+      title: copy.status.authTitle,
+      subtitle: copy.status.authSubtitle,
       badge: 'LIVE'
     },
     {
@@ -171,7 +432,7 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
       badge: roleLabel
     },
     {
-      title: 'Account profile',
+      title: copy.status.accountTitle,
       subtitle: accountMeta,
       badge: groupLabel
     }
@@ -186,14 +447,14 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
         setRiskFlags(response);
       } catch (requestError) {
         setRiskFlags(null);
-        setRiskFlagsError(requestError.message || 'Failed to load academic risk flags.');
+        setRiskFlagsError(requestError.message || copy.risk.unavailableTitle);
       } finally {
         setLoadingRiskFlags(false);
       }
     };
 
     loadRiskFlags();
-  }, [isStudent, user?.id]);
+  }, [copy.risk.unavailableTitle, isStudent, user?.id]);
 
   useEffect(() => {
     const loadPerformanceDashboard = async () => {
@@ -204,14 +465,14 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
         setPerformanceDashboard(response);
       } catch (requestError) {
         setPerformanceDashboard(null);
-        setPerformanceDashboardError(requestError.message || 'Failed to load performance dashboard.');
+        setPerformanceDashboardError(requestError.message || copy.performance.unavailableTitle);
       } finally {
         setLoadingPerformanceDashboard(false);
       }
     };
 
     loadPerformanceDashboard();
-  }, [user?.id]);
+  }, [copy.performance.unavailableTitle, user?.id]);
 
   const studentRiskSnapshot = riskFlags?.snapshot || null;
   const hasStudentRisk = studentRiskSnapshot && studentRiskSnapshot.severity !== 'ok';
@@ -255,10 +516,10 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
         ],
         response?.rows || []
       );
-      setReportNotice('Faculty overview exported.');
+      setReportNotice(copy.reports.facultyExported);
       clearReportNoticeLater();
     } catch (requestError) {
-      setReportError(requestError.message || 'Faculty overview export failed.');
+      setReportError(requestError.message || copy.reports.facultyExportFailed);
     } finally {
       setExportingReport('');
     }
@@ -289,10 +550,10 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
         ],
         response?.rows || []
       );
-      setReportNotice('Dean office report exported.');
+      setReportNotice(copy.reports.deanExported);
       clearReportNoticeLater();
     } catch (requestError) {
-      setReportError(requestError.message || 'Dean office report export failed.');
+      setReportError(requestError.message || copy.reports.deanExportFailed);
     } finally {
       setExportingReport('');
     }
@@ -302,21 +563,21 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Welcome back, {firstName}!</h1>
-          <p>Your account is ready. Live data will appear here as it is added to the system.</p>
+          <h1>{copy.greeting(firstName)}</h1>
+          <p>{copy.intro}</p>
         </div>
       </div>
 
       <section className="dashboard-hero-card">
         <div className="dashboard-hero-copy">
-          <span className="dashboard-eyebrow">CampusOS workspace</span>
+          <span className="dashboard-eyebrow">{copy.heroKicker}</span>
           <h2>{workspaceMode}</h2>
           <p>{displayNextFocus}</p>
         </div>
         <div className="dashboard-pill-list" aria-label="Current account summary">
           <span className="dashboard-pill">{roleLabel}</span>
           <span className="dashboard-pill">{groupLabel}</span>
-          <span className="dashboard-pill">{user?.studentId ? 'Student identity linked' : 'Email-based identity'}</span>
+          <span className="dashboard-pill">{user?.studentId ? copy.identityLinked : copy.emailIdentity}</span>
         </div>
       </section>
 
@@ -325,7 +586,7 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
           <span className="stat-icon">R</span>
           <div className="stat-content">
             <div className="stat-value">{roleLabel}</div>
-            <div className="stat-label">Current role</div>
+            <div className="stat-label">{copy.stats.currentRole}</div>
           </div>
         </div>
 
@@ -333,7 +594,7 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
           <span className="stat-icon">@</span>
           <div className="stat-content">
             <div className="stat-value stat-value-name">{displayName}</div>
-            <div className="stat-label">Account owner</div>
+            <div className="stat-label">{copy.stats.accountOwner}</div>
             <div className="stat-meta">{accountMeta}</div>
           </div>
         </div>
@@ -341,8 +602,8 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
         <div className="stat-card" style={{ '--accent': '#3b82f6' }}>
           <span className="stat-icon">G</span>
           <div className="stat-content">
-            <div className="stat-value">{user.group || 'Not set'}</div>
-            <div className="stat-label">Group</div>
+            <div className="stat-value">{user.group || copy.groupNotSet}</div>
+            <div className="stat-label">{copy.stats.group}</div>
           </div>
         </div>
       </div>
@@ -350,7 +611,7 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
       <div className="dashboard-grid">
         <div className="dash-card">
           <div className="card-header">
-            <h3>Portal Status</h3>
+            <h3>{copy.sections.portalStatus}</h3>
           </div>
           <div className="activity-list">
             {statusItems.map((item) => (
@@ -367,7 +628,7 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
 
         <div className="dash-card">
           <div className="card-header">
-            <h3>Quick Actions</h3>
+            <h3>{copy.sections.quickActions}</h3>
           </div>
           <div className="dashboard-action-grid">
             {displayActionCards.map((action) => (
@@ -389,31 +650,31 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
 
         <div className="dash-card">
           <div className="card-header">
-            <h3>Session Snapshot</h3>
+            <h3>{copy.sections.sessionSnapshot}</h3>
           </div>
           <div className="dashboard-context-grid">
             <div className="dashboard-context-item">
-              <span className="dashboard-context-label">Display name</span>
+              <span className="dashboard-context-label">{copy.context.displayName}</span>
               <strong>{displayName}</strong>
             </div>
             <div className="dashboard-context-item">
-              <span className="dashboard-context-label">Role</span>
+              <span className="dashboard-context-label">{copy.context.role}</span>
               <strong>{roleLabel}</strong>
             </div>
             <div className="dashboard-context-item">
-              <span className="dashboard-context-label">Last seen</span>
-              <strong>{formatLastSeen(user?.last_login_at || user?.lastLoginAt, locale)}</strong>
+              <span className="dashboard-context-label">{copy.context.lastSeen}</span>
+              <strong>{formatLastSeen(user?.last_login_at || user?.lastLoginAt, locale, copy.lastSeenFallback)}</strong>
             </div>
             <div className="dashboard-context-item">
-              <span className="dashboard-context-label">Profile next step</span>
-              <strong>{isStudent ? 'Check grades and schedule' : 'Review operational workspace'}</strong>
+              <span className="dashboard-context-label">{copy.context.nextStep}</span>
+              <strong>{isStudent ? copy.context.studentNext : copy.context.managerNext}</strong>
             </div>
           </div>
         </div>
 
         <div className="dash-card">
           <div className="card-header">
-            <h3>Workspace Notes</h3>
+            <h3>{copy.sections.workspaceNotes}</h3>
           </div>
           <div className="deadline-list dashboard-note-list">
             {displayQuickNotes.map((item) => (
@@ -429,23 +690,23 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
         {isAdmin && (
           <div className="dash-card">
             <div className="card-header">
-              <h3>Faculty & Dean Reports</h3>
+              <h3>{copy.sections.reports}</h3>
             </div>
 
             <StatusBanner
               tone="error"
-              title="Report export unavailable"
+              title={copy.reports.unavailableTitle}
               message={reportError}
             />
             <StatusBanner
               tone="success"
-              title="Report export ready"
+              title={copy.reports.readyTitle}
               message={reportNotice}
             />
 
             <div className="dashboard-report-range">
               <label className="dashboard-report-field">
-                <span className="dashboard-context-label">From</span>
+                <span className="dashboard-context-label">{copy.reports.from}</span>
                 <input
                   type="date"
                   value={reportRange.from}
@@ -453,7 +714,7 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
                 />
               </label>
               <label className="dashboard-report-field">
-                <span className="dashboard-context-label">To</span>
+                <span className="dashboard-context-label">{copy.reports.to}</span>
                 <input
                   type="date"
                   value={reportRange.to}
@@ -465,8 +726,8 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
             <div className="dashboard-report-list">
               <div className="dashboard-report-item">
                 <div>
-                  <strong>Faculty overview CSV</strong>
-                  <span>Attendance, grade health, flagged students, and support queue by faculty.</span>
+                  <strong>{copy.reports.facultyTitle}</strong>
+                  <span>{copy.reports.facultyDescription}</span>
                 </div>
                 <button
                   type="button"
@@ -474,13 +735,13 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
                   onClick={handleExportFacultyReport}
                   disabled={exportingReport === 'faculty'}
                 >
-                  {exportingReport === 'faculty' ? 'Preparing...' : 'Export faculty'}
+                  {exportingReport === 'faculty' ? copy.reports.preparing : copy.reports.exportFaculty}
                 </button>
               </div>
               <div className="dashboard-report-item">
                 <div>
-                  <strong>Dean office intervention CSV</strong>
-                  <span>Flagged students with severity, reasons, advisor, and follow-up focus.</span>
+                  <strong>{copy.reports.deanTitle}</strong>
+                  <span>{copy.reports.deanDescription}</span>
                 </div>
                 <button
                   type="button"
@@ -488,7 +749,7 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
                   onClick={handleExportDeanOfficeReport}
                   disabled={exportingReport === 'dean'}
                 >
-                  {exportingReport === 'dean' ? 'Preparing...' : 'Export dean office'}
+                  {exportingReport === 'dean' ? copy.reports.preparing : copy.reports.exportDean}
                 </button>
               </div>
             </div>
@@ -497,20 +758,20 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
 
         <div className="dash-card">
           <div className="card-header">
-            <h3>{isStudent ? 'Performance Snapshot' : 'Performance Overview'}</h3>
+            <h3>{isStudent ? copy.sections.studentPerformance : copy.sections.teamPerformance}</h3>
           </div>
 
           <StatusBanner
             tone="error"
-            title="Performance dashboard unavailable"
+            title={copy.performance.unavailableTitle}
             message={performanceDashboardError}
           />
 
           {loadingPerformanceDashboard ? (
             <EmptyState
-              eyebrow="Performance"
-              title="Building performance overview"
-              description="CampusOS is aggregating grades and attendance into a role-specific performance dashboard."
+              eyebrow={copy.performance.eyebrow}
+              title={copy.performance.loadingTitle}
+              description={copy.performance.loadingDescription}
               compact
               className="dashboard-inline-empty"
             />
@@ -519,49 +780,49 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
               <div className="dashboard-risk-shell">
                 <div className="dashboard-risk-summary">
                   <div className="dashboard-risk-summary-card">
-                    <strong>{studentPerformance.averageGrade ?? 'No grades'}</strong>
-                    <span>Average grade</span>
+                    <strong>{studentPerformance.averageGrade ?? copy.noGrades}</strong>
+                    <span>{copy.performance.averageGrade}</span>
                   </div>
                   <div className="dashboard-risk-summary-card">
                     <strong>{formatMetricPercent(studentPerformance.attendanceRate)}</strong>
-                    <span>Attendance rate</span>
+                    <span>{copy.performance.attendanceRate}</span>
                   </div>
                   <div className="dashboard-risk-summary-card">
                     <strong>{studentPerformance.totalGrades}</strong>
-                    <span>Graded assessments</span>
+                    <span>{copy.performance.gradedAssessments}</span>
                   </div>
                   <div className="dashboard-risk-summary-card">
                     <strong>{studentPerformance.attendanceRecords}</strong>
-                    <span>Attendance records</span>
+                    <span>{copy.performance.attendanceRecords}</span>
                   </div>
                 </div>
 
                 <div className="dashboard-performance-list">
                   <div className="dashboard-performance-item">
-                    <span className="dashboard-context-label">Strongest subject</span>
-                    <strong>{studentPerformance.strongestSubject?.subject || 'Not enough data yet'}</strong>
+                    <span className="dashboard-context-label">{copy.performance.strongestSubject}</span>
+                    <strong>{studentPerformance.strongestSubject?.subject || copy.performance.strongestFallback}</strong>
                     <small>
                       {studentPerformance.strongestSubject
-                        ? `Average ${studentPerformance.strongestSubject.averageGrade}`
-                        : 'Grades will appear here after more assessments are published.'}
+                        ? `${copy.performance.averageGrade} ${studentPerformance.strongestSubject.averageGrade}`
+                        : copy.performance.strongestEmpty}
                     </small>
                   </div>
                   <div className="dashboard-performance-item">
-                    <span className="dashboard-context-label">Needs attention</span>
-                    <strong>{studentPerformance.supportSubject?.subject || 'No current concern'}</strong>
+                    <span className="dashboard-context-label">{copy.performance.supportSubject}</span>
+                    <strong>{studentPerformance.supportSubject?.subject || copy.performance.supportFallback}</strong>
                     <small>
                       {studentPerformance.supportSubject
-                        ? `Attendance ${formatMetricPercent(studentPerformance.supportSubject.attendanceRate)}`
-                        : 'CampusOS has not detected a weak subject area in the current window.'}
+                        ? `${copy.performance.attendanceRate} ${formatMetricPercent(studentPerformance.supportSubject.attendanceRate)}`
+                        : copy.performance.supportEmpty}
                     </small>
                   </div>
                 </div>
               </div>
             ) : (
               <EmptyState
-                eyebrow="Performance"
-                title="No performance data yet"
-                description="Your grade and attendance dashboard will appear once academic records start coming in."
+                eyebrow={copy.performance.eyebrow}
+                title={copy.performance.noDataTitle}
+                description={copy.performance.noDataDescription}
                 compact
                 className="dashboard-inline-empty"
               />
@@ -570,49 +831,49 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
             <div className="dashboard-risk-shell">
               <div className="dashboard-risk-summary">
                 <div className="dashboard-risk-summary-card">
-                  <strong>{performanceSummary.averageGrade ?? 'No grades'}</strong>
-                  <span>Average grade</span>
+                  <strong>{performanceSummary.averageGrade ?? copy.noGrades}</strong>
+                  <span>{copy.performance.averageGrade}</span>
                 </div>
                 <div className="dashboard-risk-summary-card">
                   <strong>{formatMetricPercent(performanceSummary.averageAttendanceRate)}</strong>
-                  <span>Average attendance</span>
+                  <span>{copy.performance.averageAttendance}</span>
                 </div>
                 <div className="dashboard-risk-summary-card">
                   <strong>{performanceSummary.groupsTracked}</strong>
-                  <span>Groups tracked</span>
+                  <span>{copy.performance.groupsTracked}</span>
                 </div>
                 <div className="dashboard-risk-summary-card">
                   <strong>{performanceSummary.supportQueueSize}</strong>
-                  <span>Support queue</span>
+                  <span>{copy.performance.supportQueue}</span>
                 </div>
               </div>
 
               <div className="dashboard-performance-columns">
                 <div className="dashboard-performance-list">
-                  <span className="dashboard-context-label">Group performance</span>
+                  <span className="dashboard-context-label">{copy.performance.groupPerformance}</span>
                   {(performanceDashboard?.groupPerformance || []).slice(0, 4).map((group) => (
                     <div key={group.groupName} className="dashboard-performance-item">
                       <strong>{group.groupName}</strong>
                       <small>
-                        {group.studentCount} students | Grade {group.averageGrade ?? 'No grades'} | Attendance {formatMetricPercent(group.attendanceRate)}
+                        {group.studentCount} {copy.performance.studentsUnit} | {copy.performance.averageGrade} {group.averageGrade ?? copy.noGrades} | {copy.performance.attendanceRate} {formatMetricPercent(group.attendanceRate)}
                       </small>
                     </div>
                   ))}
                   {!performanceDashboard?.groupPerformance?.length ? (
                     <div className="dashboard-risk-clear">
-                      <strong>No group aggregates yet</strong>
-                      <span>Performance groups will appear once attendance and grades are available.</span>
+                      <strong>{copy.performance.noGroupsTitle}</strong>
+                      <span>{copy.performance.noGroupsDescription}</span>
                     </div>
                   ) : null}
                 </div>
 
                 <div className="dashboard-performance-list">
-                  <span className="dashboard-context-label">Student highlights</span>
+                  <span className="dashboard-context-label">{copy.performance.studentHighlights}</span>
                   {(performanceDashboard?.topStudents || []).slice(0, 3).map((student) => (
                     <div key={student.studentId} className="dashboard-performance-item">
                       <strong>{student.studentName}</strong>
                       <small>
-                        {student.groupName} | Grade {student.averageGrade ?? 'No grades'} | Attendance {formatMetricPercent(student.attendanceRate)}
+                        {student.groupName} | {copy.performance.averageGrade} {student.averageGrade ?? copy.noGrades} | {copy.performance.attendanceRate} {formatMetricPercent(student.attendanceRate)}
                       </small>
                     </div>
                   ))}
@@ -620,7 +881,7 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
                     <div key={`${student.studentId}-support`} className="dashboard-performance-item attention">
                       <strong>{student.studentName}</strong>
                       <small>
-                        Needs support | Grade {student.averageGrade ?? 'No grades'} | Attendance {formatMetricPercent(student.attendanceRate)}
+                        {copy.performance.needsSupport} | {copy.performance.averageGrade} {student.averageGrade ?? copy.noGrades} | {copy.performance.attendanceRate} {formatMetricPercent(student.attendanceRate)}
                       </small>
                     </div>
                   ))}
@@ -632,20 +893,20 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
 
         <div className="dash-card">
           <div className="card-header">
-            <h3>{isStudent ? 'Academic Health' : 'Academic Risk Flags'}</h3>
+            <h3>{isStudent ? copy.sections.studentRisk : copy.sections.teamRisk}</h3>
           </div>
 
           <StatusBanner
             tone="error"
-            title="Risk flags unavailable"
+            title={copy.risk.unavailableTitle}
             message={riskFlagsError}
           />
 
           {loadingRiskFlags ? (
             <EmptyState
-              eyebrow="Academic signals"
-              title="Building risk signals"
-              description="CampusOS is reviewing attendance and grade patterns to detect possible academic problems."
+              eyebrow={copy.risk.eyebrow}
+              title={copy.risk.loadingTitle}
+              description={copy.risk.loadingDescription}
               compact
               className="dashboard-inline-empty"
             />
@@ -654,16 +915,16 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
               <div className="dashboard-risk-shell">
                 <div className={`dashboard-risk-banner ${studentRiskSnapshot.severity}`}>
                   <span className={`dashboard-risk-badge ${studentRiskSnapshot.severity}`}>
-                    {getRiskSeverityLabel(studentRiskSnapshot.severity)}
+                    {getRiskSeverityLabel(studentRiskSnapshot.severity, copy.risk)}
                   </span>
                   <div className="dashboard-risk-metrics">
                     <div className="dashboard-risk-metric">
-                      <span>Attendance</span>
+                      <span>{copy.risk.attendance}</span>
                       <strong>{studentRiskSnapshot.attendanceRate}%</strong>
                     </div>
                     <div className="dashboard-risk-metric">
-                      <span>Average grade</span>
-                      <strong>{studentRiskSnapshot.averageGrade ?? 'No grades'}</strong>
+                      <span>{copy.risk.averageGrade}</span>
+                      <strong>{studentRiskSnapshot.averageGrade ?? copy.noGrades}</strong>
                     </div>
                   </div>
                 </div>
@@ -673,26 +934,22 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
                     {studentRiskSnapshot.reasons.map((reason) => (
                       <div key={reason} className="dashboard-risk-item">
                         <strong>{reason}</strong>
-                        <span>
-                          Open attendance and grades to review the latest records and speak with your instructor if needed.
-                        </span>
+                        <span>{copy.risk.reviewPrompt}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="dashboard-risk-clear">
-                    <strong>No active academic risk flags</strong>
-                    <span>
-                      Your recent attendance and grade patterns look stable in CampusOS.
-                    </span>
+                    <strong>{copy.risk.activeTitle}</strong>
+                    <span>{copy.risk.activeDescription}</span>
                   </div>
                 )}
               </div>
             ) : (
               <EmptyState
-                eyebrow="Academic signals"
-                title="No academic records yet"
-                description="Risk flags will appear once attendance and grades start coming into your profile."
+                eyebrow={copy.risk.eyebrow}
+                title={copy.risk.noRecordsTitle}
+                description={copy.risk.noRecordsDescription}
                 compact
                 className="dashboard-inline-empty"
               />
@@ -702,19 +959,19 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
               <div className="dashboard-risk-summary">
                 <div className="dashboard-risk-summary-card">
                   <strong>{riskSummary.flaggedStudents}</strong>
-                  <span>Flagged students</span>
+                  <span>{copy.risk.flaggedStudents}</span>
                 </div>
                 <div className="dashboard-risk-summary-card">
                   <strong>{riskSummary.criticalFlags}</strong>
-                  <span>Critical</span>
+                  <span>{copy.risk.critical}</span>
                 </div>
                 <div className="dashboard-risk-summary-card">
                   <strong>{riskSummary.watchFlags}</strong>
-                  <span>Watch</span>
+                  <span>{copy.risk.watch}</span>
                 </div>
                 <div className="dashboard-risk-summary-card">
                   <strong>{riskSummary.studentsEvaluated}</strong>
-                  <span>Students evaluated</span>
+                  <span>{copy.risk.studentsEvaluated}</span>
                 </div>
               </div>
 
@@ -725,7 +982,7 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
                       <div className="dashboard-risk-item-head">
                         <strong>{flag.studentName}</strong>
                         <span className={`dashboard-risk-badge ${flag.severity}`}>
-                          {getRiskSeverityLabel(flag.severity)}
+                          {getRiskSeverityLabel(flag.severity, copy.risk)}
                         </span>
                       </div>
                       <span>
@@ -733,7 +990,7 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
                         {flag.groupName ? ` | ${flag.groupName}` : ''}
                       </span>
                       <small>
-                        Attendance {flag.attendanceRate}% | Average grade {flag.averageGrade ?? 'No grades'}
+                        {copy.risk.attendance} {flag.attendanceRate}% | {copy.risk.averageGrade} {flag.averageGrade ?? copy.noGrades}
                       </small>
                       <p>{flag.reasons.join(' | ')}</p>
                     </div>
@@ -741,10 +998,8 @@ function Dashboard({ user, onNavigate, locale = 'en-GB' }) {
                 </div>
               ) : (
                 <div className="dashboard-risk-clear">
-                  <strong>No flagged students in the current review window</strong>
-                  <span>
-                    Attendance and grade signals look stable for the currently evaluated population.
-                  </span>
+                  <strong>{copy.risk.noFlaggedTitle}</strong>
+                  <span>{copy.risk.noFlaggedDescription}</span>
                 </div>
               )}
             </div>

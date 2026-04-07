@@ -369,7 +369,7 @@ export default function App() {
   const renderPage = () => {
     switch (resolvedActivePage) {
       case 'dashboard':
-        return <Dashboard user={user} onNavigate={handleNavigate} locale={locale} />;
+        return <Dashboard user={user} onNavigate={handleNavigate} locale={locale} language={appSettings.language} />;
       case 'courses':
         return <CoursesPage user={user} />;
       case 'schedule':
@@ -391,7 +391,7 @@ export default function App() {
           />
         );
       case 'profile':
-        return <Profile user={user} onUserChange={handleUserSync} />;
+        return <Profile user={user} onUserChange={handleUserSync} language={appSettings.language} locale={locale} />;
       case 'settings':
         return (
           <Settings
@@ -406,17 +406,17 @@ export default function App() {
           />
         );
       case 'privacy':
-        return <InfoCenter page="privacy" onNavigate={handleNavigate} user={user} contextPage={lastWorkspacePage} />;
+        return <InfoCenter page="privacy" onNavigate={handleNavigate} user={user} contextPage={lastWorkspacePage} language={appSettings.language} />;
       case 'terms':
-        return <InfoCenter page="terms" onNavigate={handleNavigate} user={user} contextPage={lastWorkspacePage} />;
+        return <InfoCenter page="terms" onNavigate={handleNavigate} user={user} contextPage={lastWorkspacePage} language={appSettings.language} />;
       case 'support':
-        return <InfoCenter page="support" onNavigate={handleNavigate} user={user} contextPage={lastWorkspacePage} />;
+        return <InfoCenter page="support" onNavigate={handleNavigate} user={user} contextPage={lastWorkspacePage} language={appSettings.language} />;
       case 'userManagement':
         return <UserManagement user={user} />;
       case 'integrations':
         return <IntegrationCenter user={user} />;
       default:
-        return <Dashboard user={user} onNavigate={handleNavigate} locale={locale} />;
+        return <Dashboard user={user} onNavigate={handleNavigate} locale={locale} language={appSettings.language} />;
     }
   };
 

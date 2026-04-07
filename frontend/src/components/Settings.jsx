@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { getDefaultPageLabel, getShellCopy } from '../appPreferences';
+import { getDefaultPageLabel, getLanguageLabel, getShellCopy } from '../appPreferences';
 import StatusBanner from './StatusBanner';
 import { getRoleLabel } from '../roles';
 
@@ -27,7 +27,7 @@ function Settings({
 
   const summaryCards = useMemo(() => ([
     { label: copy.summaryTheme, value: theme === 'dark' ? themeCopy.dark : themeCopy.light },
-    { label: copy.summaryLanguage, value: formState.language },
+    { label: copy.summaryLanguage, value: getLanguageLabel(formState.language, formState.language) },
     { label: copy.summaryDefaultPage, value: getDefaultPageLabel(formState.defaultPage, formState.language) },
     { label: copy.summaryDensity, value: formState.density === 'Compact' ? copy.densityCompact : copy.densityComfortable }
   ]), [copy, formState.defaultPage, formState.density, formState.language, theme, themeCopy.dark, themeCopy.light]);
@@ -55,7 +55,7 @@ function Settings({
     setNotice('');
   };
 
-  const roleLabel = getRoleLabel(user);
+  const roleLabel = getRoleLabel(user, language);
   const mobileStatus = mobileInstall?.isInstalled
     ? copy.mobileInstalled
     : mobileInstall?.canInstall
@@ -101,9 +101,8 @@ function Settings({
               value={formState.language}
               onChange={(event) => setFormState({ ...formState, language: event.target.value })}
             >
-              <option>English</option>
-              <option>Russian</option>
-              <option>Kyrgyz</option>
+              <option value="English">{getLanguageLabel('English', formState.language)}</option>
+              <option value="Kyrgyz">{getLanguageLabel('Kyrgyz', formState.language)}</option>
             </select>
           </label>
 

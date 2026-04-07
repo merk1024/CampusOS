@@ -6,15 +6,122 @@ import StatusBanner from './StatusBanner';
 import AvatarBadge from './AvatarBadge';
 import { getRoleLabel } from '../roles';
 
-function formatDate(value) {
-  if (!value) return 'Not available';
+const PROFILE_COPY = {
+  English: {
+    loadingTitle: 'Profile',
+    loadingBody: 'Loading profile...',
+    unavailableBody: 'CampusOS could not load the account profile.',
+    unavailableTitle: 'Profile unavailable',
+    emptyEyebrow: 'Account profile',
+    emptyTitle: 'We could not load your profile',
+    emptyDescription: 'Try loading the page again. Once the API responds, your academic card will appear here.',
+    retry: 'Retry',
+    pageTitle: 'Account Profile',
+    pageSubtitle: 'Review and update your academic identity, contact details, and account history.',
+    editProfile: 'Edit Profile',
+    updateErrorTitle: 'Profile could not be updated',
+    updateSuccessTitle: 'Profile updated',
+    saveSuccess: 'Profile updated successfully.',
+    role: 'Role',
+    studentId: 'Student ID',
+    group: 'Group',
+    lastLogin: 'Last login',
+    accountKicker: 'CampusOS account',
+    notAvailable: 'Not available',
+    academicTitle: 'Academic details',
+    academicDescription: 'Core study identity and enrollment information.',
+    fullName: 'Full name',
+    subgroup: 'Subgroup',
+    programClass: 'Program / Class',
+    advisor: 'Advisor',
+    status: 'Status',
+    grantType: 'Grant type',
+    balance: 'Balance 2025-2026',
+    personalTitle: 'Personal and contact details',
+    personalDescription: 'Main profile data used for communication and support.',
+    fatherName: 'Father name',
+    birthDate: 'Birth date',
+    email: 'Email',
+    phone: 'Phone',
+    address: 'Address',
+    emergencyContact: 'Emergency contact',
+    accessTitle: 'Access history',
+    accessDescription: 'Operational data for session and account tracking.',
+    registrationDate: 'Registration date',
+    lastLoginDate: 'Last login date',
+    lastLoginIp: 'Last login IP',
+    avatarTitle: 'Avatar',
+    avatarBody: 'Paste an image URL or keep a generated initials badge for your account.',
+    avatarInputLabel: 'Image URL or initials',
+    useInitials: 'Use initials',
+    useGenerated: 'Use generated',
+    cancel: 'Cancel',
+    saving: 'Saving...',
+    saveChanges: 'Save Changes'
+  },
+  Kyrgyz: {
+    loadingTitle: 'Профиль',
+    loadingBody: 'Профиль жүктөлүүдө...',
+    unavailableBody: 'CampusOS аккаунт профилин жүктөй алган жок.',
+    unavailableTitle: 'Профиль жеткиликсиз',
+    emptyEyebrow: 'Аккаунт профили',
+    emptyTitle: 'Профилиңизди жүктөй алган жокпуз',
+    emptyDescription: 'Кайра аракет кылып көрүңүз. API жооп берери менен академиялык картаңыз ушул жерде көрүнөт.',
+    retry: 'Кайра аракет кылуу',
+    pageTitle: 'Аккаунт профили',
+    pageSubtitle: 'Академиялык маалыматтарыңызды, байланыштарын жана аккаунт тарыхын карап чыгып жаңыртыңыз.',
+    editProfile: 'Профилди оңдоо',
+    updateErrorTitle: 'Профиль жаңыртылган жок',
+    updateSuccessTitle: 'Профиль жаңырды',
+    saveSuccess: 'Профиль ийгиликтүү жаңырды.',
+    role: 'Роль',
+    studentId: 'Студент ID',
+    group: 'Топ',
+    lastLogin: 'Акыркы кирүү',
+    accountKicker: 'CampusOS аккаунту',
+    notAvailable: 'Жеткиликтүү эмес',
+    academicTitle: 'Академиялык маалымат',
+    academicDescription: 'Окуу идентификациясы жана катталуу боюнча негизги маалымат.',
+    fullName: 'Толук аты-жөнү',
+    subgroup: 'Подгруппа',
+    programClass: 'Программа / Класс',
+    advisor: 'Куратор',
+    status: 'Статус',
+    grantType: 'Грант түрү',
+    balance: 'Баланс 2025-2026',
+    personalTitle: 'Жеке жана байланыш маалыматы',
+    personalDescription: 'Байланыш жана колдоо үчүн колдонулуучу негизги профиль маалыматы.',
+    fatherName: 'Атасынын аты',
+    birthDate: 'Туулган күнү',
+    email: 'Email',
+    phone: 'Телефон',
+    address: 'Дарек',
+    emergencyContact: 'Шашылыш байланыш',
+    accessTitle: 'Кирүү тарыхы',
+    accessDescription: 'Сеанс жана аккаунтка байланышкан операциялык маалыматтар.',
+    registrationDate: 'Катталган күнү',
+    lastLoginDate: 'Акыркы кирүү күнү',
+    lastLoginIp: 'Акыркы кирүү IP',
+    avatarTitle: 'Аватар',
+    avatarBody: 'Сүрөттүн URL дарегин киргизиңиз же аккаунтуңуз үчүн generated initials аватарын калтырыңыз.',
+    avatarInputLabel: 'Сүрөт URL же инициалдар',
+    useInitials: 'Инициалдарды колдонуу',
+    useGenerated: 'Generated вариантты колдонуу',
+    cancel: 'Жокко чыгаруу',
+    saving: 'Сакталып жатат...',
+    saveChanges: 'Өзгөртүүлөрдү сактоо'
+  }
+};
+
+function formatDate(value, locale = 'en-GB', fallback = 'Not available') {
+  if (!value) return fallback;
 
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
 
-  return parsed.toLocaleDateString('en-GB', {
+  return parsed.toLocaleDateString(locale, {
     day: '2-digit',
     month: 'short',
     year: '2-digit'
@@ -35,7 +142,8 @@ function buildInitials(name, email) {
   return source.slice(0, 2).toUpperCase();
 }
 
-function Profile({ onUserChange }) {
+function Profile({ onUserChange, language = 'English', locale = 'en-GB' }) {
+  const copy = PROFILE_COPY[language] || PROFILE_COPY.English;
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -74,7 +182,7 @@ function Profile({ onUserChange }) {
       setFormData(response.user);
       onUserChange?.(response.user);
       setEditing(false);
-      setNotice('Profile updated successfully.');
+      setNotice(copy.saveSuccess);
     } catch (err) {
       console.error('Failed to update profile:', err);
       setError(err.message || 'Failed to update profile');
@@ -90,64 +198,64 @@ function Profile({ onUserChange }) {
     setNotice('');
   };
 
-  const getField = useCallback((fieldName, fallback = 'Not available') => (
+  const getField = useCallback((fieldName, fallback = copy.notAvailable) => (
     profile?.[fieldName] ?? fallback
-  ), [profile]);
+  ), [copy.notAvailable, profile]);
 
-  const roleLabel = useMemo(() => getRoleLabel(profile || {}), [profile]);
+  const roleLabel = useMemo(() => getRoleLabel(profile || {}, language), [language, profile]);
   const previewUser = useMemo(() => ({ ...profile, ...formData }), [formData, profile]);
   const generatedInitials = useMemo(() => (
     buildInitials(formData?.name || profile?.name, profile?.email)
   ), [formData?.name, profile?.email, profile?.name]);
 
   const summaryCards = useMemo(() => ([
-    { label: 'Role', value: roleLabel },
-    { label: 'Student ID', value: getField('student_id') },
-    { label: 'Group', value: getField('group_name') },
-    { label: 'Last login', value: formatDate(getField('last_login_at', null)) }
-  ]), [getField, roleLabel]);
+    { label: copy.role, value: roleLabel },
+    { label: copy.studentId, value: getField('student_id') },
+    { label: copy.group, value: getField('group_name') },
+    { label: copy.lastLogin, value: formatDate(getField('last_login_at', null), locale, copy.notAvailable) }
+  ]), [copy.group, copy.lastLogin, copy.notAvailable, copy.role, copy.studentId, getField, locale, roleLabel]);
 
   const sections = useMemo(() => ([
     {
       key: 'academic',
-      title: 'Academic details',
-      description: 'Core study identity and enrollment information.',
+      title: copy.academicTitle,
+      description: copy.academicDescription,
       rows: [
-        { label: 'Student ID', value: getField('student_id') },
-        { label: 'Full name', value: getField('name'), field: 'name' },
-        { label: 'Group', value: getField('group_name'), field: 'group_name' },
-        { label: 'Subgroup', value: getField('subgroup_name'), field: 'subgroup_name' },
-        { label: 'Program / Class', value: getField('program_class', profile?.major || 'Not available'), field: 'program_class' },
-        { label: 'Advisor', value: getField('advisor'), field: 'advisor' },
-        { label: 'Status', value: getField('study_status'), field: 'study_status' },
-        { label: 'Grant type', value: getField('grant_type'), field: 'grant_type' },
-        { label: 'Balance 2025-2026', value: getField('balance_info'), field: 'balance_info' }
+        { label: copy.studentId, value: getField('student_id') },
+        { label: copy.fullName, value: getField('name'), field: 'name' },
+        { label: copy.group, value: getField('group_name'), field: 'group_name' },
+        { label: copy.subgroup, value: getField('subgroup_name'), field: 'subgroup_name' },
+        { label: copy.programClass, value: getField('program_class', profile?.major || copy.notAvailable), field: 'program_class' },
+        { label: copy.advisor, value: getField('advisor'), field: 'advisor' },
+        { label: copy.status, value: getField('study_status'), field: 'study_status' },
+        { label: copy.grantType, value: getField('grant_type'), field: 'grant_type' },
+        { label: copy.balance, value: getField('balance_info'), field: 'balance_info' }
       ]
     },
     {
       key: 'personal',
-      title: 'Personal and contact details',
-      description: 'Main profile data used for communication and support.',
+      title: copy.personalTitle,
+      description: copy.personalDescription,
       rows: [
-        { label: 'Father name', value: getField('father_name'), field: 'father_name' },
-        { label: 'Birth date', value: formatDate(getField('date_of_birth', null)), field: 'date_of_birth', type: 'date' },
-        { label: 'Email', value: getField('email') },
-        { label: 'Phone', value: getField('phone'), field: 'phone' },
-        { label: 'Address', value: getField('address'), field: 'address', control: 'textarea' },
-        { label: 'Emergency contact', value: getField('emergency_contact'), field: 'emergency_contact' }
+        { label: copy.fatherName, value: getField('father_name'), field: 'father_name' },
+        { label: copy.birthDate, value: formatDate(getField('date_of_birth', null), locale, copy.notAvailable), field: 'date_of_birth', type: 'date' },
+        { label: copy.email, value: getField('email') },
+        { label: copy.phone, value: getField('phone'), field: 'phone' },
+        { label: copy.address, value: getField('address'), field: 'address', control: 'textarea' },
+        { label: copy.emergencyContact, value: getField('emergency_contact'), field: 'emergency_contact' }
       ]
     },
     {
       key: 'access',
-      title: 'Access history',
-      description: 'Operational data for session and account tracking.',
+      title: copy.accessTitle,
+      description: copy.accessDescription,
       rows: [
-        { label: 'Registration date', value: formatDate(getField('registration_date', null)), field: 'registration_date', type: 'date' },
-        { label: 'Last login date', value: formatDate(getField('last_login_at', null)) },
-        { label: 'Last login IP', value: getField('last_login_ip') }
+        { label: copy.registrationDate, value: formatDate(getField('registration_date', null), locale, copy.notAvailable), field: 'registration_date', type: 'date' },
+        { label: copy.lastLoginDate, value: formatDate(getField('last_login_at', null), locale, copy.notAvailable) },
+        { label: copy.lastLoginIp, value: getField('last_login_ip') }
       ]
     }
-  ]), [getField, profile]);
+  ]), [copy.accessDescription, copy.accessTitle, copy.academicDescription, copy.academicTitle, copy.address, copy.advisor, copy.balance, copy.birthDate, copy.email, copy.emergencyContact, copy.fatherName, copy.fullName, copy.grantType, copy.group, copy.lastLoginDate, copy.lastLoginIp, copy.notAvailable, copy.personalDescription, copy.personalTitle, copy.phone, copy.programClass, copy.registrationDate, copy.status, copy.studentId, copy.subgroup, getField, locale, profile]);
 
   const renderField = (row) => {
     if (!(editing && row.field)) {
@@ -177,8 +285,8 @@ function Profile({ onUserChange }) {
     return (
       <div className="page">
         <div className="page-header">
-          <h1>Profile</h1>
-          <p>Loading profile...</p>
+          <h1>{copy.loadingTitle}</h1>
+          <p>{copy.loadingBody}</p>
         </div>
         <div className="loading-spinner"></div>
       </div>
@@ -190,16 +298,16 @@ function Profile({ onUserChange }) {
       <div className="page">
         <div className="page-header">
           <div>
-            <h1>Profile</h1>
-            <p>CampusOS could not load the account profile.</p>
+            <h1>{copy.loadingTitle}</h1>
+            <p>{copy.unavailableBody}</p>
           </div>
         </div>
-        <StatusBanner tone="error" title="Profile unavailable" message={error} />
+        <StatusBanner tone="error" title={copy.unavailableTitle} message={error} />
         <EmptyState
-          eyebrow="Account profile"
-          title="We could not load your profile"
-          description="Try loading the page again. Once the API responds, your academic card will appear here."
-          actionLabel="Retry"
+          eyebrow={copy.emptyEyebrow}
+          title={copy.emptyTitle}
+          description={copy.emptyDescription}
+          actionLabel={copy.retry}
           onAction={loadProfile}
         />
       </div>
@@ -210,18 +318,18 @@ function Profile({ onUserChange }) {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Account Profile</h1>
-          <p>Review and update your academic identity, contact details, and account history.</p>
+          <h1>{copy.pageTitle}</h1>
+          <p>{copy.pageSubtitle}</p>
         </div>
         {!editing && (
           <button className="btn-primary" onClick={() => setEditing(true)}>
-            Edit Profile
+            {copy.editProfile}
           </button>
         )}
       </div>
 
-      <StatusBanner tone="error" title="Profile could not be updated" message={error} />
-      <StatusBanner tone="success" title="Profile updated" message={notice} />
+      <StatusBanner tone="error" title={copy.updateErrorTitle} message={error} />
+      <StatusBanner tone="success" title={copy.updateSuccessTitle} message={notice} />
 
       <div className="management-summary-grid">
         {summaryCards.map((item) => (
@@ -236,25 +344,25 @@ function Profile({ onUserChange }) {
         <div className="portal-summary-card">
           <AvatarBadge user={previewUser} className="profile-avatar-large" title={previewUser.name} />
           <div className="portal-summary-copy">
-            <span className="portal-kicker">CampusOS account</span>
+            <span className="portal-kicker">{copy.accountKicker}</span>
             <h2>{previewUser.name}</h2>
             <p>{previewUser.program_class || previewUser.major || previewUser.role}</p>
             <div className="portal-summary-meta">
               <span>{roleLabel}</span>
-              <span>{previewUser.email || 'Not available'}</span>
-              <span>{previewUser.group_name || 'Not available'}</span>
+              <span>{previewUser.email || copy.notAvailable}</span>
+              <span>{previewUser.group_name || copy.notAvailable}</span>
             </div>
 
             {editing && (
               <div className="profile-avatar-editor">
                 <div className="profile-avatar-editor-header">
-                  <strong>Avatar</strong>
-                  <span>Paste an image URL or keep a generated initials badge for your account.</span>
+                  <strong>{copy.avatarTitle}</strong>
+                  <span>{copy.avatarBody}</span>
                 </div>
                 <div className="profile-avatar-editor-body">
                   <AvatarBadge user={previewUser} className="profile-avatar-editor-preview" title={previewUser.name} />
                   <div className="profile-avatar-editor-fields">
-                    <label htmlFor="profile-avatar-input">Image URL or initials</label>
+                    <label htmlFor="profile-avatar-input">{copy.avatarInputLabel}</label>
                     <input
                       id="profile-avatar-input"
                       type="text"
@@ -268,14 +376,14 @@ function Profile({ onUserChange }) {
                         className="btn-secondary"
                         onClick={() => setFormData({ ...formData, avatar: generatedInitials })}
                       >
-                        Use initials
+                        {copy.useInitials}
                       </button>
                       <button
                         type="button"
                         className="btn-secondary"
                         onClick={() => setFormData({ ...formData, avatar: '' })}
                       >
-                        Use generated
+                        {copy.useGenerated}
                       </button>
                     </div>
                   </div>
@@ -308,9 +416,9 @@ function Profile({ onUserChange }) {
 
         {editing && (
           <div className="portal-actions">
-            <button className="btn-secondary" onClick={handleCancel} disabled={saving}>Cancel</button>
+            <button className="btn-secondary" onClick={handleCancel} disabled={saving}>{copy.cancel}</button>
             <button className="btn-primary" onClick={handleSave} disabled={saving}>
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? copy.saving : copy.saveChanges}
             </button>
           </div>
         )}
