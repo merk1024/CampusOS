@@ -339,6 +339,21 @@ export default function App() {
     }));
   };
 
+  const handleUserSync = (nextUserData) => {
+    setUser((current) => {
+      const mergedUser = {
+        ...current,
+        ...nextUserData,
+        isSuperadmin: nextUserData?.is_superadmin ?? nextUserData?.isSuperadmin ?? current?.isSuperadmin,
+        studentId: nextUserData?.student_id ?? nextUserData?.studentId ?? current?.studentId,
+        group: nextUserData?.group_name ?? nextUserData?.groupName ?? current?.group,
+        subgroup: nextUserData?.subgroup_name ?? nextUserData?.subgroupName ?? current?.subgroup
+      };
+      storage.set('lms_user', mergedUser);
+      return mergedUser;
+    });
+  };
+
   const handleSettingsSave = (nextSettings) => {
     setAppSettings(resolveAppSettings(nextSettings));
   };
@@ -376,7 +391,7 @@ export default function App() {
           />
         );
       case 'profile':
-        return <Profile user={user} />;
+        return <Profile user={user} onUserChange={handleUserSync} />;
       case 'settings':
         return (
           <Settings

@@ -21,7 +21,21 @@ function formatDate(value) {
   }).toUpperCase();
 }
 
-function Profile() {
+function buildInitials(name, email) {
+  const source = String(name || email || '').trim();
+  if (!source) {
+    return 'CO';
+  }
+
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length > 1) {
+    return parts.slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+  }
+
+  return source.slice(0, 2).toUpperCase();
+}
+
+function Profile({ onUserChange }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -58,6 +72,7 @@ function Profile() {
       const response = await api.updateProfile(formData);
       setProfile(response.user);
       setFormData(response.user);
+      onUserChange?.(response.user);
       setEditing(false);
       setNotice('Profile updated successfully.');
     } catch (err) {
@@ -80,6 +95,10 @@ function Profile() {
   ), [profile]);
 
   const roleLabel = useMemo(() => getRoleLabel(profile || {}), [profile]);
+  const previewUser = useMemo(() => ({ ...profile, ...formData }), [formData, profile]);
+  const generatedInitials = useMemo(() => (
+    buildInitials(formData?.name || profile?.name, profile?.email)
+  ), [formData?.name, profile?.email, profile?.name]);
 
   const summaryCards = useMemo(() => ([
     { label: 'Role', value: roleLabel },
@@ -215,16 +234,54 @@ function Profile() {
 
       <div className="portal-profile">
         <div className="portal-summary-card">
-          <AvatarBadge user={profile} className="profile-avatar-large" title={profile.name} />
+          <AvatarBadge user={previewUser} className="profile-avatar-large" title={previewUser.name} />
           <div className="portal-summary-copy">
             <span className="portal-kicker">CampusOS account</span>
-            <h2>{profile.name}</h2>
-            <p>{getField('program_class', profile.major || profile.role)}</p>
+            <h2>{previewUser.name}</h2>
+            <p>{previewUser.program_class || previewUser.major || previewUser.role}</p>
             <div className="portal-summary-meta">
               <span>{roleLabel}</span>
-              <span>{getField('email')}</span>
-              <span>{getField('group_name')}</span>
+              <span>{previewUser.email || 'Not available'}</span>
+              <span>{previewUser.group_name || 'Not available'}</span>
             </div>
+
+            {editing && (
+              <div className="profile-avatar-editor">
+                <div className="profile-avatar-editor-header">
+                  <strong>Avatar</strong>
+                  <span>Paste an image URL or keep a generated initials badge for your account.</span>
+                </div>
+                <div className="profile-avatar-editor-body">
+                  <AvatarBadge user={previewUser} className="profile-avatar-editor-preview" title={previewUser.name} />
+                  <div className="profile-avatar-editor-fields">
+                    <label htmlFor="profile-avatar-input">Image URL or initials</label>
+                    <input
+                      id="profile-avatar-input"
+                      type="text"
+                      value={formData.avatar || ''}
+                      onChange={(event) => setFormData({ ...formData, avatar: event.target.value })}
+                      placeholder={`https://example.com/avatar.jpg or ${generatedInitials}`}
+                    />
+                    <div className="profile-avatar-editor-actions">
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => setFormData({ ...formData, avatar: generatedInitials })}
+                      >
+                        Use initials
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => setFormData({ ...formData, avatar: '' })}
+                      >
+                        Use generated
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
