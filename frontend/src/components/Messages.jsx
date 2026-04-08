@@ -15,21 +15,6 @@ const EMPTY_FORM = {
   courseId: ''
 };
 
-const TYPE_META = {
-  all: { label: 'All', badge: 'ALL' },
-  important: { label: 'Important', badge: 'IMP' },
-  exam: { label: 'Exams', badge: 'EXM' },
-  general: { label: 'General', badge: 'GEN' }
-};
-
-const INBOX_META = {
-  all: { label: 'All inbox', badge: 'INB' },
-  unread: { label: 'Unread', badge: 'NEW' },
-  announcement: { label: 'Announcements', badge: 'ANN' },
-  import: { label: 'Imports', badge: 'IMP' },
-  system: { label: 'System', badge: 'SYS' }
-};
-
 const AUDIENCE_OPTIONS = [
   { value: 'all', label: 'All users' },
   { value: 'students', label: 'Students' },
@@ -38,12 +23,122 @@ const AUDIENCE_OPTIONS = [
   { value: 'group', label: 'Specific groups' },
   { value: 'course', label: 'Specific course' }
 ];
+const MESSAGES_COPY = {
+  English: {
+    dateUnavailable: 'Date unavailable',
+    title: 'Messages',
+    loading: 'Loading the CampusOS communication center...',
+    refreshing: 'Refreshing...',
+    markInboxRead: 'Mark inbox read',
+    closeComposer: 'Close composer',
+    newAnnouncement: 'New announcement',
+    errorTitle: 'Messages could not be updated',
+    successTitle: 'Messages updated',
+    summaryAnnouncements: 'Announcements',
+    summaryPinned: 'Pinned',
+    summaryUnread: 'Unread inbox',
+    summaryImports: 'Import alerts',
+    searchAnnouncements: 'Search by title, content, author or audience',
+    searchInbox: 'Search inbox notifications',
+    clearFilters: 'Clear filters',
+    composerTitle: 'Publish announcement',
+    composerSubtitle: 'Route the message to the right audience before it lands in the CampusOS inbox.',
+    announcementTitle: 'Announcement title',
+    audience: 'Audience',
+    groupsOrSubgroups: 'Groups or subgroups',
+    course: 'Course',
+    selectCourse: 'Select a course',
+    contentPlaceholder: 'Write the announcement details here',
+    pinToTop: 'Pin this announcement to the top',
+    publishing: 'Publishing...',
+    publish: 'Publish',
+    cancel: 'Cancel',
+    announcementsEmptyTitle: 'No announcements match the current view',
+    announcementsEmptyDescription: 'Clear the current filters or publish a new message for the selected audience.',
+    inboxEmptyTitle: 'The inbox is clear',
+    inboxEmptyDescription: 'New announcement deliveries, import summaries, and system updates will appear here.',
+    unread: 'Unread',
+    pinned: 'Pinned',
+    delete: 'Delete',
+    markRead: 'Mark read',
+    audiencePreviewCoursePrefix: 'This announcement will target the course:',
+    audiencePreviewCourseEmpty: 'Select a course to route this announcement to enrolled students and linked staff.',
+    audiencePreviewPrefix: 'Audience:',
+    audiencePreviewChoose: 'Choose who should receive this announcement.',
+    audiencePreviewGroupEmpty: 'Add one or more groups or subgroups to target a specific cohort.',
+    publishedNotice: 'Announcement published and inbox updated.',
+    deletedNotice: 'Announcement deleted.',
+    inboxReadNotice: 'Inbox marked as read.',
+    notificationReadNotice: 'Notification marked as read.',
+    deleteConfirm: 'Delete this announcement?',
+    failedLoad: 'Failed to load message center',
+    typeLabels: { all: 'All', important: 'Important', exam: 'Exams', general: 'General' },
+    inboxLabels: { all: 'All inbox', unread: 'Unread', announcement: 'Announcements', import: 'Imports', system: 'System' },
+    audienceLabels: { all: 'All users', students: 'Students', teachers: 'Teachers', admins: 'Admins', group: 'Specific groups', course: 'Specific course' },
+    inboxTitle: 'Inbox',
+    announcementsTitle: 'Announcements'
+  },
+  Kyrgyz: {
+    dateUnavailable: 'Дата жеткиликсиз',
+    title: 'Билдирүүлөр',
+    loading: 'CampusOS байланыш борбору жүктөлүүдө...',
+    refreshing: 'Жаңыртылууда...',
+    markInboxRead: 'Inbox окулган деп белгилөө',
+    closeComposer: 'Редакторду жабуу',
+    newAnnouncement: 'Жаңы билдирүү',
+    errorTitle: 'Билдирүүлөр жаңыртылган жок',
+    successTitle: 'Билдирүүлөр жаңыртылды',
+    summaryAnnouncements: 'Билдирүүлөр',
+    summaryPinned: 'Бекитилгендер',
+    summaryUnread: 'Окулбаган inbox',
+    summaryImports: 'Импорт эскертүүлөрү',
+    searchAnnouncements: 'Аталышы, мазмуну, автору же аудиториясы боюнча издөө',
+    searchInbox: 'Inbox эскертүүлөрүн издөө',
+    clearFilters: 'Чыпкаларды тазалоо',
+    composerTitle: 'Билдирүү жарыялоо',
+    composerSubtitle: 'Билдирүү CampusOS inbox бөлүмүнө жеткенче туура аудиторияга багыттаңыз.',
+    announcementTitle: 'Билдирүүнүн аталышы',
+    audience: 'Аудитория',
+    groupsOrSubgroups: 'Топтор же подтоптор',
+    course: 'Курс',
+    selectCourse: 'Курс тандаңыз',
+    contentPlaceholder: 'Билдирүүнүн мазмунун бул жерге жазыңыз',
+    pinToTop: 'Бул билдирүүнү жогоруга бекитүү',
+    publishing: 'Жарыяланып жатат...',
+    publish: 'Жарыялоо',
+    cancel: 'Жокко чыгаруу',
+    announcementsEmptyTitle: 'Учурдагы көрүнүшкө туура келген билдирүүлөр жок',
+    announcementsEmptyDescription: 'Учурдагы чыпкаларды тазалаңыз же тандалган аудитория үчүн жаңы билдирүү жарыялаңыз.',
+    inboxEmptyTitle: 'Inbox бош',
+    inboxEmptyDescription: 'Жаңы билдирүүлөр, импорт жыйынтыктары жана системалык жаңыртуулар бул жерде чыгат.',
+    unread: 'Окулбаган',
+    pinned: 'Бекитилген',
+    delete: 'Өчүрүү',
+    markRead: 'Окулду деп белгилөө',
+    audiencePreviewCoursePrefix: 'Бул билдирүү төмөнкү курс үчүн жөнөтүлөт:',
+    audiencePreviewCourseEmpty: 'Бул билдирүүнү катталган студенттерге жана байланышкан кызматкерлерге жөнөтүү үчүн курс тандаңыз.',
+    audiencePreviewPrefix: 'Аудитория:',
+    audiencePreviewChoose: 'Бул билдирүүнү ким алышы керек экенин тандаңыз.',
+    audiencePreviewGroupEmpty: 'Так аудиторияга жөнөтүү үчүн бир же бир нече топту же подтопту кошуңуз.',
+    publishedNotice: 'Билдирүү жарыяланып, inbox жаңыртылды.',
+    deletedNotice: 'Билдирүү өчүрүлдү.',
+    inboxReadNotice: 'Inbox окулду деп белгиленди.',
+    notificationReadNotice: 'Эскертүү окулду деп белгиленди.',
+    deleteConfirm: 'Бул билдирүүнү өчүрөсүзбү?',
+    failedLoad: 'Билдирүүлөр борборун жүктөө мүмкүн болгон жок',
+    typeLabels: { all: 'Баары', important: 'Маанилүү', exam: 'Экзамендер', general: 'Жалпы' },
+    inboxLabels: { all: 'Бардык inbox', unread: 'Окулбаган', announcement: 'Билдирүүлөр', import: 'Импорттор', system: 'Система' },
+    audienceLabels: { all: 'Бардык колдонуучулар', students: 'Студенттер', teachers: 'Окутуучулар', admins: 'Админдер', group: 'Белгилүү топтор', course: 'Белгилүү курс' },
+    inboxTitle: 'Inbox',
+    announcementsTitle: 'Билдирүүлөр'
+  }
+};
 
-const formatDateTime = (value, locale = 'en-GB') => {
-  if (!value) return 'Date unavailable';
+const formatDateTime = (value, locale = 'en-GB', fallback = 'Date unavailable') => {
+  if (!value) return fallback;
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Date unavailable';
+  if (Number.isNaN(date.getTime())) return fallback;
 
   return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
@@ -67,7 +162,7 @@ const getNotificationTone = (sourceType) => {
 
 const normalizeNotificationSource = (notification) => {
   const sourceType = String(notification?.source_type || 'system').trim().toLowerCase();
-  return INBOX_META[sourceType] ? sourceType : 'system';
+  return ['announcement', 'import', 'system'].includes(sourceType) ? sourceType : 'system';
 };
 
 const buildFilterCountMap = (items, getKey, keys) => {
@@ -84,7 +179,27 @@ const buildFilterCountMap = (items, getKey, keys) => {
   return initial;
 };
 
-function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
+function Messages({ user, onUnreadCountChange, locale = 'en-GB', language = 'English' }) {
+  const copy = MESSAGES_COPY[language] || MESSAGES_COPY.English;
+  const typeMeta = useMemo(() => ({
+    all: { label: copy.typeLabels.all, badge: 'ALL' },
+    important: { label: copy.typeLabels.important, badge: 'IMP' },
+    exam: { label: copy.typeLabels.exam, badge: 'EXM' },
+    general: { label: copy.typeLabels.general, badge: 'GEN' }
+  }), [copy]);
+  const inboxMeta = useMemo(() => ({
+    all: { label: copy.inboxLabels.all, badge: 'INB' },
+    unread: { label: copy.inboxLabels.unread, badge: 'NEW' },
+    announcement: { label: copy.inboxLabels.announcement, badge: 'ANN' },
+    import: { label: copy.inboxLabels.import, badge: 'IMP' },
+    system: { label: copy.inboxLabels.system, badge: 'SYS' }
+  }), [copy]);
+  const audienceOptions = useMemo(() => (
+    AUDIENCE_OPTIONS.map((option) => ({
+      ...option,
+      label: copy.audienceLabels[option.value] || option.label
+    }))
+  ), [copy]);
   const [announcements, setAnnouncements] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -143,12 +258,12 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
       onUnreadCountChange?.(unreadCount);
       setError('');
     } catch (err) {
-      setError(err.message || 'Failed to load message center');
+      setError(err.message || copy.failedLoad);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [canManage, onUnreadCountChange]);
+  }, [canManage, copy.failedLoad, onUnreadCountChange]);
 
   useEffect(() => {
     loadStreams({ markInboxRead: true });
@@ -169,21 +284,21 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
   const announcementTypeCounts = useMemo(() => (
     buildFilterCountMap(
       announcements,
-      (announcement) => (TYPE_META[announcement.type] ? announcement.type : 'general'),
-      Object.keys(TYPE_META)
+      (announcement) => (typeMeta[announcement.type] ? announcement.type : 'general'),
+      Object.keys(typeMeta)
     )
-  ), [announcements]);
+  ), [announcements, typeMeta]);
 
   const inboxTypeCounts = useMemo(() => {
     const counts = buildFilterCountMap(
       notifications,
       (notification) => normalizeNotificationSource(notification),
-      Object.keys(INBOX_META)
+      Object.keys(inboxMeta)
     );
 
     counts.unread = notifications.filter((notification) => !notification.is_read).length;
     return counts;
-  }, [notifications]);
+  }, [inboxMeta, notifications]);
 
   const filteredAnnouncements = useMemo(() => (
     announcements
@@ -243,18 +358,18 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
   const activeCount = activeView === 'announcements' ? filteredAnnouncements.length : filteredNotifications.length;
   const activeTotal = activeView === 'announcements' ? announcements.length : notifications.length;
   const activeFilterLabel = activeView === 'announcements'
-    ? TYPE_META[typeFilter]?.label || TYPE_META.all.label
-    : INBOX_META[inboxFilter]?.label || INBOX_META.all.label;
+    ? typeMeta[typeFilter]?.label || typeMeta.all.label
+    : inboxMeta[inboxFilter]?.label || inboxMeta.all.label;
   const selectedAudienceCourse = courses.find((course) => String(course.id) === String(formData.courseId));
   const audiencePreview = formData.audienceScope === 'group'
-    ? (formData.audienceValue.trim() ? `This announcement will target: ${formData.audienceValue.trim()}` : 'Add one or more groups or subgroups to target a specific cohort.')
+    ? (formData.audienceValue.trim() ? `${copy.audiencePreviewPrefix} ${formData.audienceValue.trim()}` : copy.audiencePreviewGroupEmpty)
     : formData.audienceScope === 'course'
       ? (selectedAudienceCourse?.name
-        ? `This announcement will target the course: ${selectedAudienceCourse.name}`
-        : 'Select a course to route this announcement to enrolled students and linked staff.')
-      : AUDIENCE_OPTIONS.find((option) => option.value === formData.audienceScope)?.label
-        ? `Audience: ${AUDIENCE_OPTIONS.find((option) => option.value === formData.audienceScope)?.label}`
-        : 'Choose who should receive this announcement.';
+        ? `${copy.audiencePreviewCoursePrefix} ${selectedAudienceCourse.name}`
+        : copy.audiencePreviewCourseEmpty)
+      : audienceOptions.find((option) => option.value === formData.audienceScope)?.label
+        ? `${copy.audiencePreviewPrefix} ${audienceOptions.find((option) => option.value === formData.audienceScope)?.label}`
+        : copy.audiencePreviewChoose;
 
   const resetComposer = () => {
     setFormData(EMPTY_FORM);
@@ -276,7 +391,7 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
         courseId: formData.audienceScope === 'course' ? Number(formData.courseId || 0) : null
       });
       await loadStreams({ silent: true });
-      setNotice('Announcement published and inbox updated.');
+      setNotice(copy.publishedNotice);
       resetComposer();
       clearNoticeLater();
     } catch (err) {
@@ -287,14 +402,14 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
   };
 
   const handleDeleteAnnouncement = async (id) => {
-    if (!window.confirm('Delete this announcement?')) {
+    if (!window.confirm(copy.deleteConfirm)) {
       return;
     }
 
     try {
       await api.deleteAnnouncement(id);
       await loadStreams({ silent: true });
-      setNotice('Announcement deleted.');
+      setNotice(copy.deletedNotice);
       clearNoticeLater();
     } catch (err) {
       setError(err.message || 'Failed to delete announcement');
@@ -306,7 +421,7 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
       await api.markAllNotificationsRead();
       await loadStreams({ silent: true });
       onUnreadCountChange?.(0);
-      setNotice('Inbox marked as read.');
+      setNotice(copy.inboxReadNotice);
       clearNoticeLater();
     } catch (err) {
       setError(err.message || 'Failed to update inbox state');
@@ -317,7 +432,7 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
     try {
       await api.markNotificationRead(notificationId);
       await loadStreams({ silent: true });
-      setNotice('Notification marked as read.');
+      setNotice(copy.notificationReadNotice);
       clearNoticeLater();
     } catch (err) {
       setError(err.message || 'Failed to mark notification as read');
@@ -328,8 +443,8 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
     return (
       <div className="page">
         <div className="page-header">
-          <h1>Messages</h1>
-          <p>Loading the CampusOS communication center...</p>
+          <h1>{copy.title}</h1>
+          <p>{copy.loading}</p>
         </div>
         <div className="loading-spinner"></div>
       </div>
@@ -340,42 +455,42 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Messages</h1>
-          <p>Targeted announcements, inbox alerts, and operational updates in one place.</p>
+          <h1>{copy.title}</h1>
+          <p>{language === 'Kyrgyz' ? 'Даректүү билдирүүлөр, inbox эскертүүлөрү жана операциялык жаңыртуулар бир жерде.' : 'Targeted announcements, inbox alerts, and operational updates in one place.'}</p>
         </div>
         <div className="portal-actions">
-          {refreshing && <span className="management-summary-label">Refreshing...</span>}
+          {refreshing && <span className="management-summary-label">{copy.refreshing}</span>}
           {inboxSummary.unread > 0 && (
             <button className="btn-secondary" onClick={handleMarkAllRead}>
-              Mark inbox read
+              {copy.markInboxRead}
             </button>
           )}
           {canManage && (
             <button className="btn-primary" onClick={() => setShowComposer((current) => !current)}>
-              {showComposer ? 'Close composer' : 'New announcement'}
+              {showComposer ? copy.closeComposer : copy.newAnnouncement}
             </button>
           )}
         </div>
       </div>
 
-      <StatusBanner tone="error" title="Messages could not be updated" message={error} />
-      <StatusBanner tone="success" title="Messages updated" message={notice} />
+      <StatusBanner tone="error" title={copy.errorTitle} message={error} />
+      <StatusBanner tone="success" title={copy.successTitle} message={notice} />
 
       <div className="management-summary-grid">
         <div className="management-summary-card">
-          <span className="management-summary-label">Announcements</span>
+          <span className="management-summary-label">{copy.summaryAnnouncements}</span>
           <strong>{announcementSummary.total}</strong>
         </div>
         <div className="management-summary-card">
-          <span className="management-summary-label">Pinned</span>
+          <span className="management-summary-label">{copy.summaryPinned}</span>
           <strong>{announcementSummary.pinned}</strong>
         </div>
         <div className="management-summary-card">
-          <span className="management-summary-label">Unread inbox</span>
+          <span className="management-summary-label">{copy.summaryUnread}</span>
           <strong>{inboxSummary.unread}</strong>
         </div>
         <div className="management-summary-card">
-          <span className="management-summary-label">Import alerts</span>
+          <span className="management-summary-label">{copy.summaryImports}</span>
           <strong>{inboxSummary.imports}</strong>
         </div>
       </div>
@@ -386,14 +501,14 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
           className={`management-filter-chip ${activeView === 'announcements' ? 'active' : ''}`}
           onClick={() => setActiveView('announcements')}
         >
-          Announcements
+          {copy.announcementsTitle}
         </button>
         <button
           type="button"
           className={`management-filter-chip ${activeView === 'inbox' ? 'active' : ''}`}
           onClick={() => setActiveView('inbox')}
         >
-          Inbox
+          {copy.inboxTitle}
         </button>
       </div>
 
@@ -401,15 +516,15 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
         <div className="management-search">
           <input
             type="text"
-            placeholder={activeView === 'announcements' ? 'Search by title, content, author or audience' : 'Search inbox notifications'}
-            aria-label="Search messages"
+            placeholder={activeView === 'announcements' ? copy.searchAnnouncements : copy.searchInbox}
+            aria-label={copy.title}
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />
         </div>
         <div className="management-filters">
           {activeView === 'announcements'
-            ? Object.entries(TYPE_META).map(([typeKey, meta]) => (
+            ? Object.entries(typeMeta).map(([typeKey, meta]) => (
                 <button
                   key={typeKey}
                   type="button"
@@ -420,7 +535,7 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
                   <span className="management-filter-chip-count">{announcementTypeCounts[typeKey] || 0}</span>
                 </button>
               ))
-            : Object.entries(INBOX_META).map(([filterKey, meta]) => (
+            : Object.entries(inboxMeta).map(([filterKey, meta]) => (
                 <button
                   key={filterKey}
                   type="button"
@@ -434,8 +549,8 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
         </div>
         <div className="messages-toolbar-footer">
           <span className="messages-toolbar-note">
-            {activeView === 'announcements' ? 'Announcements' : 'Inbox'}: {activeCount} of {activeTotal} visible
-            {' '}| Filter: {activeFilterLabel}
+            {activeView === 'announcements' ? copy.announcementsTitle : copy.inboxTitle}: {activeCount} / {activeTotal}
+            {' '}| {language === 'Kyrgyz' ? 'Чыпка' : 'Filter'}: {activeFilterLabel}
           </span>
           {(activeView === 'announcements' ? hasActiveAnnouncementFilters : hasActiveInboxFilters) && (
             <button
@@ -450,7 +565,7 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
                 }
               }}
             >
-              Clear filters
+              {copy.clearFilters}
             </button>
           )}
         </div>
@@ -460,8 +575,8 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
         <form className="exam-form-card message-compose-card" onSubmit={handleCreateAnnouncement}>
           <div className="exam-form-header">
             <div>
-              <h3>Publish announcement</h3>
-              <p>Route the message to the right audience before it lands in the CampusOS inbox.</p>
+              <h3>{copy.composerTitle}</h3>
+              <p>{copy.composerSubtitle}</p>
             </div>
           </div>
           <div className="exam-form-grid">
@@ -469,7 +584,7 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
               <span className="exam-form-label">Title</span>
               <input
                 type="text"
-                placeholder="Announcement title"
+                placeholder={copy.announcementTitle}
                 value={formData.title}
                 onChange={(event) => setFormData({ ...formData, title: event.target.value })}
                 required
@@ -487,7 +602,7 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
               </select>
             </label>
             <label className="exam-form-field">
-              <span className="exam-form-label">Audience</span>
+              <span className="exam-form-label">{copy.audience}</span>
               <select
                 value={formData.audienceScope}
                 onChange={(event) => setFormData({
@@ -497,14 +612,14 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
                   courseId: ''
                 })}
               >
-                {AUDIENCE_OPTIONS.map((option) => (
+                {audienceOptions.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </label>
             {formData.audienceScope === 'group' && (
               <label className="exam-form-field">
-                <span className="exam-form-label">Groups or subgroups</span>
+                <span className="exam-form-label">{copy.groupsOrSubgroups}</span>
                 <input
                   type="text"
                   placeholder="CYB-23, CS-24-A"
@@ -516,13 +631,13 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
             )}
             {formData.audienceScope === 'course' && (
               <label className="exam-form-field">
-                <span className="exam-form-label">Course</span>
+                <span className="exam-form-label">{copy.course}</span>
                 <select
                   value={formData.courseId}
                   onChange={(event) => setFormData({ ...formData, courseId: event.target.value })}
                   required
                 >
-                  <option value="">Select a course</option>
+                  <option value="">{copy.selectCourse}</option>
                   {courses.map((course) => (
                     <option key={course.id} value={course.id}>
                       {course.code} - {course.name}
@@ -536,7 +651,7 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
               <span className="exam-form-label">Content</span>
               <textarea
                 className="message-compose-textarea"
-                placeholder="Write the announcement details here"
+                placeholder={copy.contentPlaceholder}
                 value={formData.content}
                 onChange={(event) => setFormData({ ...formData, content: event.target.value })}
                 rows="5"
@@ -550,12 +665,12 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
               checked={formData.isPinned}
               onChange={(event) => setFormData({ ...formData, isPinned: event.target.checked })}
             />
-            <span>Pin this announcement to the top</span>
+            <span>{copy.pinToTop}</span>
           </label>
           <div className="portal-actions">
-            <button type="button" className="btn-secondary" onClick={resetComposer}>Cancel</button>
+            <button type="button" className="btn-secondary" onClick={resetComposer}>{copy.cancel}</button>
             <button type="submit" className="btn-primary" disabled={saving}>
-              {saving ? 'Publishing...' : 'Publish'}
+              {saving ? copy.publishing : copy.publish}
             </button>
           </div>
         </form>
@@ -565,10 +680,10 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
         <div className="messages-list">
           {filteredAnnouncements.length === 0 ? (
             <EmptyState
-              eyebrow="Announcements"
-              title="No announcements match the current view"
-              description="Clear the current filters or publish a new message for the selected audience."
-              actionLabel={(searchTerm || typeFilter !== 'all') ? 'Reset filters' : ''}
+              eyebrow={copy.announcementsTitle}
+              title={copy.announcementsEmptyTitle}
+              description={copy.announcementsEmptyDescription}
+              actionLabel={(searchTerm || typeFilter !== 'all') ? copy.clearFilters : ''}
               onAction={() => {
                 setTypeFilter('all');
                 setSearchTerm('');
@@ -576,8 +691,8 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
             />
           ) : (
             filteredAnnouncements.map((announcement) => {
-              const typeKey = TYPE_META[announcement.type] ? announcement.type : 'general';
-              const meta = TYPE_META[typeKey];
+              const typeKey = typeMeta[announcement.type] ? announcement.type : 'general';
+              const meta = typeMeta[typeKey];
 
               return (
                 <article
@@ -590,23 +705,23 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
                         <span className={`message-type-badge ${typeKey}`}>{meta.badge}</span>
                         <span className="message-type-label">{meta.label}</span>
                         <span className="message-audience-chip">{announcement.audience_label}</span>
-                        {!announcement.is_read && <span className="message-unread-chip">Unread</span>}
-                        {announcement.is_pinned && <span className="pinned-badge">Pinned</span>}
+                        {!announcement.is_read && <span className="message-unread-chip">{copy.unread}</span>}
+                        {announcement.is_pinned && <span className="pinned-badge">{copy.pinned}</span>}
                       </div>
                       <h3>{announcement.title}</h3>
                       <div className="message-subline">
                         <span>{announcement.author_name || 'CampusOS'}</span>
-                        <span>{formatDateTime(announcement.created_at, locale)}</span>
+                        <span>{formatDateTime(announcement.created_at, locale, copy.dateUnavailable)}</span>
                       </div>
                     </div>
                     {canManage && (
                       <div className="message-actions">
                         <button
                           type="button"
-                          className="btn-secondary"
-                          onClick={() => handleDeleteAnnouncement(announcement.id)}
-                        >
-                          Delete
+                        className="btn-secondary"
+                        onClick={() => handleDeleteAnnouncement(announcement.id)}
+                      >
+                          {copy.delete}
                         </button>
                       </div>
                     )}
@@ -621,14 +736,14 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
         <div className="messages-list">
           {filteredNotifications.length === 0 ? (
             <EmptyState
-              eyebrow="Inbox"
-              title="The inbox is clear"
-              description="New announcement deliveries, import summaries, and system updates will appear here."
+              eyebrow={copy.inboxTitle}
+              title={copy.inboxEmptyTitle}
+              description={copy.inboxEmptyDescription}
             />
           ) : (
             filteredNotifications.map((notification) => {
               const sourceKey = normalizeNotificationSource(notification);
-              const sourceMeta = INBOX_META[sourceKey] || INBOX_META.system;
+              const sourceMeta = inboxMeta[sourceKey] || inboxMeta.system;
               const tone = getNotificationTone(sourceKey);
 
               return (
@@ -641,11 +756,11 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
                       <div className="message-badge-row">
                         <span className={`message-type-badge ${tone}`}>{sourceMeta.badge}</span>
                         <span className="message-type-label">{sourceMeta.label}</span>
-                        {!notification.is_read && <span className="message-unread-chip">Unread</span>}
+                        {!notification.is_read && <span className="message-unread-chip">{copy.unread}</span>}
                       </div>
                       <h3>{notification.title}</h3>
                       <div className="message-subline">
-                        <span>{formatDateTime(notification.delivered_at || notification.created_at, locale)}</span>
+                        <span>{formatDateTime(notification.delivered_at || notification.created_at, locale, copy.dateUnavailable)}</span>
                         <span>{notification.status || 'delivered'}</span>
                       </div>
                     </div>
@@ -653,10 +768,10 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB' }) {
                       <div className="message-actions">
                         <button
                           type="button"
-                          className="btn-secondary"
-                          onClick={() => handleMarkNotificationRead(notification.id)}
-                        >
-                          Mark read
+                        className="btn-secondary"
+                        onClick={() => handleMarkNotificationRead(notification.id)}
+                      >
+                          {copy.markRead}
                         </button>
                       </div>
                     )}

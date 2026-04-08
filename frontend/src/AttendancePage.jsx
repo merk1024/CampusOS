@@ -7,26 +7,299 @@ import StatusBanner from './components/StatusBanner';
 import { canManageAcademicRecords, hasAdminAccess } from './roles';
 
 const ATTENDANCE_UI_KEY = 'attendance_ui_preferences';
-const STATUS_OPTIONS = [
-  { value: 'present', label: 'Present' },
-  { value: 'late', label: 'Late' },
-  { value: 'excused', label: 'Excused' },
-  { value: 'absent', label: 'Absent' }
-];
 const STATUS_SHORTCUTS = {
   present: 'P',
   late: 'L',
   excused: 'E',
   absent: 'A'
 };
-
-const STATUS_LABELS = {
-  present: 'Present',
-  absent: 'Absent',
-  late: 'Late',
-  excused: 'Excused',
-  unmarked: 'Unmarked'
+const ATTENDANCE_COPY = {
+  English: {
+    noDate: 'No date',
+    statusLabels: {
+      present: 'Present',
+      absent: 'Absent',
+      late: 'Late',
+      excused: 'Excused',
+      unmarked: 'Unmarked'
+    },
+    statusOptions: [
+      { value: 'present', label: 'Present' },
+      { value: 'late', label: 'Late' },
+      { value: 'excused', label: 'Excused' },
+      { value: 'absent', label: 'Absent' }
+    ],
+    clearDraftStatus: 'Clear draft status',
+    clear: 'Clear',
+    summaryCards: ['Marked', 'Present', 'Late', 'Excused', 'Absent', 'Pending'],
+    analytics: {
+      title: 'Attendance analytics',
+      subtitle: 'Review attendance trends, risk patterns, and the courses or groups that may need follow-up.',
+      from: 'From',
+      to: 'To',
+      unavailable: 'Attendance analytics unavailable',
+      buildingTitle: 'Building attendance insights',
+      buildingDescription: 'CampusOS is aggregating recent attendance records for the selected date range.',
+      emptyTitle: 'No attendance insights yet',
+      emptyDescription: 'Attendance analytics will appear here after teachers begin marking class sessions.',
+      summaryLabels: ['Attendance rate', 'Attendance records', 'Students tracked', 'Courses tracked', 'Groups tracked', 'At-risk students'],
+      dailyTrend: 'Daily trend',
+      activeDays: (count) => `${count} active day(s)`,
+      noMarkedTitle: 'No marked sessions in this window',
+      noMarkedDescription: 'Try widening the date range or mark attendance for more sessions.',
+      recordsAbsent: (records, absent) => `${records} record${records === 1 ? '' : 's'} | ${absent} absent`,
+      watchlist: 'Course watchlist',
+      watchlistHint: 'Lower attendance appears first',
+      noCourseTitle: 'No course analytics yet',
+      noCourseDescription: 'Courses with saved attendance will appear here.',
+      courseFallback: 'Course',
+      courseRecords: (group, total) => `${group} | ${total} record${total === 1 ? '' : 's'}`,
+      absentOnly: (absent) => `${absent} absent`,
+      groupsAndStudents: 'Groups and students to review',
+      studentAlerts: (count) => `${count} student alert(s)`,
+      groupSnapshot: 'Group snapshot',
+      studentsTracked: (count) => `${count} student${count === 1 ? '' : 's'} tracked`,
+      studentAlertsTitle: 'Student alerts',
+      noRisk: 'No critical attendance risk flags were found in this date range.',
+      noStudentId: 'No student ID',
+      absentLate: (absent, late) => `${absent} absent | ${late} late`
+    },
+    teacher: {
+      title: 'Attendance Management',
+      adminSubtitle: 'Review any scheduled class, open the roster, and save attendance for the selected date.',
+      teacherSubtitle: 'Open your scheduled classes, mark student attendance, and keep the daily roster up to date.',
+      attendanceDate: 'Attendance date',
+      updateError: 'Attendance could not be updated',
+      updateSuccess: 'Attendance updated',
+      scheduledClasses: 'Scheduled classes',
+      found: (count) => `${count} found`,
+      loadingClassesTitle: 'Loading scheduled classes',
+      loadingClassesDescription: 'Checking which sessions are available for the selected date.',
+      noClassesTitle: 'No scheduled classes for this date',
+      noClassesDescription: 'Pick another date or add schedule entries first, then attendance management will appear here.',
+      hasRecords: 'Has records',
+      unmarked: 'Unmarked',
+      marked: (count) => `${count} marked`,
+      rosterEyebrow: 'Roster',
+      chooseRosterTitle: 'Choose a class to open its roster',
+      chooseRosterDescription: 'Select one scheduled class from the left panel to start marking attendance.',
+      loadingRosterTitle: 'Loading roster',
+      loadingRosterDescription: 'Preparing the student list and the saved attendance snapshot for this class.',
+      rosterFallback: 'Roster',
+      noGroup: 'No group',
+      quickTitle: 'Quick check-in',
+      quickDescription: 'Enter a student ID or name, then mark attendance without scrolling through the full roster.',
+      currentClass: 'Current class',
+      lookupStudent: 'Lookup student',
+      lookupPlaceholder: 'Student ID, name, or subgroup',
+      lookupAria: 'Quick attendance lookup',
+      noQuickMatch: 'No students matched this lookup. Try another ID, surname, or subgroup.',
+      saved: 'Saved',
+      draft: 'Draft',
+      startTyping: 'Start typing to find a student in the selected class.',
+      student: 'Student',
+      searchPlaceholder: 'Name, student ID, group',
+      searchAria: 'Search students in the attendance roster',
+      rows: 'Rows',
+      allRows: 'All rows',
+      onlyPending: 'Only pending',
+      visibleAction: 'Visible action',
+      applyVisible: 'Apply to visible',
+      clearVisible: 'Clear visible',
+      noVisibleStudents: 'No visible students right now',
+      visibleStudents: (count) => `${count} visible student${count === 1 ? '' : 's'}`,
+      comfortView: 'Comfort view',
+      compactView: 'Compact view',
+      cards: 'Cards',
+      table: 'Table',
+      reset: 'Reset',
+      emptyFilterTitle: 'No students match the current filter',
+      emptyFilterDescription: 'Clear the search or row filter to reopen the full roster.',
+      emptyRosterDescription: 'The selected class does not currently have students in its roster.',
+      clearFilters: 'Clear filters',
+      showingStudents: (visible, total) => `Showing ${visible} of ${total} students`,
+      tableHint: 'Table mode is optimized for quick roster marking',
+      rosterHint: 'Only the roster scrolls, not the save action',
+      quickSet: 'Quick set',
+      setStatus: 'Set status',
+      saveHint: (saved, total, visible) => `Saved: ${saved} of ${total} | Visible now: ${visible}`,
+      saving: 'Saving...',
+      saveAttendance: 'Save attendance',
+      chooseStatusFirst: 'Choose at least one attendance status before saving.',
+      savedStudent: (name, status) => `${name} marked as ${status}.`,
+      saveSuccess: (count) => `Attendance saved for ${count} student${count === 1 ? '' : 's'}.`,
+      failedLoadAnalytics: 'Failed to load attendance analytics',
+      failedLoadSessions: 'Failed to load attendance sessions',
+      failedLoadRoster: 'Failed to load attendance roster',
+      failedSave: 'Failed to save attendance'
+    },
+    studentView: {
+      missingStudentId: 'Student ID is missing for this account.',
+      failedLoad: 'Failed to load attendance',
+      title: 'Attendance',
+      unavailableTitle: 'Attendance unavailable',
+      unavailableSubtitle: 'CampusOS could not load the attendance history for this account.',
+      myTitle: 'My Attendance',
+      mySubtitle: 'Keep track of your class presence, late arrivals, excused classes, and missed lessons.',
+      attendanceRate: 'Attendance rate',
+      totalRecords: 'Total records',
+      historyTitle: 'Attendance history',
+      allStatuses: 'All statuses',
+      emptyTitle: 'No records match the current filter',
+      emptyDescriptionFiltered: 'Reset the status filter to reopen the full attendance history.',
+      emptyDescriptionFresh: 'Attendance records will appear here after teachers start marking your classes.',
+      resetFilter: 'Reset filter',
+      classSession: 'Class session',
+      noRoom: 'No room',
+      markedBy: (name) => `Marked by ${name}`,
+      loading: 'Loading...'
+    }
+  },
+  Kyrgyz: {
+    noDate: 'Дата жок',
+    statusLabels: {
+      present: 'Келди',
+      absent: 'Жок',
+      late: 'Кечикти',
+      excused: 'Уруксаттуу',
+      unmarked: 'Белгилене элек'
+    },
+    statusOptions: [
+      { value: 'present', label: 'Келди' },
+      { value: 'late', label: 'Кечикти' },
+      { value: 'excused', label: 'Уруксаттуу' },
+      { value: 'absent', label: 'Жок' }
+    ],
+    clearDraftStatus: 'Черновик статусту тазалоо',
+    clear: 'Тазалоо',
+    summaryCards: ['Белгиленген', 'Келди', 'Кечикти', 'Уруксаттуу', 'Жок', 'Күтүүдө'],
+    analytics: {
+      title: 'Катышуу аналитикасы',
+      subtitle: 'Катышуу тренддерин, тобокел белгилерин жана кошумча көңүл бурууну талап кылган курстарды же топторду караңыз.',
+      from: 'Башы',
+      to: 'Аягы',
+      unavailable: 'Катышуу аналитикасы жеткиликсиз',
+      buildingTitle: 'Катышуу аналитикасы даярдалууда',
+      buildingDescription: 'CampusOS тандалган мезгил үчүн акыркы катышуу жазууларын топтоп жатат.',
+      emptyTitle: 'Азырынча катышуу аналитикасы жок',
+      emptyDescription: 'Окутуучулар сабактарды белгилей баштагандан кийин катышуу аналитикасы бул жерде пайда болот.',
+      summaryLabels: ['Катышуу пайызы', 'Катышуу жазуулары', 'Көзөмөлдөгү студенттер', 'Көзөмөлдөгү курстар', 'Көзөмөлдөгү топтор', 'Тобокел студенттер'],
+      dailyTrend: 'Күндүк тренд',
+      activeDays: (count) => `${count} активдүү күн`,
+      noMarkedTitle: 'Бул аралыкта белгиленген сессиялар жок',
+      noMarkedDescription: 'Даталар диапазонун кеңейтип көрүңүз же көбүрөөк катышуу белгилеңиз.',
+      recordsAbsent: (records, absent) => `${records} жазуу | ${absent} жок`,
+      watchlist: 'Курс байкоо тизмеси',
+      watchlistHint: 'Төмөн катышуу алдыңкы орунда',
+      noCourseTitle: 'Азырынча курс аналитикасы жок',
+      noCourseDescription: 'Сакталган катышуусу бар курстар бул жерде көрүнөт.',
+      courseFallback: 'Курс',
+      courseRecords: (group, total) => `${group} | ${total} жазуу`,
+      absentOnly: (absent) => `${absent} жок`,
+      groupsAndStudents: 'Карала турган топтор жана студенттер',
+      studentAlerts: (count) => `${count} студенттик белги`,
+      groupSnapshot: 'Топтун абалы',
+      studentsTracked: (count) => `${count} студент көзөмөлдө`,
+      studentAlertsTitle: 'Студенттик эскертүүлөр',
+      noRisk: 'Бул аралыкта олуттуу катышуу тобокел белгилери табылган жок.',
+      noStudentId: 'Студент ID жок',
+      absentLate: (absent, late) => `${absent} жок | ${late} кечикти`
+    },
+    teacher: {
+      title: 'Катышууну башкаруу',
+      adminSubtitle: 'Каалаган пландалган сабакты ачып, тизме менен иштеп, тандалган дата үчүн катышууну сактаңыз.',
+      teacherSubtitle: 'Пландалган сабактарды ачып, студенттердин катышуусун белгилеп, күндүк тизмени жаңыртып туруңуз.',
+      attendanceDate: 'Катышуу күнү',
+      updateError: 'Катышуу жаңыртылган жок',
+      updateSuccess: 'Катышуу жаңыртылды',
+      scheduledClasses: 'Пландалган сабактар',
+      found: (count) => `${count} табылды`,
+      loadingClassesTitle: 'Пландалган сабактар жүктөлүүдө',
+      loadingClassesDescription: 'Тандалган дата үчүн жеткиликтүү сессиялар текшерилүүдө.',
+      noClassesTitle: 'Бул датага пландалган сабак жок',
+      noClassesDescription: 'Башка датаны тандаңыз же адегенде жадыбал түзүңүз, андан кийин катышуу башкаруусу бул жерде көрүнөт.',
+      hasRecords: 'Жазуулар бар',
+      unmarked: 'Белгилене элек',
+      marked: (count) => `${count} белгиленген`,
+      rosterEyebrow: 'Тизме',
+      chooseRosterTitle: 'Тизмени ачуу үчүн сабак тандаңыз',
+      chooseRosterDescription: 'Катышууну белгилөө үчүн сол жактагы панелден бир сабакты тандаңыз.',
+      loadingRosterTitle: 'Тизме жүктөлүүдө',
+      loadingRosterDescription: 'Бул сабак үчүн студенттер тизмеси жана сакталган катышуу абалы даярдалууда.',
+      rosterFallback: 'Тизме',
+      noGroup: 'Топ жок',
+      quickTitle: 'Тез белгилөө',
+      quickDescription: 'Толук тизмени жылдырбай эле студент ID же атын киргизип катышууну белгилеңиз.',
+      currentClass: 'Учурдагы сабак',
+      lookupStudent: 'Студентти издөө',
+      lookupPlaceholder: 'Студент ID, аты же подтоп',
+      lookupAria: 'Катышуу үчүн тез издөө',
+      noQuickMatch: 'Бул издөө боюнча студент табылган жок. Башка ID, фамилия же подтоп менен аракет кылыңыз.',
+      saved: 'Сакталган',
+      draft: 'Черновик',
+      startTyping: 'Тандалган сабактагы студентти табуу үчүн жаза баштаңыз.',
+      student: 'Студент',
+      searchPlaceholder: 'Аты, студент ID, топ',
+      searchAria: 'Катышуу тизмесиндеги студенттерди издөө',
+      rows: 'Саптар',
+      allRows: 'Бардык саптар',
+      onlyPending: 'Күтүүдөгүлөр гана',
+      visibleAction: 'Көрүнгөндөр үчүн аракет',
+      applyVisible: 'Көрүнгөндөргө колдонуу',
+      clearVisible: 'Көрүнгөндөрдү тазалоо',
+      noVisibleStudents: 'Азыр көрүнгөн студент жок',
+      visibleStudents: (count) => `${count} көрүнгөн студент`,
+      comfortView: 'Кеңири көрүнүш',
+      compactView: 'Ыкчам көрүнүш',
+      cards: 'Карталар',
+      table: 'Таблица',
+      reset: 'Калыбына келтирүү',
+      emptyFilterTitle: 'Учурдагы чыпкага ылайык студент табылган жок',
+      emptyFilterDescription: 'Толук тизмени кайра ачуу үчүн издөө же сап чыпкасын тазалаңыз.',
+      emptyRosterDescription: 'Тандалган сабактын тизмесинде азырынча студент жок.',
+      clearFilters: 'Чыпкаларды тазалоо',
+      showingStudents: (visible, total) => `${total} студенттин ичинен ${visible} көрсөтүлүүдө`,
+      tableHint: 'Таблица режими тизмени тез белгилөө үчүн ыңгайлаштырылган',
+      rosterHint: 'Сактоо баскычы эмес, тизме гана жылдырылат',
+      quickSet: 'Тез коюу',
+      setStatus: 'Статус коюу',
+      saveHint: (saved, total, visible) => `Сакталган: ${saved} / ${total} | Азыр көрүнгөнү: ${visible}`,
+      saving: 'Сакталып жатат...',
+      saveAttendance: 'Катышууну сактоо',
+      chooseStatusFirst: 'Сактоодон мурун жок дегенде бир катышуу статусун тандаңыз.',
+      savedStudent: (name, status) => `${name} үчүн статус: ${status}.`,
+      saveSuccess: (count) => `${count} студент үчүн катышуу сакталды.`,
+      failedLoadAnalytics: 'Катышуу аналитикасын жүктөө мүмкүн болгон жок',
+      failedLoadSessions: 'Катышуу сессияларын жүктөө мүмкүн болгон жок',
+      failedLoadRoster: 'Катышуу тизмесин жүктөө мүмкүн болгон жок',
+      failedSave: 'Катышууну сактоо мүмкүн болгон жок'
+    },
+    studentView: {
+      missingStudentId: 'Бул аккаунт үчүн студент ID жок.',
+      failedLoad: 'Катышууну жүктөө мүмкүн болгон жок',
+      title: 'Катышуу',
+      unavailableTitle: 'Катышуу жеткиликсиз',
+      unavailableSubtitle: 'CampusOS бул аккаунт үчүн катышуу тарыхын жүктөй алган жок.',
+      myTitle: 'Менин катышуум',
+      mySubtitle: 'Сабакка катышууңузду, кечигүүлөрдү, уруксат берилген сабактарды жана калтырылган сабактарды көзөмөлдөңүз.',
+      attendanceRate: 'Катышуу пайызы',
+      totalRecords: 'Жалпы жазуулар',
+      historyTitle: 'Катышуу тарыхы',
+      allStatuses: 'Бардык статустар',
+      emptyTitle: 'Учурдагы чыпкага ылайык жазуу жок',
+      emptyDescriptionFiltered: 'Толук катышуу тарыхын кайра ачуу үчүн статус чыпкасын тазалаңыз.',
+      emptyDescriptionFresh: 'Окутуучулар сабактарыңызды белгилей баштагандан кийин катышуу жазуулары бул жерде көрүнөт.',
+      resetFilter: 'Чыпканы тазалоо',
+      classSession: 'Сабак сессиясы',
+      noRoom: 'Аудитория жок',
+      markedBy: (name) => `${name} тарабынан белгиленди`,
+      loading: 'Жүктөлүүдө...'
+    }
+  }
 };
+
+const getStatusOptions = (language = 'English') => (ATTENDANCE_COPY[language] || ATTENDANCE_COPY.English).statusOptions;
+const getStatusLabels = (language = 'English') => (ATTENDANCE_COPY[language] || ATTENDANCE_COPY.English).statusLabels;
 
 const EMPTY_SUMMARY = {
   total: 0,
@@ -90,10 +363,10 @@ const createDefaultAnalyticsRange = () => {
   };
 };
 
-const formatDate = (value) => {
-  if (!value) return 'No date';
+const formatDate = (value, locale = 'en-GB', fallback = 'No date') => {
+  if (!value) return fallback;
 
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: 'short',
     year: 'numeric'
@@ -153,19 +426,19 @@ const getStudentStats = (records) => {
   return { ...stats, attendanceRate };
 };
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, labels }) {
   const normalizedStatus = status || 'unmarked';
   return (
     <span className={`att-status-badge ${normalizedStatus}`}>
-      {STATUS_LABELS[normalizedStatus] || STATUS_LABELS.unmarked}
+      {labels[normalizedStatus] || labels.unmarked}
     </span>
   );
 }
 
-function AttendanceQuickStatusButtons({ value, onChange, compact = false }) {
+function AttendanceQuickStatusButtons({ value, onChange, compact = false, statusOptions, clearLabel, clearTitle }) {
   return (
     <div className={`att-status-matrix ${compact ? 'compact' : ''}`}>
-      {STATUS_OPTIONS.map((option) => (
+      {statusOptions.map((option) => (
         <button
           key={option.value}
           type="button"
@@ -180,22 +453,22 @@ function AttendanceQuickStatusButtons({ value, onChange, compact = false }) {
         type="button"
         className={`att-status-quick clear ${!value ? 'active' : ''}`}
         onClick={() => onChange('')}
-        title="Clear draft status"
+        title={clearTitle}
       >
-        Clear
+        {clearLabel}
       </button>
     </div>
   );
 }
 
-function AttendanceSummary({ summary }) {
+function AttendanceSummary({ summary, labels }) {
   const cards = [
-    { label: 'Marked', value: summary.marked },
-    { label: 'Present', value: summary.present },
-    { label: 'Late', value: summary.late },
-    { label: 'Excused', value: summary.excused },
-    { label: 'Absent', value: summary.absent },
-    { label: 'Pending', value: summary.unmarked }
+    { label: labels[0], value: summary.marked },
+    { label: labels[1], value: summary.present },
+    { label: labels[2], value: summary.late },
+    { label: labels[3], value: summary.excused },
+    { label: labels[4], value: summary.absent },
+    { label: labels[5], value: summary.unmarked }
   ];
 
   return (
@@ -215,30 +488,31 @@ function AttendanceAnalyticsPanel({
   analyticsRange,
   analyticsError,
   loadingAnalytics,
-  onAnalyticsRangeChange
+  onAnalyticsRangeChange,
+  locale = 'en-GB',
+  copy
 }) {
+  const a = copy.analytics;
   const summaryCards = analytics ? [
-    { label: 'Attendance rate', value: formatPercentage(analytics.summary.attendanceRate) },
-    { label: 'Attendance records', value: analytics.summary.totalRecords },
-    { label: 'Students tracked', value: analytics.summary.studentsTracked },
-    { label: 'Courses tracked', value: analytics.summary.coursesTracked },
-    { label: 'Groups tracked', value: analytics.summary.groupsTracked },
-    { label: 'At-risk students', value: analytics.summary.atRiskStudents }
+    { label: a.summaryLabels[0], value: formatPercentage(analytics.summary.attendanceRate) },
+    { label: a.summaryLabels[1], value: analytics.summary.totalRecords },
+    { label: a.summaryLabels[2], value: analytics.summary.studentsTracked },
+    { label: a.summaryLabels[3], value: analytics.summary.coursesTracked },
+    { label: a.summaryLabels[4], value: analytics.summary.groupsTracked },
+    { label: a.summaryLabels[5], value: analytics.summary.atRiskStudents }
   ] : [];
 
   return (
     <section className="att-panel att-analytics-panel">
       <div className="att-panel-head att-analytics-head">
         <div>
-          <h3>Attendance analytics</h3>
-          <p>
-            Review attendance trends, risk patterns, and the courses or groups that may need follow-up.
-          </p>
+          <h3>{a.title}</h3>
+          <p>{a.subtitle}</p>
         </div>
 
         <div className="att-analytics-range">
           <label className="att-filter">
-            <span>From</span>
+            <span>{a.from}</span>
             <input
               type="date"
               value={analyticsRange.from}
@@ -246,7 +520,7 @@ function AttendanceAnalyticsPanel({
             />
           </label>
           <label className="att-filter">
-            <span>To</span>
+            <span>{a.to}</span>
             <input
               type="date"
               value={analyticsRange.to}
@@ -256,21 +530,21 @@ function AttendanceAnalyticsPanel({
         </div>
       </div>
 
-      <StatusBanner tone="error" title="Attendance analytics unavailable" message={analyticsError} />
+      <StatusBanner tone="error" title={a.unavailable} message={analyticsError} />
 
       {loadingAnalytics ? (
         <EmptyState
           eyebrow="Analytics"
-          title="Building attendance insights"
-          description="CampusOS is aggregating recent attendance records for the selected date range."
+          title={a.buildingTitle}
+          description={a.buildingDescription}
           compact
           className="att-inline-empty"
         />
       ) : !analytics ? (
         <EmptyState
           eyebrow="Analytics"
-          title="No attendance insights yet"
-          description="Attendance analytics will appear here after teachers begin marking class sessions."
+          title={a.emptyTitle}
+          description={a.emptyDescription}
           compact
           className="att-inline-empty"
         />
@@ -289,13 +563,13 @@ function AttendanceAnalyticsPanel({
             <section className="att-analytics-card">
               <div className="att-analytics-card-head">
                 <h4>Daily trend</h4>
-                <span>{analytics.trend.length} active day(s)</span>
+                <span>{a.activeDays(analytics.trend.length)}</span>
               </div>
               {analytics.trend.length === 0 ? (
                 <EmptyState
                   eyebrow="Trend"
-                  title="No marked sessions in this window"
-                  description="Try widening the date range or mark attendance for more sessions."
+                  title={a.noMarkedTitle}
+                  description={a.noMarkedDescription}
                   compact
                   className="att-inline-empty"
                 />
@@ -304,9 +578,9 @@ function AttendanceAnalyticsPanel({
                   {analytics.trend.map((entry) => (
                     <article key={entry.date} className="att-analytics-row">
                       <div className="att-analytics-main">
-                        <strong>{formatDate(entry.date)}</strong>
+                        <strong>{formatDate(entry.date, locale, copy.noDate)}</strong>
                         <span>
-                          {entry.totalRecords} record{entry.totalRecords === 1 ? '' : 's'} | {entry.absent} absent
+                          {a.recordsAbsent(entry.totalRecords, entry.absent)}
                         </span>
                       </div>
                       <div className="att-analytics-kpi">
@@ -323,14 +597,14 @@ function AttendanceAnalyticsPanel({
 
             <section className="att-analytics-card">
               <div className="att-analytics-card-head">
-                <h4>Course watchlist</h4>
-                <span>Lower attendance appears first</span>
+                <h4>{a.watchlist}</h4>
+                <span>{a.watchlistHint}</span>
               </div>
               {analytics.courseBreakdown.length === 0 ? (
                 <EmptyState
                   eyebrow="Courses"
-                  title="No course analytics yet"
-                  description="Courses with saved attendance will appear here."
+                  title={a.noCourseTitle}
+                  description={a.noCourseDescription}
                   compact
                   className="att-inline-empty"
                 />
@@ -342,14 +616,12 @@ function AttendanceAnalyticsPanel({
                       className="att-analytics-row"
                     >
                       <div className="att-analytics-main">
-                        <strong>{entry.courseName || entry.courseCode || entry.subject || 'Course'}</strong>
-                        <span>
-                          {entry.groupName} | {entry.totalRecords} record{entry.totalRecords === 1 ? '' : 's'}
-                        </span>
+                        <strong>{entry.courseName || entry.courseCode || entry.subject || a.courseFallback}</strong>
+                        <span>{a.courseRecords(entry.groupName, entry.totalRecords)}</span>
                       </div>
                       <div className="att-analytics-kpi">
                         <strong>{formatPercentage(entry.attendanceRate)}</strong>
-                        <small>{entry.absent} absent</small>
+                        <small>{a.absentOnly(entry.absent)}</small>
                       </div>
                     </article>
                   ))}
@@ -359,24 +631,24 @@ function AttendanceAnalyticsPanel({
 
             <section className="att-analytics-card">
               <div className="att-analytics-card-head">
-                <h4>Groups and students to review</h4>
-                <span>{analytics.riskStudents.length} student alert(s)</span>
+                <h4>{a.groupsAndStudents}</h4>
+                <span>{a.studentAlerts(analytics.riskStudents.length)}</span>
               </div>
 
               <div className="att-analytics-section">
                 {analytics.groupBreakdown.length === 0 ? null : (
                   <div className="att-analytics-subsection">
-                    <h5>Group snapshot</h5>
+                    <h5>{a.groupSnapshot}</h5>
                     <div className="att-analytics-list compact">
                       {analytics.groupBreakdown.slice(0, 4).map((entry) => (
                         <article key={entry.groupName} className="att-analytics-row compact">
                           <div className="att-analytics-main">
                             <strong>{entry.groupName}</strong>
-                            <span>{entry.studentsTracked} student{entry.studentsTracked === 1 ? '' : 's'} tracked</span>
+                            <span>{a.studentsTracked(entry.studentsTracked)}</span>
                           </div>
                           <div className="att-analytics-kpi">
                             <strong>{formatPercentage(entry.attendanceRate)}</strong>
-                            <small>{entry.absent} absent</small>
+                            <small>{a.absentOnly(entry.absent)}</small>
                           </div>
                         </article>
                       ))}
@@ -385,10 +657,10 @@ function AttendanceAnalyticsPanel({
                 )}
 
                 <div className="att-analytics-subsection">
-                  <h5>Student alerts</h5>
+                  <h5>{a.studentAlertsTitle}</h5>
                   {analytics.riskStudents.length === 0 ? (
                     <p className="att-analytics-note">
-                      No critical attendance risk flags were found in this date range.
+                      {a.noRisk}
                     </p>
                   ) : (
                     <div className="att-analytics-list compact">
@@ -397,7 +669,7 @@ function AttendanceAnalyticsPanel({
                           <div className="att-analytics-main">
                             <strong>{entry.studentName}</strong>
                             <span>
-                              {entry.studentId || 'No student ID'}
+                              {entry.studentId || a.noStudentId}
                               {entry.groupName ? ` | ${entry.groupName}` : ''}
                             </span>
                             {entry.courseLabels?.length ? (
@@ -406,7 +678,7 @@ function AttendanceAnalyticsPanel({
                           </div>
                           <div className="att-analytics-kpi">
                             <strong>{formatPercentage(entry.attendanceRate)}</strong>
-                            <small>{entry.absent} absent | {entry.late} late</small>
+                            <small>{a.absentLate(entry.absent, entry.late)}</small>
                           </div>
                         </article>
                       ))}
@@ -422,7 +694,10 @@ function AttendanceAnalyticsPanel({
   );
 }
 
-function TeacherAttendance({ user }) {
+function TeacherAttendance({ user, language = 'English', locale = 'en-GB' }) {
+  const copy = ATTENDANCE_COPY[language] || ATTENDANCE_COPY.English;
+  const statusOptions = getStatusOptions(language);
+  const statusLabels = getStatusLabels(language);
   const initialPreferences = readAttendancePreferences();
   const [selectedDate, setSelectedDate] = useState(getTodayDate);
   const [analyticsRange, setAnalyticsRange] = useState(createDefaultAnalyticsRange);
@@ -470,14 +745,14 @@ function TeacherAttendance({ user }) {
         setAnalytics(response);
       } catch (requestError) {
         setAnalytics(null);
-        setAnalyticsError(requestError.message || 'Failed to load attendance analytics');
+        setAnalyticsError(requestError.message || copy.teacher.failedLoadAnalytics);
       } finally {
         setLoadingAnalytics(false);
       }
     };
 
     loadAnalytics();
-  }, [analyticsRange.from, analyticsRange.to]);
+  }, [analyticsRange.from, analyticsRange.to, copy.teacher.failedLoadAnalytics]);
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -495,7 +770,7 @@ function TeacherAttendance({ user }) {
             : (nextSessions[0]?.id ?? null)
         ));
       } catch (requestError) {
-        setError(requestError.message || 'Failed to load attendance sessions');
+        setError(requestError.message || copy.teacher.failedLoadSessions);
         setSessions([]);
         setSelectedSessionId(null);
       } finally {
@@ -504,7 +779,7 @@ function TeacherAttendance({ user }) {
     };
 
     loadSessions();
-  }, [selectedDate]);
+  }, [copy.teacher.failedLoadSessions, selectedDate]);
 
   useEffect(() => {
     const loadRoster = async () => {
@@ -530,7 +805,7 @@ function TeacherAttendance({ user }) {
           Object.fromEntries(nextStudents.map((student) => [student.student_id, student.status || '']))
         );
       } catch (requestError) {
-        setError(requestError.message || 'Failed to load attendance roster');
+        setError(requestError.message || copy.teacher.failedLoadRoster);
         setSelectedSession(null);
         setStudents([]);
         setDraftStatuses({});
@@ -541,7 +816,7 @@ function TeacherAttendance({ user }) {
     };
 
     loadRoster();
-  }, [selectedDate, selectedSessionId]);
+  }, [copy.teacher.failedLoadRoster, selectedDate, selectedSessionId]);
 
   const filteredStudents = students.filter((student) => {
     const matchesSearch = buildStudentSearchText(student).includes(search.trim().toLowerCase());
@@ -609,7 +884,7 @@ function TeacherAttendance({ user }) {
 
     setStudentDraftStatus(activeQuickStudent.student_id, status);
     setError('');
-    setNotice(`${activeQuickStudent.name} marked as ${STATUS_LABELS[status]}.`);
+      setNotice(copy.teacher.savedStudent(activeQuickStudent.name, statusLabels[status]));
     setQuickQuery('');
     setQuickStudentId('');
   };
@@ -623,7 +898,7 @@ function TeacherAttendance({ user }) {
       .filter((record) => record.studentId && record.status);
 
     if (records.length === 0) {
-      setError('Choose at least one attendance status before saving.');
+      setError(copy.teacher.chooseStatusFirst);
       return;
     }
 
@@ -640,7 +915,7 @@ function TeacherAttendance({ user }) {
       setDraftStatuses(
         Object.fromEntries(nextStudents.map((student) => [student.student_id, student.status || '']))
       );
-      setNotice(`Attendance saved for ${records.length} student${records.length === 1 ? '' : 's'}.`);
+      setNotice(copy.teacher.saveSuccess(records.length));
 
       const sessionsResponse = await api.getAttendanceSessions(selectedDate);
       setSessions(sessionsResponse.sessions || []);
@@ -650,7 +925,7 @@ function TeacherAttendance({ user }) {
         setAnalytics(analyticsResponse);
       }
     } catch (requestError) {
-      setError(requestError.message || 'Failed to save attendance');
+      setError(requestError.message || copy.teacher.failedSave);
     } finally {
       setSaving(false);
     }
@@ -660,27 +935,27 @@ function TeacherAttendance({ user }) {
     <div className="att-shell">
       <div className="att-header">
         <div>
-          <h2>Attendance Management</h2>
+          <h2>{copy.teacher.title}</h2>
           <p>
             {isAdmin
-              ? 'Review any scheduled class, open the roster, and save attendance for the selected date.'
-              : 'Open your scheduled classes, mark student attendance, and keep the daily roster up to date.'}
+              ? copy.teacher.adminSubtitle
+              : copy.teacher.teacherSubtitle}
           </p>
         </div>
         <div className="att-date-card">
-          <label htmlFor="attendance-date">Attendance date</label>
+          <label htmlFor="attendance-date">{copy.teacher.attendanceDate}</label>
           <input
             id="attendance-date"
             type="date"
             value={selectedDate}
             onChange={(event) => setSelectedDate(event.target.value)}
           />
-          <span>{formatDate(selectedDate)}</span>
+          <span>{formatDate(selectedDate, locale, copy.noDate)}</span>
         </div>
       </div>
 
-      <StatusBanner tone="error" title="Attendance could not be updated" message={error} />
-      <StatusBanner tone="success" title="Attendance updated" message={notice} />
+      <StatusBanner tone="error" title={copy.teacher.updateError} message={error} />
+      <StatusBanner tone="success" title={copy.teacher.updateSuccess} message={notice} />
 
       <AttendanceAnalyticsPanel
         analytics={analytics}
@@ -688,28 +963,30 @@ function TeacherAttendance({ user }) {
         analyticsError={analyticsError}
         loadingAnalytics={loadingAnalytics}
         onAnalyticsRangeChange={handleAnalyticsRangeChange}
+        locale={locale}
+        copy={copy}
       />
 
       <div className="att-management-grid">
         <section className="att-panel att-session-panel">
           <div className="att-panel-head">
-            <h3>Scheduled classes</h3>
-            <span>{sessions.length} found</span>
+            <h3>{copy.teacher.scheduledClasses}</h3>
+            <span>{copy.teacher.found(sessions.length)}</span>
           </div>
 
           {loadingSessions ? (
             <EmptyState
               eyebrow="Attendance"
-              title="Loading scheduled classes"
-              description="Checking which sessions are available for the selected date."
+              title={copy.teacher.loadingClassesTitle}
+              description={copy.teacher.loadingClassesDescription}
               compact
               className="att-inline-empty"
             />
           ) : sessions.length === 0 ? (
             <EmptyState
               eyebrow="Attendance"
-              title="No scheduled classes for this date"
-              description="Pick another date or add schedule entries first, then attendance management will appear here."
+              title={copy.teacher.noClassesTitle}
+              description={copy.teacher.noClassesDescription}
               compact
               className="att-inline-empty"
             />
@@ -735,9 +1012,9 @@ function TeacherAttendance({ user }) {
                     </div>
                     <div className="att-session-footer">
                       <span className={`att-session-mark ${Number(session.marked_count) > 0 ? 'done' : ''}`}>
-                        {Number(session.marked_count) > 0 ? 'Has records' : 'Unmarked'}
+                        {Number(session.marked_count) > 0 ? copy.teacher.hasRecords : copy.teacher.unmarked}
                       </span>
-                      <small>{session.marked_count || 0} marked</small>
+                      <small>{copy.teacher.marked(session.marked_count || 0)}</small>
                     </div>
                   </button>
                 );
@@ -749,17 +1026,17 @@ function TeacherAttendance({ user }) {
         <section className={`att-panel att-roster-panel ${compactMode ? 'compact' : ''}`}>
           {!selectedSessionId ? (
             <EmptyState
-              eyebrow="Roster"
-              title="Choose a class to open its roster"
-              description="Select one scheduled class from the left panel to start marking attendance."
+              eyebrow={copy.teacher.rosterEyebrow}
+              title={copy.teacher.chooseRosterTitle}
+              description={copy.teacher.chooseRosterDescription}
               compact
               className="att-inline-empty"
             />
           ) : loadingRoster ? (
             <EmptyState
-              eyebrow="Roster"
-              title="Loading roster"
-              description="Preparing the student list and the saved attendance snapshot for this class."
+              eyebrow={copy.teacher.rosterEyebrow}
+              title={copy.teacher.loadingRosterTitle}
+              description={copy.teacher.loadingRosterDescription}
               compact
               className="att-inline-empty"
             />
@@ -767,31 +1044,31 @@ function TeacherAttendance({ user }) {
             <>
               <div className="att-panel-head att-roster-head">
                 <div>
-                  <h3>{selectedSession?.course_name || selectedSession?.subject || 'Roster'}</h3>
+                  <h3>{selectedSession?.course_name || selectedSession?.subject || copy.teacher.rosterFallback}</h3>
                   <p>
                     {selectedSession?.day} | {selectedSession?.time_slot}
                     {selectedSession?.room ? ` | ${selectedSession.room}` : ''}
                   </p>
                 </div>
                 <div className="att-roster-tags">
-                  <span>{selectedSession?.group_name || 'No group'}</span>
+                  <span>{selectedSession?.group_name || copy.teacher.noGroup}</span>
                   {selectedSession?.subgroup_name ? <span>{selectedSession.subgroup_name}</span> : null}
                 </div>
               </div>
 
-              <AttendanceSummary summary={draftSummary} />
+              <AttendanceSummary summary={draftSummary} labels={copy.summaryCards} />
 
               <section className="att-quick-mark">
                 <div className="att-quick-mark-head">
                   <div>
-                    <h4>Quick check-in</h4>
-                    <p>Enter a student ID or name, then mark attendance without scrolling through the full roster.</p>
+                    <h4>{copy.teacher.quickTitle}</h4>
+                    <p>{copy.teacher.quickDescription}</p>
                   </div>
-                  <span>{selectedSession?.group_name || 'Current class'}</span>
+                  <span>{selectedSession?.group_name || copy.teacher.currentClass}</span>
                 </div>
 
                 <label className="att-search att-quick-mark-search">
-                  <span>Lookup student</span>
+                  <span>{copy.teacher.lookupStudent}</span>
                   <input
                     type="search"
                     value={quickQuery}
@@ -799,8 +1076,8 @@ function TeacherAttendance({ user }) {
                       setQuickQuery(event.target.value);
                       setQuickStudentId('');
                     }}
-                    placeholder="Student ID, name, or subgroup"
-                    aria-label="Quick attendance lookup"
+                    placeholder={copy.teacher.lookupPlaceholder}
+                    aria-label={copy.teacher.lookupAria}
                   />
                 </label>
 
@@ -827,7 +1104,7 @@ function TeacherAttendance({ user }) {
                         })
                       ) : (
                         <div className="att-quick-empty">
-                          No students matched this lookup. Try another ID, surname, or subgroup.
+                          {copy.teacher.noQuickMatch}
                         </div>
                       )}
                     </div>
@@ -843,20 +1120,20 @@ function TeacherAttendance({ user }) {
                           </span>
                         </div>
                         <div className="att-quick-mark-statuses">
-                          <span>Saved: <StatusBadge status={activeQuickStudent.status} /></span>
-                          <span>Draft: <StatusBadge status={activeQuickDraft || 'unmarked'} /></span>
+                          <span>{copy.teacher.saved}: <StatusBadge status={activeQuickStudent.status} labels={statusLabels} /></span>
+                          <span>{copy.teacher.draft}: <StatusBadge status={activeQuickDraft || 'unmarked'} labels={statusLabels} /></span>
                         </div>
                       </div>
                     ) : null}
                   </>
                 ) : (
                   <div className="att-quick-empty">
-                    Start typing to find a student in the selected class.
+                    {copy.teacher.startTyping}
                   </div>
                 )}
 
                 <div className="att-quick-mark-actions">
-                  {STATUS_OPTIONS.map((option) => (
+                  {statusOptions.map((option) => (
                     <button
                       key={option.value}
                       type="button"
@@ -873,22 +1150,22 @@ function TeacherAttendance({ user }) {
               <div className="att-toolbar">
                 <div className="att-toolbar-main">
                   <label className="att-search">
-                    <span>Student</span>
+                    <span>{copy.teacher.student}</span>
                     <input
                       type="search"
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
-                      placeholder="Name, student ID, group"
-                      aria-label="Search students in the attendance roster"
+                      placeholder={copy.teacher.searchPlaceholder}
+                      aria-label={copy.teacher.searchAria}
                     />
                   </label>
 
                   <label className="att-filter">
-                    <span>Rows</span>
+                    <span>{copy.teacher.rows}</span>
                     <select value={rosterFilter} onChange={(event) => setRosterFilter(event.target.value)}>
-                      <option value="all">All rows</option>
-                      <option value="unmarked">Only pending</option>
-                      {STATUS_OPTIONS.map((option) => (
+                      <option value="all">{copy.teacher.allRows}</option>
+                      <option value="unmarked">{copy.teacher.onlyPending}</option>
+                      {statusOptions.map((option) => (
                         <option key={option.value} value={option.value}>{option.label}</option>
                       ))}
                     </select>
@@ -898,9 +1175,9 @@ function TeacherAttendance({ user }) {
                 <div className="att-toolbar-secondary">
                   <div className="att-bulk-actions">
                     <label className="att-filter att-filter-compact">
-                      <span>Visible action</span>
+                      <span>{copy.teacher.visibleAction}</span>
                       <select value={bulkStatus} onChange={(event) => setBulkStatus(event.target.value)}>
-                        {STATUS_OPTIONS.map((option) => (
+                        {statusOptions.map((option) => (
                           <option key={option.value} value={option.value}>{option.label}</option>
                         ))}
                       </select>
@@ -910,25 +1187,25 @@ function TeacherAttendance({ user }) {
                       onClick={() => applyStatusToVisible(bulkStatus)}
                       disabled={visibleCount === 0}
                     >
-                      Apply to visible
+                      {copy.teacher.applyVisible}
                     </button>
                     <button
                       type="button"
                       onClick={() => applyStatusToVisible('')}
                       disabled={visibleCount === 0}
                     >
-                      Clear visible
+                      {copy.teacher.clearVisible}
                     </button>
                     <span className="att-toolbar-note">
                       {visibleCount === 0
-                        ? 'No visible students right now'
-                        : `${visibleCount} visible student${visibleCount === 1 ? '' : 's'}`}
+                        ? copy.teacher.noVisibleStudents
+                        : copy.teacher.visibleStudents(visibleCount)}
                     </span>
                   </div>
 
                   <div className="att-quick-actions">
                     <button type="button" onClick={() => setCompactMode((value) => !value)}>
-                      {compactMode ? 'Comfort view' : 'Compact view'}
+                      {compactMode ? copy.teacher.comfortView : copy.teacher.compactView}
                     </button>
                     <div className="att-layout-switch" role="tablist" aria-label="Attendance layout">
                       <button
@@ -936,27 +1213,27 @@ function TeacherAttendance({ user }) {
                         className={layoutMode === 'cards' ? 'active' : ''}
                         onClick={() => setLayoutMode('cards')}
                       >
-                        Cards
+                        {copy.teacher.cards}
                       </button>
                       <button
                         type="button"
                         className={layoutMode === 'table' ? 'active' : ''}
                         onClick={() => setLayoutMode('table')}
                       >
-                        Table
+                        {copy.teacher.table}
                       </button>
                     </div>
-                    <button type="button" onClick={resetDraftToSaved}>Reset</button>
+                    <button type="button" onClick={resetDraftToSaved}>{copy.teacher.reset}</button>
                   </div>
                 </div>
               </div>
 
               {filteredStudents.length === 0 ? (
                 <EmptyState
-                  eyebrow="Roster"
-                  title="No students match the current filter"
-                  description={hasRosterFilters ? 'Clear the search or row filter to reopen the full roster.' : 'The selected class does not currently have students in its roster.'}
-                  actionLabel={hasRosterFilters ? 'Clear filters' : ''}
+                  eyebrow={copy.teacher.rosterEyebrow}
+                  title={copy.teacher.emptyFilterTitle}
+                  description={hasRosterFilters ? copy.teacher.emptyFilterDescription : copy.teacher.emptyRosterDescription}
+                  actionLabel={hasRosterFilters ? copy.teacher.clearFilters : ''}
                   onAction={() => {
                     setSearch('');
                     setRosterFilter('all');
@@ -967,8 +1244,8 @@ function TeacherAttendance({ user }) {
               ) : (
                 <div className="att-roster-scroll">
                   <div className="att-roster-meta">
-                    <span>Showing {filteredStudents.length} of {students.length} students</span>
-                    <span>{layoutMode === 'table' ? 'Table mode is optimized for quick roster marking' : 'Only the roster scrolls, not the save action'}</span>
+                    <span>{copy.teacher.showingStudents(filteredStudents.length, students.length)}</span>
+                    <span>{layoutMode === 'table' ? copy.teacher.tableHint : copy.teacher.rosterHint}</span>
                   </div>
                   {layoutMode === 'table' ? (
                     <div className="att-roster-table-shell">
@@ -976,10 +1253,10 @@ function TeacherAttendance({ user }) {
                         <caption className="sr-only">Attendance roster table</caption>
                         <thead>
                           <tr>
-                            <th scope="col">Student</th>
-                            <th scope="col">Saved</th>
-                            <th scope="col">Draft</th>
-                            <th scope="col">Quick set</th>
+                            <th scope="col">{copy.teacher.student}</th>
+                            <th scope="col">{copy.teacher.saved}</th>
+                            <th scope="col">{copy.teacher.draft}</th>
+                            <th scope="col">{copy.teacher.quickSet}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -998,13 +1275,16 @@ function TeacherAttendance({ user }) {
                                     </span>
                                   </div>
                                 </td>
-                                <td><StatusBadge status={student.status} /></td>
-                                <td><StatusBadge status={draftValue || 'unmarked'} /></td>
+                                <td><StatusBadge status={student.status} labels={statusLabels} /></td>
+                                <td><StatusBadge status={draftValue || 'unmarked'} labels={statusLabels} /></td>
                                 <td>
                                   <AttendanceQuickStatusButtons
                                     compact
                                     value={draftValue}
                                     onChange={(status) => setStudentDraftStatus(student.student_id, status)}
+                                    statusOptions={statusOptions}
+                                    clearLabel={copy.clear}
+                                    clearTitle={copy.clearDraftStatus}
                                   />
                                 </td>
                               </tr>
@@ -1027,15 +1307,18 @@ function TeacherAttendance({ user }) {
                           </div>
 
                           <div className="att-student-current">
-                            <small>Saved</small>
-                            <StatusBadge status={student.status} />
+                            <small>{copy.teacher.saved}</small>
+                            <StatusBadge status={student.status} labels={statusLabels} />
                           </div>
 
                           <div className="att-status-select">
-                            <span>Set status</span>
+                            <span>{copy.teacher.setStatus}</span>
                             <AttendanceQuickStatusButtons
                               value={draftStatuses[student.student_id] || ''}
                               onChange={(status) => setStudentDraftStatus(student.student_id, status)}
+                              statusOptions={statusOptions}
+                              clearLabel={copy.clear}
+                              clearTitle={copy.clearDraftStatus}
                             />
                           </div>
                         </article>
@@ -1047,7 +1330,7 @@ function TeacherAttendance({ user }) {
 
               <div className="att-actions att-actions-sticky">
                 <div className="att-save-hint">
-                  Saved: {savedSummary.marked} of {savedSummary.total} | Visible now: {filteredStudents.length}
+                  {copy.teacher.saveHint(savedSummary.marked, savedSummary.total, filteredStudents.length)}
                 </div>
                 <button
                   type="button"
@@ -1055,7 +1338,7 @@ function TeacherAttendance({ user }) {
                   onClick={handleSave}
                   disabled={saving || students.length === 0}
                 >
-                  {saving ? 'Saving...' : 'Save attendance'}
+                  {saving ? copy.teacher.saving : copy.teacher.saveAttendance}
                 </button>
               </div>
             </>
@@ -1066,7 +1349,10 @@ function TeacherAttendance({ user }) {
   );
 }
 
-function StudentAttendance({ user }) {
+function StudentAttendance({ user, language = 'English', locale = 'en-GB' }) {
+  const copy = ATTENDANCE_COPY[language] || ATTENDANCE_COPY.English;
+  const statusOptions = getStatusOptions(language);
+  const statusLabels = getStatusLabels(language);
   const [attendance, setAttendance] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -1077,7 +1363,7 @@ function StudentAttendance({ user }) {
       const studentId = user?.studentId || user?.student_id;
 
       if (!studentId) {
-        setError('Student ID is missing for this account.');
+        setError(copy.studentView.missingStudentId);
         setLoading(false);
         return;
       }
@@ -1088,17 +1374,17 @@ function StudentAttendance({ user }) {
         const response = await api.getStudentAttendance(studentId);
         setAttendance(response.attendance || []);
       } catch (requestError) {
-        setError(requestError.message || 'Failed to load attendance');
+        setError(requestError.message || copy.studentView.failedLoad);
       } finally {
         setLoading(false);
       }
     };
 
     loadAttendance();
-  }, [user]);
+  }, [copy.studentView.failedLoad, copy.studentView.missingStudentId, user]);
 
   if (loading) {
-    return <div className="loading-spinner">Loading...</div>;
+    return <div className="loading-spinner">{copy.studentView.loading}</div>;
   }
 
   if (error) {
@@ -1106,11 +1392,11 @@ function StudentAttendance({ user }) {
       <div className="att-shell">
         <div className="att-header">
           <div>
-            <h2>Attendance</h2>
-            <p>CampusOS could not load the attendance history for this account.</p>
+            <h2>{copy.studentView.title}</h2>
+            <p>{copy.studentView.unavailableSubtitle}</p>
           </div>
         </div>
-        <StatusBanner tone="error" title="Attendance unavailable" message={error} />
+        <StatusBanner tone="error" title={copy.studentView.unavailableTitle} message={error} />
       </div>
     );
   }
@@ -1125,29 +1411,29 @@ function StudentAttendance({ user }) {
     <div className="att-shell">
       <div className="att-header">
         <div>
-          <h2>My Attendance</h2>
-          <p>Keep track of your class presence, late arrivals, excused classes, and missed lessons.</p>
+          <h2>{copy.studentView.myTitle}</h2>
+          <p>{copy.studentView.mySubtitle}</p>
         </div>
         <div className="att-rate-card">
           <strong>{stats.attendanceRate}%</strong>
-          <span>Attendance rate</span>
+          <span>{copy.studentView.attendanceRate}</span>
         </div>
       </div>
 
       <div className="att-summary-grid">
-        <div className="att-summary-card"><strong>{stats.total}</strong><span>Total records</span></div>
-        <div className="att-summary-card"><strong>{stats.present}</strong><span>Present</span></div>
-        <div className="att-summary-card"><strong>{stats.late}</strong><span>Late</span></div>
-        <div className="att-summary-card"><strong>{stats.excused}</strong><span>Excused</span></div>
-        <div className="att-summary-card"><strong>{stats.absent}</strong><span>Absent</span></div>
+        <div className="att-summary-card"><strong>{stats.total}</strong><span>{copy.studentView.totalRecords}</span></div>
+        <div className="att-summary-card"><strong>{stats.present}</strong><span>{statusLabels.present}</span></div>
+        <div className="att-summary-card"><strong>{stats.late}</strong><span>{statusLabels.late}</span></div>
+        <div className="att-summary-card"><strong>{stats.excused}</strong><span>{statusLabels.excused}</span></div>
+        <div className="att-summary-card"><strong>{stats.absent}</strong><span>{statusLabels.absent}</span></div>
       </div>
 
       <section className="att-panel">
         <div className="att-panel-head">
-          <h3>Attendance history</h3>
+          <h3>{copy.studentView.historyTitle}</h3>
           <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-            <option value="all">All statuses</option>
-            {STATUS_OPTIONS.map((option) => (
+            <option value="all">{copy.studentView.allStatuses}</option>
+            {statusOptions.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
@@ -1155,10 +1441,10 @@ function StudentAttendance({ user }) {
 
         {filteredAttendance.length === 0 ? (
           <EmptyState
-            eyebrow="Attendance history"
-            title="No records match the current filter"
-            description={hasHistoryFilter ? 'Reset the status filter to reopen the full attendance history.' : 'Attendance records will appear here after teachers start marking your classes.'}
-            actionLabel={hasHistoryFilter ? 'Reset filter' : ''}
+            eyebrow={copy.studentView.historyTitle}
+            title={copy.studentView.emptyTitle}
+            description={hasHistoryFilter ? copy.studentView.emptyDescriptionFiltered : copy.studentView.emptyDescriptionFresh}
+            actionLabel={hasHistoryFilter ? copy.studentView.resetFilter : ''}
             onAction={() => setStatusFilter('all')}
             compact
             className="att-inline-empty"
@@ -1168,18 +1454,18 @@ function StudentAttendance({ user }) {
             {filteredAttendance.map((item) => (
               <article key={`${item.schedule_id}-${item.date}`} className="att-history-card">
                 <div className="att-history-main">
-                  <strong>{item.course_name || item.subject || 'Class session'}</strong>
+                  <strong>{item.course_name || item.subject || copy.studentView.classSession}</strong>
                   <span>
-                    {formatDate(item.date)}
+                    {formatDate(item.date, locale, copy.noDate)}
                     {item.day ? ` | ${item.day}` : ''}
                     {item.time_slot ? ` | ${item.time_slot}` : ''}
                   </span>
                 </div>
                 <div className="att-history-meta">
-                  {item.room ? <span>{item.room}</span> : <span>No room</span>}
-                  {item.marked_by_name ? <span>Marked by {item.marked_by_name}</span> : null}
+                  {item.room ? <span>{item.room}</span> : <span>{copy.studentView.noRoom}</span>}
+                  {item.marked_by_name ? <span>{copy.studentView.markedBy(item.marked_by_name)}</span> : null}
                 </div>
-                <StatusBadge status={item.status} />
+                <StatusBadge status={item.status} labels={statusLabels} />
               </article>
             ))}
           </div>
@@ -1189,12 +1475,14 @@ function StudentAttendance({ user }) {
   );
 }
 
-export default function AttendancePage({ user }) {
+export default function AttendancePage({ user, language = 'English', locale = 'en-GB' }) {
   const isTeacher = canManageAcademicRecords(user);
 
   return (
     <div className="attendance-page">
-      {isTeacher ? <TeacherAttendance user={user} /> : <StudentAttendance user={user} />}
+      {isTeacher
+        ? <TeacherAttendance user={user} language={language} locale={locale} />
+        : <StudentAttendance user={user} language={language} locale={locale} />}
     </div>
   );
 }

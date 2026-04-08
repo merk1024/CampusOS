@@ -5,13 +5,41 @@ import StatusBanner from './StatusBanner';
 import { canManageAcademicRecords, hasAdminAccess, isStudentAccount } from '../roles';
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const mobileDayLabels = {
-  Monday: 'Mon',
-  Tuesday: 'Tue',
-  Wednesday: 'Wed',
-  Thursday: 'Thu',
-  Friday: 'Fri',
-  Saturday: 'Sat'
+const DAY_LABELS = {
+  English: {
+    Monday: 'Monday',
+    Tuesday: 'Tuesday',
+    Wednesday: 'Wednesday',
+    Thursday: 'Thursday',
+    Friday: 'Friday',
+    Saturday: 'Saturday'
+  },
+  Kyrgyz: {
+    Monday: 'Дүйшөмбү',
+    Tuesday: 'Шейшемби',
+    Wednesday: 'Шаршемби',
+    Thursday: 'Бейшемби',
+    Friday: 'Жума',
+    Saturday: 'Ишемби'
+  }
+};
+const MOBILE_DAY_LABELS = {
+  English: {
+    Monday: 'Mon',
+    Tuesday: 'Tue',
+    Wednesday: 'Wed',
+    Thursday: 'Thu',
+    Friday: 'Fri',
+    Saturday: 'Sat'
+  },
+  Kyrgyz: {
+    Monday: 'Дүй',
+    Tuesday: 'Шей',
+    Wednesday: 'Шар',
+    Thursday: 'Бей',
+    Friday: 'Жум',
+    Saturday: 'Иш'
+  }
 };
 const dayAliases = {
   Monday: ['Monday', 'РџРѕРЅРµРґРµР»СЊРЅРёРє'],
@@ -58,10 +86,200 @@ const emptyBatchForm = {
   teacher: '',
   room: ''
 };
+const SCHEDULE_COPY = {
+  English: {
+    pageTitle: 'Schedule',
+    loading: 'Loading your timetable...',
+    teacherNotAssigned: 'Teacher not assigned',
+    student: 'Student',
+    chooseStudentFirst: 'Choose a student first to create an individual slot.',
+    copyNotEnoughSlots: 'Not enough consecutive slots in this day to place the copied class.',
+    copyFailed: 'Failed to copy class to the selected slot.',
+    conflictPrefix: 'These slots already have classes for this audience:',
+    updatedSlots: (count) => `Updated ${count} selected slot${count === 1 ? '' : 's'}.`,
+    deletedSlots: (count) => `Deleted ${count} selected slot${count === 1 ? '' : 's'}.`,
+    chooseStudent: 'Choose a student',
+    chooseGroupShort: 'Choose group',
+    notSet: 'Not set',
+    personalIntro: (group, subgroup) => `Personal timetable for ${group || 'your group'}${subgroup ? ` / ${subgroup}` : ''}. Course-linked classes appear automatically after enrollment, plus personal overrides.`,
+    adminHint: 'Pick a scope, click any cell to edit it, drag a class onto an empty slot to copy it, or switch on batch mode for mass updates.',
+    lessonsLoaded: 'Lessons loaded',
+    visibleInView: 'Visible in view',
+    groups: 'Groups',
+    currentScope: 'Current scope',
+    existingClass: 'Existing class',
+    emptySlot: 'Empty slot',
+    clickToManage: 'Click to manage or drag to copy',
+    deleteSelected: 'Delete selected',
+    groupSchedule: 'Group schedule',
+    chooseGroup: 'Choose a group',
+    noGroupsYet: 'No groups yet',
+    newGroup: '+ New group',
+    wholeGroup: 'Whole group',
+    subgroup: 'Subgroup',
+    individual: 'Individual',
+    subgroupSchedule: 'Subgroup schedule',
+    chooseSubgroup: 'Choose a subgroup',
+    noSubgroupsYet: 'No subgroups yet',
+    studentSchedule: 'Student schedule',
+    noStudentsInGroup: 'No students in this group',
+    courseFilter: 'Course filter',
+    allLinkedCourses: 'All linked courses',
+    resetView: 'Reset view',
+    reset: 'Reset',
+    wholeGroupHint: 'Whole group mode edits classes shared by every student in the selected group.',
+    subgroupHint: 'Subgroup mode edits classes linked only to the selected subgroup.',
+    individualHint: 'Individual mode creates personal schedule overrides for the selected student.',
+    yourTimetableSource: 'Your timetable source',
+    studentHint: 'Students see a personal timetable built from selected subjects, group classes, subgroup classes, and manual personal slots.',
+    classWord: (count) => `class${count === 1 ? '' : 'es'}`,
+    roomTbd: 'Room TBD',
+    more: (count) => `+${count} more`,
+    add: 'Add',
+    mobileEmptyEdit: 'No classes yet. Tap Add to create one.',
+    mobileEmptyReadOnly: 'No classes scheduled for this day.',
+    chooseSubgroupTitle: 'Choose a subgroup to continue',
+    chooseSubgroupDescription: 'Pick a subgroup to show the timetable for that audience.',
+    chooseStudentTitle: 'Choose a student to continue',
+    chooseStudentDescription: 'Pick a student to manage personal schedule overrides.',
+    chooseGroupTitle: 'Choose a group to start building the schedule',
+    chooseGroupDescription: 'Select or create a group first, then begin placing lessons into the timetable grid.',
+    noLessonsTitle: 'No lessons match the current course filter',
+    noLessonsDescription: 'Try another course or reset the current view to show all linked timetable entries again.',
+    noLessonsAction: 'Clear course filter',
+    dropToCopy: 'Drop to copy',
+    addClass: '+ Add Class',
+    editClass: 'Edit Class',
+    addClassTitle: 'Add Class',
+    editCopy: 'Edit one existing slot.',
+    addCopy: 'Choose one or several hours below to place the same class into all selected slots.',
+    day: 'Day',
+    timeSlot: 'Time Slot',
+    startSlot: 'Start Slot',
+    group: 'Group',
+    audience: 'Audience',
+    subgroupPlaceholder: 'e.g. 1-Group',
+    linkedCourse: 'Linked course',
+    standaloneManual: 'Standalone / manual',
+    subject: 'Subject',
+    teacher: 'Teacher',
+    room: 'Room',
+    applyToHours: 'Apply this class to several hours',
+    selected: 'Selected',
+    none: 'none',
+    delete: 'Delete',
+    cancel: 'Cancel',
+    update: 'Update',
+    createFor: (count) => `Create for ${count} slot${count === 1 ? '' : 's'}`,
+    batchEdit: 'Batch Edit Schedule',
+    batchCopy: 'Update shared fields for the currently selected schedule slots. Leave a field blank to keep the existing value.',
+    subjectOverride: 'Subject override',
+    teacherOverride: 'Teacher override',
+    roomOverride: 'Room override',
+    updateSlots: (count) => `Update ${count} slot${count === 1 ? '' : 's'}`
+  },
+  Kyrgyz: {
+    pageTitle: 'Жадыбал',
+    loading: 'Жадыбалыңыз жүктөлүүдө...',
+    teacherNotAssigned: 'Окутуучу дайындала элек',
+    student: 'Студент',
+    chooseStudentFirst: 'Жеке уячаны түзүү үчүн алгач студент тандаңыз.',
+    copyNotEnoughSlots: 'Бул күндө көчүрүү үчүн катары менен жетиштүү убакыт уячалары жок.',
+    copyFailed: 'Сабакты тандалган уячага көчүрүү мүмкүн болгон жок.',
+    conflictPrefix: 'Бул убакыт уячаларында ушул аудитория үчүн сабак бар:',
+    updatedSlots: (count) => `${count} тандалган уяча жаңыртылды.`,
+    deletedSlots: (count) => `${count} тандалган уяча өчүрүлдү.`,
+    chooseStudent: 'Студент тандаңыз',
+    chooseGroupShort: 'Топ тандаңыз',
+    notSet: 'Орнотулган эмес',
+    personalIntro: (group, subgroup) => `${group || 'сиздин топ'}${subgroup ? ` / ${subgroup}` : ''} үчүн жеке жадыбал. Курс менен байланышкан сабактар каттоодон кийин автоматтык түрдө чыгат, жеке өзгөртүүлөр да кошулат.`,
+    adminHint: 'Камтуу аймагын тандаңыз, оңдоо үчүн каалаган уячаны басыңыз, көчүрүү үчүн сабакты бош уячага сүйрөңүз же топтук өзгөртүү режимин күйгүзүңүз.',
+    lessonsLoaded: 'Жүктөлгөн сабактар',
+    visibleInView: 'Көрүнгөн сабактар',
+    groups: 'Топтор',
+    currentScope: 'Учурдагы көрүнүш',
+    existingClass: 'Бар сабак',
+    emptySlot: 'Бош уяча',
+    clickToManage: 'Башкаруу үчүн басыңыз же көчүрүү үчүн сүйрөңүз',
+    deleteSelected: 'Тандалгандарды өчүрүү',
+    groupSchedule: 'Топтун жадыбалы',
+    chooseGroup: 'Топ тандаңыз',
+    noGroupsYet: 'Азырынча топ жок',
+    newGroup: '+ Жаңы топ',
+    wholeGroup: 'Бүт топ',
+    subgroup: 'Подтоп',
+    individual: 'Жеке',
+    subgroupSchedule: 'Подтоптун жадыбалы',
+    chooseSubgroup: 'Подтоп тандаңыз',
+    noSubgroupsYet: 'Азырынча подтоп жок',
+    studentSchedule: 'Студенттин жадыбалы',
+    noStudentsInGroup: 'Бул топто студент жок',
+    courseFilter: 'Курс чыпкасы',
+    allLinkedCourses: 'Бардык байланышкан курстар',
+    resetView: 'Көрүнүштү тазалоо',
+    reset: 'Тазалоо',
+    wholeGroupHint: 'Бүт топ режими тандалган топтогу бардык студенттерге жалпы болгон сабактарды түзөтөт.',
+    subgroupHint: 'Подтоп режими тандалган подтопко гана тиешелүү сабактарды түзөтөт.',
+    individualHint: 'Жеке режим тандалган студент үчүн жеке жадыбал өзгөртүүлөрүн түзөт.',
+    yourTimetableSource: 'Сиздин жадыбал булагыңыз',
+    studentHint: 'Студенттер тандаган предметтеринен, топтук сабактардан, подтоптук сабактардан жана жеке уячалардан түзүлгөн жеке жадыбалды көрүшөт.',
+    classWord: () => 'сабак',
+    roomTbd: 'Аудитория такталат',
+    more: (count) => `+${count} дагы`,
+    add: 'Кошуу',
+    mobileEmptyEdit: 'Азырынча сабак жок. Түзүү үчүн Кошуу баскычын басыңыз.',
+    mobileEmptyReadOnly: 'Бул күнгө сабак коюлган эмес.',
+    chooseSubgroupTitle: 'Улантуу үчүн подтоп тандаңыз',
+    chooseSubgroupDescription: 'Ошол аудиториянын жадыбалын көрүү үчүн подтопту тандаңыз.',
+    chooseStudentTitle: 'Улантуу үчүн студент тандаңыз',
+    chooseStudentDescription: 'Жеке жадыбал өзгөртүүлөрүн башкаруу үчүн студентти тандаңыз.',
+    chooseGroupTitle: 'Жадыбалды түзүү үчүн топ тандаңыз',
+    chooseGroupDescription: 'Алгач топту тандаңыз же түзүңүз, андан кийин сабактарды жадыбалга жайгаштырыңыз.',
+    noLessonsTitle: 'Учурдагы курс чыпкасына туура келген сабактар жок',
+    noLessonsDescription: 'Башка курсту тандап көрүңүз же бардык байланышкан сабактарды кайра көрсөтүү үчүн көрүнүштү тазалаңыз.',
+    noLessonsAction: 'Курс чыпкасын тазалоо',
+    dropToCopy: 'Көчүрүү үчүн таштаңыз',
+    addClass: '+ Сабак кошуу',
+    editClass: 'Сабакты оңдоо',
+    addClassTitle: 'Сабак кошуу',
+    editCopy: 'Учурдагы бир уячаны оңдоңуз.',
+    addCopy: 'Бир эле сабакты бардык тандалган убакыттарга жайгаштыруу үчүн төмөндөн бир же бир нече саатты тандаңыз.',
+    day: 'Күн',
+    timeSlot: 'Убакыт уячасы',
+    startSlot: 'Башталыш уячасы',
+    group: 'Топ',
+    audience: 'Аудитория',
+    subgroupPlaceholder: 'мисалы, 1-Group',
+    linkedCourse: 'Байланышкан курс',
+    standaloneManual: 'Өзүнчө / кол менен',
+    subject: 'Предмет',
+    teacher: 'Окутуучу',
+    room: 'Аудитория',
+    applyToHours: 'Бул сабакты бир нече саатка колдонуу',
+    selected: 'Тандалган',
+    none: 'жок',
+    delete: 'Өчүрүү',
+    cancel: 'Жокко чыгаруу',
+    update: 'Жаңыртуу',
+    createFor: (count) => `${count} уяча үчүн түзүү`,
+    batchEdit: 'Жадыбалды топтук оңдоо',
+    batchCopy: 'Учурда тандалган жадыбал уячаларынын жалпы талааларын жаңыртыңыз. Маанини өзгөртпөө үчүн талааны бош калтырыңыз.',
+    subjectOverride: 'Предметти алмаштыруу',
+    teacherOverride: 'Окутуучуну алмаштыруу',
+    roomOverride: 'Аудиторияны алмаштыруу',
+    updateSlots: (count) => `${count} уячаны жаңыртуу`
+  }
+};
 
 const normalizeId = (value) => (value === '' || value === null || value === undefined ? '' : String(value));
 const getRangeSlots = (startIndex, span = 1) => timeSlots.slice(startIndex, startIndex + span);
-const getCourseTeacher = (course) => course?.teacher_name || course?.teacher || 'Teacher not assigned';
+const getCourseTeacher = (course, language = 'English') => (
+  course?.teacher_name
+  || course?.teacher
+  || (SCHEDULE_COPY[language] || SCHEDULE_COPY.English).teacherNotAssigned
+);
+const getDayLabel = (day, language = 'English') => (DAY_LABELS[language] || DAY_LABELS.English)[day] || day;
+const getMobileDayLabel = (day, language = 'English') => (MOBILE_DAY_LABELS[language] || MOBILE_DAY_LABELS.English)[day] || day.slice(0, 3);
 const getSlotStart = (slot) => String(slot || '').split('-')[0] || slot;
 const scheduleCardPalette = [
   {
@@ -154,8 +372,8 @@ const normalizeEntries = (entries) => (
   })
 );
 
-const getStudentLabel = (student) => {
-  if (!student) return 'Student';
+const getStudentLabel = (student, language = 'English') => {
+  if (!student) return (SCHEDULE_COPY[language] || SCHEDULE_COPY.English).student;
   const group = student.group_name || '';
   const subgroup = student.subgroup_name || '';
   return `${student.name}${group ? ` (${group}${subgroup ? ` / ${subgroup}` : ''})` : ''}`;
@@ -170,7 +388,8 @@ const matchesScope = (item, scope) => {
   return true;
 };
 
-function Schedule() {
+function Schedule({ language = 'English' }) {
+  const copy = SCHEDULE_COPY[language] || SCHEDULE_COPY.English;
   const [schedule, setSchedule] = useState([]);
   const [courses, setCourses] = useState([]);
   const [students, setStudents] = useState([]);
@@ -274,10 +493,10 @@ function Schedule() {
   const mobileDayTabs = useMemo(() => (
     mobileScheduleSections.map((section) => ({
       day: section.day,
-      shortLabel: mobileDayLabels[section.day] || section.day.slice(0, 3),
+      shortLabel: getMobileDayLabel(section.day, language),
       count: section.items.length
     }))
-  ), [mobileScheduleSections]);
+  ), [language, mobileScheduleSections]);
   const [activeMobileDay, setActiveMobileDay] = useState(days[0]);
   const activeMobileSection = useMemo(() => (
     mobileScheduleSections.find((section) => section.day === activeMobileDay)
@@ -518,7 +737,7 @@ function Schedule() {
       ...current,
       course_id: courseId,
       subject: course ? course.name : current.subject,
-      teacher: course ? getCourseTeacher(course) : current.teacher
+      teacher: course ? getCourseTeacher(course, language) : current.teacher
     }));
   };
 
@@ -528,7 +747,7 @@ function Schedule() {
       ...current,
       course_id: courseId,
       subject: course ? course.name : current.subject,
-      teacher: course ? getCourseTeacher(course) : current.teacher
+      teacher: course ? getCourseTeacher(course, language) : current.teacher
     }));
   };
 
@@ -565,7 +784,7 @@ function Schedule() {
       return;
     }
     if (!existing && selectedAudienceView === 'individual' && isAdmin && !selectedStudentId) {
-      window.alert('Choose a student first to create an individual slot.');
+      window.alert(copy.chooseStudentFirst);
       return;
     }
     if (existing) {
@@ -660,7 +879,7 @@ function Schedule() {
     };
     const conflicts = getConflictingSlots({ day: block.day, slots: targetSlots, scope });
     if (targetSlots.length !== draggedBlock.span) {
-      setCopyFeedback({ type: 'error', message: 'Not enough consecutive slots in this day to place the copied class.' });
+      setCopyFeedback({ type: 'error', message: copy.copyNotEnoughSlots });
       clearDragState();
       return;
     }
@@ -685,7 +904,7 @@ function Schedule() {
       await reloadSchedule(draggedBlock.entry.group_name.trim());
       setCopyFeedback({ type: 'success', message: `Copied "${draggedBlock.entry.subject}" to ${block.day} at ${targetSlots[0]}.` });
     } catch (dropError) {
-      setCopyFeedback({ type: 'error', message: dropError.message || 'Failed to copy class to the selected slot.' });
+      setCopyFeedback({ type: 'error', message: dropError.message || copy.copyFailed });
     } finally {
       clearDragState();
     }
@@ -720,7 +939,7 @@ function Schedule() {
     const scope = { groupName, audienceType, subgroupName, studentUserId };
     const conflicts = getConflictingSlots({ day: formData.day, slots, scope, ignoreId: formData.id });
     if (conflicts.length) {
-      return window.alert(`These slots already have classes for this audience: ${conflicts.join(', ')}`);
+      return window.alert(`${copy.conflictPrefix} ${conflicts.join(', ')}`);
     }
 
     const payload = {
@@ -812,7 +1031,7 @@ function Schedule() {
       }));
 
       await reloadSchedule(selectedGroup);
-      setCopyFeedback({ type: 'success', message: `Updated ${selectedBatchEntries.length} selected slot${selectedBatchEntries.length === 1 ? '' : 's'}.` });
+      setCopyFeedback({ type: 'success', message: copy.updatedSlots(selectedBatchEntries.length) });
       clearBatchSelection();
     } catch (batchError) {
       window.alert(batchError.message || 'Failed to update selected schedule entries.');
@@ -825,7 +1044,7 @@ function Schedule() {
     try {
       await Promise.all(selectedBatchEntries.map((entry) => api.deleteScheduleEntry(entry.id)));
       await reloadSchedule(selectedGroup);
-      setCopyFeedback({ type: 'success', message: `Deleted ${selectedBatchEntries.length} selected slot${selectedBatchEntries.length === 1 ? '' : 's'}.` });
+      setCopyFeedback({ type: 'success', message: copy.deletedSlots(selectedBatchEntries.length) });
       clearBatchSelection();
     } catch (batchError) {
       window.alert(batchError.message || 'Failed to delete selected schedule entries.');
@@ -837,12 +1056,12 @@ function Schedule() {
   const selectedStudent = studentOptions.find((item) => String(item.id) === String(selectedStudentId));
   const visibleEntryCount = filteredSchedule.length;
   const currentScopeLabel = isStudent
-    ? `${studentGroup || 'Not set'}${studentSubgroup ? ` / ${studentSubgroup}` : ''}`
+    ? `${studentGroup || copy.notSet}${studentSubgroup ? ` / ${studentSubgroup}` : ''}`
     : (selectedAudienceView === 'individual'
-      ? (selectedStudent ? getStudentLabel(selectedStudent) : 'Choose a student')
+      ? (selectedStudent ? getStudentLabel(selectedStudent, language) : copy.chooseStudent)
       : (selectedAudienceView === 'subgroup'
-        ? `${selectedGroup || 'Choose group'}${selectedSubgroup ? ` / ${selectedSubgroup}` : ''}`
-        : (selectedGroup || 'Choose group')));
+        ? `${selectedGroup || copy.chooseGroupShort}${selectedSubgroup ? ` / ${selectedSubgroup}` : ''}`
+        : (selectedGroup || copy.chooseGroupShort)));
   const needsSubgroup = canEdit && selectedAudienceView === 'subgroup' && !selectedSubgroup;
   const needsStudent = canEdit && selectedAudienceView === 'individual' && !selectedStudentId;
   const needsGroup = !visibleSchedule.length && !selectedGroup && canEdit && selectedAudienceView !== 'individual';
@@ -851,7 +1070,7 @@ function Schedule() {
   const canRenderScheduleView = !needsSubgroup && !needsStudent && !needsGroup && !filterClearedViewEmpty;
 
   if (loading) {
-    return <div className="page"><div className="page-header"><h1>Schedule</h1><p>Loading your timetable...</p></div><div className="loading-spinner"></div></div>;
+    return <div className="page"><div className="page-header"><h1>{copy.pageTitle}</h1><p>{copy.loading}</p></div><div className="loading-spinner"></div></div>;
   }
 
   if (error) {
@@ -859,11 +1078,11 @@ function Schedule() {
       <div className="page">
         <div className="page-header">
           <div>
-            <h1>Schedule</h1>
-            <p>CampusOS could not load the active timetable view.</p>
+            <h1>{copy.pageTitle}</h1>
+            <p>{language === 'Kyrgyz' ? 'CampusOS учурдагы жадыбал көрүнүшүн жүктөй алган жок.' : 'CampusOS could not load the active timetable view.'}</p>
           </div>
         </div>
-        <StatusBanner tone="error" title="Schedule unavailable" message={error} />
+        <StatusBanner tone="error" title={language === 'Kyrgyz' ? 'Жадыбал жеткиликсиз' : 'Schedule unavailable'} message={error} />
       </div>
     );
   }
@@ -872,39 +1091,45 @@ function Schedule() {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Schedule</h1>
+          <h1>{copy.pageTitle}</h1>
           <p>
             {isStudent
-              ? `Personal timetable for ${studentGroup || 'your group'}${studentSubgroup ? ` / ${studentSubgroup}` : ''}. Course-linked classes appear automatically after enrollment, plus personal overrides.`
-              : 'Manage course schedules for groups, subgroups, and individual students.'}
+              ? copy.personalIntro(studentGroup, studentSubgroup)
+              : (language === 'Kyrgyz'
+                ? 'Топтор, подтоптор жана жеке студенттер үчүн курс жадыбалдарын башкарыңыз.'
+                : 'Manage course schedules for groups, subgroups, and individual students.')}
           </p>
         </div>
-        {canEdit && <div className="page-actions"><p className="edit-hint">Pick a scope, click any cell to edit it, drag a class onto an empty slot to copy it, or switch on batch mode for mass updates.</p></div>}
+        {canEdit && <div className="page-actions"><p className="edit-hint">{copy.adminHint}</p></div>}
       </div>
 
       <div className="schedule-admin-bar">
-        <div className="schedule-admin-card"><span className="management-summary-label">Lessons loaded</span><strong>{totalEntries}</strong></div>
-        <div className="schedule-admin-card"><span className="management-summary-label">Visible in view</span><strong>{visibleEntryCount}</strong></div>
-        <div className="schedule-admin-card"><span className="management-summary-label">Groups</span><strong>{groupOptions.length}</strong></div>
+        <div className="schedule-admin-card"><span className="management-summary-label">{copy.lessonsLoaded}</span><strong>{totalEntries}</strong></div>
+        <div className="schedule-admin-card"><span className="management-summary-label">{copy.visibleInView}</span><strong>{visibleEntryCount}</strong></div>
+        <div className="schedule-admin-card"><span className="management-summary-label">{copy.groups}</span><strong>{groupOptions.length}</strong></div>
         <div className="schedule-admin-card">
-          <span className="management-summary-label">Current scope</span>
+          <span className="management-summary-label">{copy.currentScope}</span>
           <strong>{currentScopeLabel}</strong>
         </div>
         <div className="schedule-admin-card schedule-admin-legend">
-          <span className="schedule-legend-item"><span className="schedule-dot occupied"></span> Existing class</span>
-          <span className="schedule-legend-item"><span className="schedule-dot empty"></span> Empty slot</span>
-          {canEdit && <span className="schedule-legend-item"><span className="schedule-dot editable"></span> Click to manage or drag to copy</span>}
+          <span className="schedule-legend-item"><span className="schedule-dot occupied"></span> {copy.existingClass}</span>
+          <span className="schedule-legend-item"><span className="schedule-dot empty"></span> {copy.emptySlot}</span>
+          {canEdit && <span className="schedule-legend-item"><span className="schedule-dot editable"></span> {copy.clickToManage}</span>}
         </div>
       </div>
 
       {canEdit && (
         <div className="schedule-batch-toolbar">
           <div className="schedule-batch-copy">
-            <strong>Batch workflow</strong>
+            <strong>{language === 'Kyrgyz' ? 'Топтук иш агымы' : 'Batch workflow'}</strong>
             <span>
               {selectedBatchEntries.length
-                ? `${selectedBatchSummary.count} slot${selectedBatchSummary.count === 1 ? '' : 's'} selected across ${selectedBatchSummary.groups} group${selectedBatchSummary.groups === 1 ? '' : 's'}.`
-                : 'Turn on batch mode and click occupied slots to queue them for a shared update.'}
+                ? (language === 'Kyrgyz'
+                  ? `${selectedBatchSummary.count} уяча тандалды, ${selectedBatchSummary.groups} топ камтылды.`
+                  : `${selectedBatchSummary.count} slot${selectedBatchSummary.count === 1 ? '' : 's'} selected across ${selectedBatchSummary.groups} group${selectedBatchSummary.groups === 1 ? '' : 's'}.`)
+                : (language === 'Kyrgyz'
+                  ? 'Топтук режимди күйгүзүп, жалпы жаңыртуу үчүн толтурулган уячаларды белгилеңиз.'
+                  : 'Turn on batch mode and click occupied slots to queue them for a shared update.')}
             </span>
           </div>
           <div className="schedule-batch-actions">
@@ -913,7 +1138,9 @@ function Schedule() {
               className={`management-filter-chip ${batchSelectMode ? 'active' : ''}`}
               onClick={() => setBatchSelectMode((value) => !value)}
             >
-              {batchSelectMode ? 'Exit batch mode' : 'Batch select'}
+              {batchSelectMode
+                ? (language === 'Kyrgyz' ? 'Топтук режимден чыгуу' : 'Exit batch mode')
+                : (language === 'Kyrgyz' ? 'Топтук тандоо' : 'Batch select')}
             </button>
             <button
               type="button"
@@ -921,7 +1148,7 @@ function Schedule() {
               onClick={() => setSelectedBatchIds(Array.from(new Set(filteredSchedule.map((item) => item.id).filter(Boolean))))}
               disabled={!filteredSchedule.length}
             >
-              Select visible
+              {language === 'Kyrgyz' ? 'Көрүнгөндөрдү тандоо' : 'Select visible'}
             </button>
             <button
               type="button"
@@ -929,7 +1156,7 @@ function Schedule() {
               onClick={openBatchEditor}
               disabled={!selectedBatchEntries.length}
             >
-              Batch edit
+              {language === 'Kyrgyz' ? 'Топтук оңдоо' : 'Batch edit'}
             </button>
             <button
               type="button"
@@ -937,7 +1164,7 @@ function Schedule() {
               onClick={handleBatchDelete}
               disabled={!selectedBatchEntries.length}
             >
-              Delete selected
+              {copy.deleteSelected}
             </button>
             <button
               type="button"
@@ -945,7 +1172,7 @@ function Schedule() {
               onClick={clearBatchSelection}
               disabled={!selectedBatchEntries.length && !showBatchEditor}
             >
-              Clear
+              {language === 'Kyrgyz' ? 'Тазалоо' : 'Clear'}
             </button>
           </div>
         </div>
@@ -953,7 +1180,9 @@ function Schedule() {
 
       <StatusBanner
         tone={copyFeedback.type === 'error' ? 'error' : 'success'}
-        title={copyFeedback.type === 'error' ? 'Schedule update blocked' : 'Schedule updated'}
+        title={copyFeedback.type === 'error'
+          ? (language === 'Kyrgyz' ? 'Жадыбал жаңыртылган жок' : 'Schedule update blocked')
+          : (language === 'Kyrgyz' ? 'Жадыбал жаңыртылды' : 'Schedule updated')}
         message={copyFeedback.message}
       />
 
@@ -961,15 +1190,15 @@ function Schedule() {
         <div className="management-toolbar schedule-group-toolbar">
           <div className="schedule-group-switcher">
             <div className="schedule-group-field">
-              <span className="management-summary-label">Group schedule</span>
+              <span className="management-summary-label">{copy.groupSchedule}</span>
               <div className="schedule-group-select-row">
                 <select className="schedule-group-select" value={groupOptions.includes(selectedGroup) ? selectedGroup : ''} onChange={(event) => { setSelectedGroup(event.target.value); setShowCustomGroupInput(false); }}>
-                  <option value="" disabled>{groupOptions.length ? 'Choose a group' : 'No groups yet'}</option>
+                  <option value="" disabled>{groupOptions.length ? copy.chooseGroup : copy.noGroupsYet}</option>
                   {groupOptions.map((groupName) => <option key={groupName} value={groupName}>{groupName}</option>)}
                 </select>
-                <button type="button" className="management-filter-chip" onClick={() => { setSelectedGroup(''); setShowCustomGroupInput(true); }}>+ New group</button>
+                <button type="button" className="management-filter-chip" onClick={() => { setSelectedGroup(''); setShowCustomGroupInput(true); }}>{copy.newGroup}</button>
               </div>
-              {usesCustomGroup && <input value={selectedGroup} onChange={(event) => setSelectedGroup(event.target.value)} placeholder="For example CYB-23" />}
+              {usesCustomGroup && <input value={selectedGroup} onChange={(event) => setSelectedGroup(event.target.value)} placeholder={language === 'Kyrgyz' ? 'Мисалы, CYB-23' : 'For example CYB-23'} />}
             </div>
 
             {groupOptions.length > 0 && (
@@ -983,69 +1212,69 @@ function Schedule() {
             )}
 
             <div className="management-filters schedule-group-chips">
-              <button type="button" className={`management-filter-chip ${selectedAudienceView === 'group' ? 'active' : ''}`} onClick={() => setSelectedAudienceView('group')}>Whole group</button>
-              <button type="button" className={`management-filter-chip ${selectedAudienceView === 'subgroup' ? 'active' : ''}`} onClick={() => setSelectedAudienceView('subgroup')}>Subgroup</button>
-              {isAdmin && <button type="button" className={`management-filter-chip ${selectedAudienceView === 'individual' ? 'active' : ''}`} onClick={() => setSelectedAudienceView('individual')}>Individual</button>}
+              <button type="button" className={`management-filter-chip ${selectedAudienceView === 'group' ? 'active' : ''}`} onClick={() => setSelectedAudienceView('group')}>{copy.wholeGroup}</button>
+              <button type="button" className={`management-filter-chip ${selectedAudienceView === 'subgroup' ? 'active' : ''}`} onClick={() => setSelectedAudienceView('subgroup')}>{copy.subgroup}</button>
+              {isAdmin && <button type="button" className={`management-filter-chip ${selectedAudienceView === 'individual' ? 'active' : ''}`} onClick={() => setSelectedAudienceView('individual')}>{copy.individual}</button>}
             </div>
 
             {selectedAudienceView === 'subgroup' && (
               <div className="schedule-group-field">
-                <span className="management-summary-label">Subgroup schedule</span>
+                <span className="management-summary-label">{copy.subgroupSchedule}</span>
                 <div className="schedule-group-select-row">
                   <select className="schedule-group-select" value={subgroupOptions.includes(selectedSubgroup) ? selectedSubgroup : ''} onChange={(event) => setSelectedSubgroup(event.target.value)}>
-                    <option value="" disabled>{subgroupOptions.length ? 'Choose a subgroup' : 'No subgroups yet'}</option>
+                    <option value="" disabled>{subgroupOptions.length ? copy.chooseSubgroup : copy.noSubgroupsYet}</option>
                     {subgroupOptions.map((name) => <option key={name} value={name}>{name}</option>)}
                   </select>
-                  <input value={selectedSubgroup} onChange={(event) => setSelectedSubgroup(event.target.value)} placeholder="For example 1-Group" />
+                  <input value={selectedSubgroup} onChange={(event) => setSelectedSubgroup(event.target.value)} placeholder={language === 'Kyrgyz' ? 'Мисалы, 1-Group' : 'For example 1-Group'} />
                 </div>
               </div>
             )}
 
             {selectedAudienceView === 'individual' && (
               <div className="schedule-group-field">
-                <span className="management-summary-label">Student schedule</span>
+                <span className="management-summary-label">{copy.studentSchedule}</span>
                 <div className="schedule-group-select-row">
                   <select className="schedule-group-select" value={selectedStudentId} onChange={(event) => handleStudentPick(event.target.value)}>
-                    <option value="" disabled>{studentOptions.length ? 'Choose a student' : 'No students in this group'}</option>
-                    {studentOptions.map((student) => <option key={student.id} value={student.id}>{getStudentLabel(student)}</option>)}
+                    <option value="" disabled>{studentOptions.length ? copy.chooseStudent : copy.noStudentsInGroup}</option>
+                    {studentOptions.map((student) => <option key={student.id} value={student.id}>{getStudentLabel(student, language)}</option>)}
                   </select>
                 </div>
               </div>
             )}
 
             <div className="schedule-group-field">
-              <span className="management-summary-label">Course filter</span>
+              <span className="management-summary-label">{copy.courseFilter}</span>
               <div className="schedule-group-select-row">
                 <select className="schedule-group-select" value={selectedCourseFilter} onChange={(event) => setSelectedCourseFilter(event.target.value)}>
-                  <option value="">All linked courses</option>
+                  <option value="">{copy.allLinkedCourses}</option>
                   {courseOptions.map((course) => <option key={course.id} value={course.id}>{course.code} - {course.name}</option>)}
                 </select>
-                <button type="button" className="management-filter-chip" onClick={resetFilters}>Reset view</button>
+                <button type="button" className="management-filter-chip" onClick={resetFilters}>{copy.resetView}</button>
               </div>
             </div>
           </div>
           <p className="schedule-group-hint">
             {selectedAudienceView === 'individual'
-              ? 'Individual mode creates a personal timetable slot for one selected student.'
+              ? copy.individualHint
               : selectedAudienceView === 'subgroup'
-                ? 'Subgroup mode edits only the selected subgroup inside the current group.'
-                : 'Whole group mode edits classes shared by every student in the selected group.'}
+                ? copy.subgroupHint
+                : copy.wholeGroupHint}
           </p>
         </div>
       ) : (
         <div className="management-toolbar schedule-group-toolbar">
-          <div className="schedule-group-field"><span className="management-summary-label">Your timetable source</span><input value={`${studentGroup}${studentSubgroup ? ` / ${studentSubgroup}` : ''}`} readOnly /></div>
+          <div className="schedule-group-field"><span className="management-summary-label">{copy.yourTimetableSource}</span><input value={`${studentGroup}${studentSubgroup ? ` / ${studentSubgroup}` : ''}`} readOnly /></div>
           <div className="schedule-group-field">
-            <span className="management-summary-label">Course filter</span>
+            <span className="management-summary-label">{copy.courseFilter}</span>
             <div className="schedule-group-select-row">
               <select className="schedule-group-select" value={selectedCourseFilter} onChange={(event) => setSelectedCourseFilter(event.target.value)}>
-                <option value="">All linked courses</option>
+                <option value="">{copy.allLinkedCourses}</option>
                 {courseOptions.map((course) => <option key={course.id} value={course.id}>{course.code} - {course.name}</option>)}
               </select>
-              <button type="button" className="management-filter-chip" onClick={resetFilters}>Reset</button>
+              <button type="button" className="management-filter-chip" onClick={resetFilters}>{copy.reset}</button>
             </div>
           </div>
-          <p className="schedule-group-hint">Students see a personal timetable built from selected subjects, group classes, subgroup classes, and manual personal slots.</p>
+          <p className="schedule-group-hint">{copy.studentHint}</p>
         </div>
       )}
 
@@ -1054,8 +1283,8 @@ function Schedule() {
           {overviewByDay.map((section) => (
             <div key={section.day} className="schedule-overview-card">
               <div className="schedule-overview-head">
-                <strong>{section.day}</strong>
-                <span>{section.items.length} class{section.items.length === 1 ? '' : 'es'}</span>
+                <strong>{getDayLabel(section.day, language)}</strong>
+                <span>{section.items.length} {copy.classWord(section.items.length)}</span>
               </div>
               <div className="schedule-overview-body">
                 {section.items.slice(0, 4).map((item) => {
@@ -1071,17 +1300,17 @@ function Schedule() {
                     >
                       <span>{getSlotStart(item.time_slot)}</span>
                       <strong>{item.subject}</strong>
-                      <small>{item.room || 'Room TBD'}</small>
+                      <small>{item.room || copy.roomTbd}</small>
                     </button>
                   ) : (
                     <div key={`${item.id}-${item.time_slot}`} className="schedule-overview-item" style={overviewStyle}>
                       <span>{getSlotStart(item.time_slot)}</span>
                       <strong>{item.subject}</strong>
-                      <small>{item.room || 'Room TBD'}</small>
+                      <small>{item.room || copy.roomTbd}</small>
                     </div>
                   );
                 })}
-                {section.items.length > 4 && <div className="schedule-overview-more">+{section.items.length - 4} more</div>}
+                {section.items.length > 4 && <div className="schedule-overview-more">{copy.more(section.items.length - 4)}</div>}
               </div>
             </div>
           ))}
@@ -1110,8 +1339,8 @@ function Schedule() {
             <section key={activeMobileSection.day} className="schedule-mobile-day">
               <div className="schedule-mobile-day-head">
                 <div>
-                  <strong>{activeMobileSection.day}</strong>
-                  <span>{activeMobileSection.items.length} class{activeMobileSection.items.length === 1 ? '' : 'es'}</span>
+                  <strong>{getDayLabel(activeMobileSection.day, language)}</strong>
+                  <span>{activeMobileSection.items.length} {copy.classWord(activeMobileSection.items.length)}</span>
                 </div>
                 {canEdit && (
                   <button
@@ -1119,7 +1348,7 @@ function Schedule() {
                     className="schedule-mobile-add"
                     onClick={() => openQuickAddForDay(activeMobileSection.day)}
                   >
-                    Add
+                    {copy.add}
                   </button>
                 )}
               </div>
@@ -1133,7 +1362,7 @@ function Schedule() {
                         <div className="schedule-mobile-time">{getSlotStart(item.time_slot)}</div>
                         <div className="schedule-mobile-copy">
                           <strong>{item.subject}</strong>
-                          <span>{item.room || 'Room TBD'}</span>
+                          <span>{item.room || copy.roomTbd}</span>
                         </div>
                       </>
                     );
@@ -1161,7 +1390,7 @@ function Schedule() {
                 </div>
               ) : (
                 <div className="schedule-mobile-empty">
-                  {canEdit ? 'No classes yet. Tap Add to create one.' : 'No classes scheduled for this day.'}
+                  {canEdit ? copy.mobileEmptyEdit : copy.mobileEmptyReadOnly}
                 </div>
               )}
             </section>
@@ -1171,34 +1400,40 @@ function Schedule() {
 
       {needsSubgroup ? (
         <EmptyState
-          eyebrow="Schedule scope"
-          title="Choose a subgroup to continue"
-          description="Subgroup mode only edits one subgroup at a time. Pick it above or type a new subgroup name."
+          eyebrow={copy.pageTitle}
+          title={copy.chooseSubgroupTitle}
+          description={language === 'Kyrgyz'
+            ? 'Подтоп режими бир убакта бир гана подтопту түзөтөт. Жогору жактан тандаңыз же жаңы ат жазыңыз.'
+            : 'Subgroup mode only edits one subgroup at a time. Pick it above or type a new subgroup name.'}
           compact
           className="schedule-empty-state"
         />
       ) : needsStudent ? (
         <EmptyState
-          eyebrow="Schedule scope"
-          title="Choose a student to continue"
-          description="Individual mode opens a personal timetable for exactly one student."
+          eyebrow={copy.pageTitle}
+          title={copy.chooseStudentTitle}
+          description={copy.chooseStudentDescription}
           compact
           className="schedule-empty-state"
         />
       ) : needsGroup ? (
         <EmptyState
-          eyebrow="Schedule scope"
-          title="Choose a group to start building the schedule"
-          description="Select an existing group or type a new group name above to open the timetable grid."
+          eyebrow={copy.pageTitle}
+          title={copy.chooseGroupTitle}
+          description={language === 'Kyrgyz'
+            ? 'Жадыбал торун ачуу үчүн жогору жактан бар топту тандаңыз же жаңы ат жазыңыз.'
+            : 'Select an existing group or type a new group name above to open the timetable grid.'}
           compact
           className="schedule-empty-state"
         />
       ) : filterClearedViewEmpty ? (
         <EmptyState
-          eyebrow="Course filter"
-          title="No lessons match the current course filter"
-          description="Reset the course filter to reopen the full timetable for the current scope."
-          actionLabel="Reset course filter"
+          eyebrow={copy.courseFilter}
+          title={copy.noLessonsTitle}
+          description={language === 'Kyrgyz'
+            ? 'Учурдагы көрүнүш үчүн толук жадыбалды кайра ачуу үчүн курс чыпкасын тазалаңыз.'
+            : 'Reset the course filter to reopen the full timetable for the current scope.'}
+          actionLabel={copy.noLessonsAction}
           onAction={() => setSelectedCourseFilter('')}
           compact
           className="schedule-empty-state"
@@ -1207,7 +1442,7 @@ function Schedule() {
         <div className="schedule-grid">
           <div className="schedule-grid-board" style={{ gridTemplateColumns: '76px repeat(6, minmax(122px, 1fr))', gridTemplateRows: `52px repeat(${timeSlots.length}, 56px)` }}>
             <div className="schedule-board-corner"></div>
-            {days.map((day, index) => <div key={day} className="day-column schedule-grid-day" style={{ gridColumn: index + 2, gridRow: 1 }}>{day}</div>)}
+            {days.map((day, index) => <div key={day} className="day-column schedule-grid-day" style={{ gridColumn: index + 2, gridRow: 1 }}>{getDayLabel(day, language)}</div>)}
             {timeSlots.map((slot, index) => <div key={slot} className="time-column schedule-grid-time" style={{ gridColumn: 1, gridRow: index + 2 }}>{getSlotStart(slot)}</div>)}
             {mergedBlocks.map((block) => (
               <div
@@ -1229,9 +1464,9 @@ function Schedule() {
                 {block.type === 'occupied' ? (
                   <div className="class-info">
                     <div className="class-subject">{block.entry.subject}</div>
-                    <div className="class-room-chip">{block.entry.room || 'Room TBD'}</div>
+                    <div className="class-room-chip">{block.entry.room || copy.roomTbd}</div>
                   </div>
-                ) : canEdit ? <div className="empty-slot"><span>{dropTarget?.day === block.day && dropTarget?.startSlot === block.startSlot ? 'Drop to copy' : '+ Add Class'}</span></div> : null}
+                ) : canEdit ? <div className="empty-slot"><span>{dropTarget?.day === block.day && dropTarget?.startSlot === block.startSlot ? copy.dropToCopy : copy.addClass}</span></div> : null}
               </div>
             ))}
           </div>
@@ -1241,27 +1476,27 @@ function Schedule() {
       {showEditForm && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-header"><h3>{formData.id ? 'Edit Class' : 'Add Class'}</h3><button className="modal-close" onClick={closeModal}>x</button></div>
-            <div className="schedule-modal-copy"><p>{formData.id ? 'Edit one existing slot.' : 'Choose one or several hours below to place the same class into all selected slots.'}</p></div>
+            <div className="modal-header"><h3>{formData.id ? copy.editClass : copy.addClassTitle}</h3><button className="modal-close" onClick={closeModal}>x</button></div>
+            <div className="schedule-modal-copy"><p>{formData.id ? copy.editCopy : copy.addCopy}</p></div>
             <form onSubmit={(event) => { event.preventDefault(); handleSave(); }}>
               <div className="form-grid">
-                <div className="form-group"><label>Day</label><select value={formData.day} onChange={(event) => setFormData({ ...formData, day: event.target.value })} required>{days.map((day) => <option key={day} value={day}>{day}</option>)}</select></div>
-                <div className="form-group"><label>{formData.id ? 'Time Slot' : 'Start Slot'}</label><select value={formData.time_slot} onChange={(event) => setFormData({ ...formData, time_slot: event.target.value })} required>{timeSlots.map((slot) => <option key={slot} value={slot}>{slot}</option>)}</select></div>
-                <div className="form-group"><label>Group</label><input list="schedule-groups" value={formData.group_name} onChange={(event) => setFormData({ ...formData, group_name: event.target.value })} readOnly={formData.audience_type === 'individual'} required /></div>
-                <div className="form-group"><label>Audience</label><select value={formData.audience_type} onChange={(event) => setFormData((current) => ({ ...current, audience_type: event.target.value, subgroup_name: event.target.value === 'subgroup' ? current.subgroup_name : '', student_user_id: event.target.value === 'individual' ? current.student_user_id || selectedStudentId : '' }))}><option value="group">Whole group</option><option value="subgroup">Subgroup</option>{isAdmin && <option value="individual">Individual</option>}</select></div>
-                {formData.audience_type === 'subgroup' && <div className="form-group"><label>Subgroup</label><input value={formData.subgroup_name} onChange={(event) => setFormData({ ...formData, subgroup_name: event.target.value })} placeholder="e.g. 1-Group" required /></div>}
-                {formData.audience_type === 'individual' && <div className="form-group"><label>Student</label><select value={formData.student_user_id} onChange={(event) => handleStudentPick(event.target.value, true)} required><option value="" disabled>Choose a student</option>{studentOptions.map((student) => <option key={student.id} value={student.id}>{getStudentLabel(student)}</option>)}</select></div>}
-                <div className="form-group"><label>Linked course</label><select value={formData.course_id} onChange={(event) => handleCoursePick(event.target.value)}><option value="">Standalone / manual</option>{courseOptions.map((course) => <option key={course.id} value={course.id}>{course.code} - {course.name}</option>)}</select></div>
-                <div className="form-group"><label>Subject</label><input value={formData.subject} onChange={(event) => setFormData({ ...formData, subject: event.target.value })} required /></div>
-                <div className="form-group"><label>Teacher</label><input value={formData.teacher} onChange={(event) => setFormData({ ...formData, teacher: event.target.value })} /></div>
-                <div className="form-group"><label>Room</label><input value={formData.room} onChange={(event) => setFormData({ ...formData, room: event.target.value })} required /></div>
-                {!formData.id && <div className="form-group form-group-wide"><label>Apply this class to several hours</label><div className="schedule-slot-picker">{timeSlots.map((slot) => <button key={slot} type="button" className={`schedule-slot-chip ${selectedTimeSlots.includes(slot) ? 'active' : ''}`} onClick={() => toggleTimeSlot(slot)}>{slot}</button>)}</div><p className="schedule-slot-hint">Selected: {selectedTimeSlots.length ? selectedTimeSlots.join(', ') : 'none'}</p></div>}
+                <div className="form-group"><label>{copy.day}</label><select value={formData.day} onChange={(event) => setFormData({ ...formData, day: event.target.value })} required>{days.map((day) => <option key={day} value={day}>{getDayLabel(day, language)}</option>)}</select></div>
+                <div className="form-group"><label>{formData.id ? copy.timeSlot : copy.startSlot}</label><select value={formData.time_slot} onChange={(event) => setFormData({ ...formData, time_slot: event.target.value })} required>{timeSlots.map((slot) => <option key={slot} value={slot}>{slot}</option>)}</select></div>
+                <div className="form-group"><label>{copy.group}</label><input list="schedule-groups" value={formData.group_name} onChange={(event) => setFormData({ ...formData, group_name: event.target.value })} readOnly={formData.audience_type === 'individual'} required /></div>
+                <div className="form-group"><label>{copy.audience}</label><select value={formData.audience_type} onChange={(event) => setFormData((current) => ({ ...current, audience_type: event.target.value, subgroup_name: event.target.value === 'subgroup' ? current.subgroup_name : '', student_user_id: event.target.value === 'individual' ? current.student_user_id || selectedStudentId : '' }))}><option value="group">{copy.wholeGroup}</option><option value="subgroup">{copy.subgroup}</option>{isAdmin && <option value="individual">{copy.individual}</option>}</select></div>
+                {formData.audience_type === 'subgroup' && <div className="form-group"><label>{copy.subgroup}</label><input value={formData.subgroup_name} onChange={(event) => setFormData({ ...formData, subgroup_name: event.target.value })} placeholder={copy.subgroupPlaceholder} required /></div>}
+                {formData.audience_type === 'individual' && <div className="form-group"><label>{copy.student}</label><select value={formData.student_user_id} onChange={(event) => handleStudentPick(event.target.value, true)} required><option value="" disabled>{copy.chooseStudent}</option>{studentOptions.map((student) => <option key={student.id} value={student.id}>{getStudentLabel(student, language)}</option>)}</select></div>}
+                <div className="form-group"><label>{copy.linkedCourse}</label><select value={formData.course_id} onChange={(event) => handleCoursePick(event.target.value)}><option value="">{copy.standaloneManual}</option>{courseOptions.map((course) => <option key={course.id} value={course.id}>{course.code} - {course.name}</option>)}</select></div>
+                <div className="form-group"><label>{copy.subject}</label><input value={formData.subject} onChange={(event) => setFormData({ ...formData, subject: event.target.value })} required /></div>
+                <div className="form-group"><label>{copy.teacher}</label><input value={formData.teacher} onChange={(event) => setFormData({ ...formData, teacher: event.target.value })} /></div>
+                <div className="form-group"><label>{copy.room}</label><input value={formData.room} onChange={(event) => setFormData({ ...formData, room: event.target.value })} required /></div>
+                {!formData.id && <div className="form-group form-group-wide"><label>{copy.applyToHours}</label><div className="schedule-slot-picker">{timeSlots.map((slot) => <button key={slot} type="button" className={`schedule-slot-chip ${selectedTimeSlots.includes(slot) ? 'active' : ''}`} onClick={() => toggleTimeSlot(slot)}>{slot}</button>)}</div><p className="schedule-slot-hint">{copy.selected}: {selectedTimeSlots.length ? selectedTimeSlots.join(', ') : copy.none}</p></div>}
               </div>
               <datalist id="schedule-groups">{groupOptions.map((groupName) => <option key={groupName} value={groupName} />)}</datalist>
               <div className="form-actions">
-                {formData.id && <button type="button" className="btn-danger" onClick={handleDelete}>Delete</button>}
-                <button type="button" className="btn-secondary" onClick={closeModal}>Cancel</button>
-                <button type="submit" className="btn-primary">{formData.id ? 'Update' : `Create for ${selectedTimeSlots.length || 1} slot${selectedTimeSlots.length === 1 ? '' : 's'}`}</button>
+                {formData.id && <button type="button" className="btn-danger" onClick={handleDelete}>{copy.delete}</button>}
+                <button type="button" className="btn-secondary" onClick={closeModal}>{copy.cancel}</button>
+                <button type="submit" className="btn-primary">{formData.id ? copy.update : copy.createFor(selectedTimeSlots.length || 1)}</button>
               </div>
             </form>
           </div>
@@ -1272,37 +1507,37 @@ function Schedule() {
         <div className="modal-overlay" onClick={clearBatchSelection}>
           <div className="modal-content" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
-              <h3>Batch Edit Schedule</h3>
+              <h3>{copy.batchEdit}</h3>
               <button className="modal-close" onClick={clearBatchSelection}>x</button>
             </div>
             <div className="schedule-modal-copy">
-              <p>Update shared fields for the currently selected schedule slots. Leave a field blank to keep the existing value.</p>
+              <p>{copy.batchCopy}</p>
             </div>
             <form onSubmit={(event) => { event.preventDefault(); handleBatchSave(); }}>
               <div className="form-grid">
                 <div className="form-group">
-                  <label>Linked course</label>
+                  <label>{copy.linkedCourse}</label>
                   <select value={batchForm.course_id} onChange={(event) => handleBatchCoursePick(event.target.value)}>
-                    <option value="">Keep each current course</option>
+                    <option value="">{language === 'Kyrgyz' ? 'Ар бир учурдагы курсту сактоо' : 'Keep each current course'}</option>
                     {courseOptions.map((course) => <option key={course.id} value={course.id}>{course.code} - {course.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Subject override</label>
-                  <input value={batchForm.subject} onChange={(event) => setBatchForm((current) => ({ ...current, subject: event.target.value }))} placeholder="Keep current subject if empty" />
+                  <label>{copy.subjectOverride}</label>
+                  <input value={batchForm.subject} onChange={(event) => setBatchForm((current) => ({ ...current, subject: event.target.value }))} placeholder={language === 'Kyrgyz' ? 'Бош болсо учурдагы предмет сакталат' : 'Keep current subject if empty'} />
                 </div>
                 <div className="form-group">
-                  <label>Teacher override</label>
-                  <input value={batchForm.teacher} onChange={(event) => setBatchForm((current) => ({ ...current, teacher: event.target.value }))} placeholder="Keep current teacher if empty" />
+                  <label>{copy.teacherOverride}</label>
+                  <input value={batchForm.teacher} onChange={(event) => setBatchForm((current) => ({ ...current, teacher: event.target.value }))} placeholder={language === 'Kyrgyz' ? 'Бош болсо учурдагы окутуучу сакталат' : 'Keep current teacher if empty'} />
                 </div>
                 <div className="form-group">
-                  <label>Room override</label>
-                  <input value={batchForm.room} onChange={(event) => setBatchForm((current) => ({ ...current, room: event.target.value }))} placeholder="Keep current room if empty" />
+                  <label>{copy.roomOverride}</label>
+                  <input value={batchForm.room} onChange={(event) => setBatchForm((current) => ({ ...current, room: event.target.value }))} placeholder={language === 'Kyrgyz' ? 'Бош болсо учурдагы аудитория сакталат' : 'Keep current room if empty'} />
                 </div>
               </div>
               <div className="form-actions">
-                <button type="button" className="btn-secondary" onClick={clearBatchSelection}>Cancel</button>
-                <button type="submit" className="btn-primary">Update {selectedBatchEntries.length} slot{selectedBatchEntries.length === 1 ? '' : 's'}</button>
+                <button type="button" className="btn-secondary" onClick={clearBatchSelection}>{copy.cancel}</button>
+                <button type="submit" className="btn-primary">{copy.updateSlots(selectedBatchEntries.length)}</button>
               </div>
             </form>
           </div>

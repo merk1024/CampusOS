@@ -371,9 +371,9 @@ export default function App() {
       case 'dashboard':
         return <Dashboard user={user} onNavigate={handleNavigate} locale={locale} language={appSettings.language} />;
       case 'courses':
-        return <CoursesPage user={user} />;
+        return <CoursesPage user={user} language={appSettings.language} locale={locale} />;
       case 'schedule':
-        return <Schedule user={user} />;
+        return <Schedule user={user} language={appSettings.language} />;
       case 'exams':
         return <Exams user={user} />;
       case 'grades':
@@ -381,12 +381,13 @@ export default function App() {
       case 'assignments':
         return <Assignments user={user} />;
       case 'attendance':
-        return <AttendancePage user={user} />;
+        return <AttendancePage user={user} language={appSettings.language} locale={locale} />;
       case 'messages':
         return (
           <Messages
             user={user}
             locale={locale}
+            language={appSettings.language}
             onUnreadCountChange={handleMessageUnreadSync}
           />
         );
@@ -412,7 +413,7 @@ export default function App() {
       case 'support':
         return <InfoCenter page="support" onNavigate={handleNavigate} user={user} contextPage={lastWorkspacePage} language={appSettings.language} />;
       case 'userManagement':
-        return <UserManagement user={user} />;
+        return <UserManagement user={user} language={appSettings.language} />;
       case 'integrations':
         return <IntegrationCenter user={user} />;
       default:
