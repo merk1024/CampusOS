@@ -1402,11 +1402,16 @@ body {
   font-weight: 700;
   color: var(--text);
   margin-bottom: 0.25rem;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .page-header p {
   color: var(--text-muted);
   font-size: 1rem;
+  max-width: 70ch;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .btn-primary {
@@ -1421,6 +1426,12 @@ body {
   transition: all 0.3s;
   font-family: inherit;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  min-width: 0;
+  text-align: center;
+  justify-content: center;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .btn-primary:hover {
@@ -2698,6 +2709,8 @@ body {
   margin: 0;
   color: var(--text);
   font-size: 1.25rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .assignment-heading p {
@@ -2716,6 +2729,9 @@ body {
   text-transform: uppercase;
   flex-shrink: 0;
   background: var(--assignment-accent, var(--accent));
+  text-align: center;
+  white-space: normal;
+  line-height: 1.3;
 }
 
 .assignment-status-overdue {
@@ -3061,6 +3077,12 @@ body {
   cursor: pointer;
   transition: all 0.2s;
   font-family: inherit;
+  min-width: 0;
+  text-align: center;
+  justify-content: center;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .btn-secondary:hover {
@@ -3394,6 +3416,8 @@ body {
 
 .exam-form-header p {
   color: var(--text-muted);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .exam-form-card h3,
@@ -3427,9 +3451,10 @@ body {
 .exam-form-label {
   font-size: 0.82rem;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.35;
   letter-spacing: 0.02em;
   color: var(--text-light);
+  overflow-wrap: anywhere;
 }
 
 .exam-form-grid input,
@@ -3510,11 +3535,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  min-width: 0;
 }
 
 .management-summary-card strong {
   font-size: 1.7rem;
   color: var(--accent);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .management-summary-label {
@@ -3522,6 +3550,8 @@ body {
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .management-toolbar {
@@ -3538,6 +3568,7 @@ body {
 
 .management-search input {
   width: 100%;
+  min-width: 0;
   padding: 0.85rem 1rem;
   border: 1px solid #d8e0ef;
   border-radius: 12px;
@@ -3551,11 +3582,13 @@ body {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+  align-items: flex-start;
 }
 
 .management-filter-chip {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
   border: 1px solid #d8e0ef;
   background: white;
@@ -3566,6 +3599,12 @@ body {
   font-family: inherit;
   font-weight: 600;
   transition: all 0.2s;
+  min-width: 0;
+  max-width: 100%;
+  text-align: center;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .management-filter-chip.active,
@@ -3616,6 +3655,8 @@ body {
   margin-top: 0.25rem;
   color: var(--text-muted);
   font-size: 0.9rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .data-table-scroll {
@@ -3723,15 +3764,20 @@ body {
 
 .exam-card-header h3 {
   margin-bottom: 0.3rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .exam-card-header p {
   color: var(--text-muted);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .exam-card-actions {
   display: flex;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .exam-meta-grid {
@@ -3739,6 +3785,12 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0.75rem;
   color: var(--text-light);
+}
+
+.exam-meta-grid > div {
+  min-width: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .schedule-admin-bar {
@@ -4082,6 +4134,29 @@ body {
   .exam-card-actions,
   .form-actions {
     flex-direction: column;
+  }
+
+  .management-summary-card {
+    padding: 0.95rem 1rem;
+  }
+
+  .management-summary-card strong {
+    font-size: 1.45rem;
+  }
+
+  .management-summary-label {
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+  }
+
+  .management-filter-chip,
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+  }
+
+  .exam-form-card .portal-actions {
+    justify-content: stretch;
   }
 
   .schedule-overview-strip {

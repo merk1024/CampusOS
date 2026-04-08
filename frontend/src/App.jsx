@@ -377,7 +377,7 @@ export default function App() {
       case 'exams':
         return <Exams user={user} language={appSettings.language} locale={locale} />;
       case 'grades':
-        return <Grades user={user} />;
+        return <Grades user={user} language={appSettings.language} locale={locale} />;
       case 'assignments':
         return <Assignments user={user} language={appSettings.language} locale={locale} />;
       case 'attendance':

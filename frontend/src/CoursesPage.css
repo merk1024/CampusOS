@@ -79,11 +79,14 @@
   font-size:0.95rem;
   font-weight:700;
   color:var(--text);
+  line-height:1.35;
+  overflow-wrap:anywhere;
 }
 .lms-controls-copy span {
   font-size:0.84rem;
   line-height:1.45;
   color:var(--muted);
+  overflow-wrap:anywhere;
 }
 .lms-controls-actions {
   display:flex;
@@ -299,6 +302,8 @@
   font-size: 1rem;
   font-weight: 800;
   color: var(--text);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .lms-admin-op-head p {
@@ -306,6 +311,7 @@
   font-size: 0.9rem;
   line-height: 1.55;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .lms-admin-op-field {
@@ -433,12 +439,15 @@
   font-size: 0.92rem;
   font-weight: 800;
   color: var(--text);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .lms-admin-report-row span {
   font-size: 0.8rem;
   color: var(--muted);
   line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 /* COURSE GRID */
@@ -798,7 +807,7 @@
   /* Tabs */
   .cd-tabs { padding: 0 1.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .cd-tabs::-webkit-scrollbar { height: 0; }
-  .cd-tab { white-space: nowrap; padding: 1rem 1.25rem; font-size: 0.9rem; }
+  .cd-tab { white-space: normal; text-align: center; line-height: 1.25; padding: 1rem 1.25rem; font-size: 0.9rem; }
   .cd-progress-bar-wrap { display: none; }
   
   /* Content */
@@ -874,7 +883,7 @@
   .cd-hero-desc { font-size: 0.9rem; }
   
   .cd-tabs { padding: 0 1.25rem; }
-  .cd-tab { padding: 0.875rem 1rem; font-size: 0.85rem; }
+  .cd-tab { padding: 0.875rem 1rem; font-size: 0.85rem; white-space: normal; text-align: center; line-height: 1.25; }
   
   .cd-body { padding: 1.5rem 1.25rem; }
   .cd-hint { font-size: 0.8rem; padding: 0.75rem 0.875rem; }

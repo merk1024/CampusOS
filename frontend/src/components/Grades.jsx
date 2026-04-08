@@ -18,6 +18,144 @@ const EMPTY_MANAGER_FORM = {
   grade: '',
   comments: ''
 };
+const GRADES_COPY = {
+  English: {
+    pageTitle: 'Grades',
+    loadingStudent: 'Loading your grades...',
+    loadingManager: 'Loading grade manager...',
+    unavailableSubtitle: 'This section is currently available for student and academic management accounts.',
+    managerSubtitle: 'Assign, review, and filter grades from one workspace.',
+    studentSubtitle: 'Track your academic performance in one view.',
+    errorTitle: 'Grades could not be updated',
+    successTitle: 'Grades updated',
+    stats: {
+      availableExams: 'Available exams',
+      averageGrade: 'Average grade',
+      studentsLoaded: 'Students loaded',
+      recordedGrades: 'Recorded grades',
+      selectedAverage: 'Selected avg',
+      highestGrade: 'Highest grade',
+      visibleGrades: 'Visible grades',
+      lowestGrade: 'Lowest grade'
+    },
+    manager: {
+      title: 'Save grade',
+      subtitle: 'Select an exam, choose a student, and submit the score without leaving the gradebook.',
+      exam: 'Exam',
+      selectExam: 'Select exam',
+      student: 'Student ID or email',
+      studentPlaceholder: 'Start typing a student ID or email',
+      grade: 'Grade',
+      gradePlaceholder: '0 to 100',
+      comments: 'Comments',
+      commentsPlaceholder: 'Optional comment',
+      save: 'Save grade'
+    },
+    table: {
+      title: 'Gradebook',
+      showing: (visible, total) => `Showing ${visible} of ${total} recorded grades`,
+      subject: 'Subject',
+      type: 'Type',
+      grade: 'Grade',
+      letter: 'Letter',
+      date: 'Date',
+      comments: 'Comments',
+      unknownSubject: 'Unknown subject',
+      examFallback: 'Exam',
+      noComments: 'No comments'
+    },
+    notGradedYet: 'Not graded yet',
+    failedLoad: 'Failed to load grades',
+    missingStudentId: 'Student ID is missing for this account.',
+    savedSuccess: 'Grade saved successfully.',
+    saveFailed: 'Failed to save grade',
+    searchPlaceholder: 'Search by subject, type, comments, or grader',
+    searchAria: 'Search the gradebook',
+    allTypes: 'All types',
+    clearFilters: 'Clear filters',
+    viewingHistory: (label) => `Viewing grade history for ${label}.`,
+    chooseStudentHint: 'Choose a student above to load their grade history and statistics.',
+    emptyChooserEyebrow: 'Start with a student',
+    emptyChooserTitle: 'Choose a student to open the gradebook',
+    emptyChooserDescription: 'Enter a student ID or email in the grade form above to review results and save a new score.',
+    emptyNoGradesEyebrow: 'No grades yet',
+    emptyManagerTitle: 'No grades recorded for this student',
+    emptyStudentTitle: 'No grades published yet',
+    emptyManagerDescription: 'Once a grade is saved, it will appear here together with statistics for the selected student.',
+    emptyStudentDescription: 'Grades will appear here after teachers publish exam results.',
+    emptyFilteredEyebrow: 'Nothing matched',
+    emptyFilteredTitle: 'No grades match the active filters',
+    emptyFilteredDescription: 'Clear the current search or type filter to restore the full gradebook view.'
+  },
+  Kyrgyz: {
+    pageTitle: 'Баалар',
+    loadingStudent: 'Бааларыңыз жүктөлүүдө...',
+    loadingManager: 'Баалар менеджери жүктөлүүдө...',
+    unavailableSubtitle: 'Бул бөлүм азыр студенттер жана академиялык башкаруу аккаунттары үчүн жеткиликтүү.',
+    managerSubtitle: 'Бааларды бир workspace ичинде коюп, карап жана чыпкалай аласыз.',
+    studentSubtitle: 'Академиялык көрсөткүчүңүздү бир көрүнүштө көзөмөлдөңүз.',
+    errorTitle: 'Баалар жаңыртылган жок',
+    successTitle: 'Баалар жаңыртылды',
+    stats: {
+      availableExams: 'Жеткиликтүү экзамендер',
+      averageGrade: 'Орточо баа',
+      studentsLoaded: 'Жүктөлгөн студенттер',
+      recordedGrades: 'Жазылган баалар',
+      selectedAverage: 'Тандалган орточо',
+      highestGrade: 'Эң жогорку баа',
+      visibleGrades: 'Көрүнгөн баалар',
+      lowestGrade: 'Эң төмөн баа'
+    },
+    manager: {
+      title: 'Бааны сактоо',
+      subtitle: 'Экзаменди тандап, студентти көрсөтүп, бааны gradebookтен чыкпай эле жибериңиз.',
+      exam: 'Экзамен',
+      selectExam: 'Экзаменди тандаңыз',
+      student: 'Студент ID же email',
+      studentPlaceholder: 'Студент ID же email жаза баштаңыз',
+      grade: 'Баа',
+      gradePlaceholder: '0дөн 100гө чейин',
+      comments: 'Комментарийлер',
+      commentsPlaceholder: 'Кошумча комментарий',
+      save: 'Бааны сактоо'
+    },
+    table: {
+      title: 'Баалар журналы',
+      showing: (visible, total) => `${total} жазылган баанын ичинен ${visible} көрсөтүлдү`,
+      subject: 'Предмет',
+      type: 'Түрү',
+      grade: 'Баа',
+      letter: 'Тамга',
+      date: 'Күнү',
+      comments: 'Комментарийлер',
+      unknownSubject: 'Белгисиз предмет',
+      examFallback: 'Экзамен',
+      noComments: 'Комментарий жок'
+    },
+    notGradedYet: 'Азырынча бааланган эмес',
+    failedLoad: 'Бааларды жүктөө ишке ашкан жок',
+    missingStudentId: 'Бул аккаунт үчүн студент ID табылган жок.',
+    savedSuccess: 'Баа ийгиликтүү сакталды.',
+    saveFailed: 'Бааны сактоо ишке ашкан жок',
+    searchPlaceholder: 'Предмет, түрү, комментарий же баалаган адам боюнча издөө',
+    searchAria: 'Баалар журналын издөө',
+    allTypes: 'Бардык түрлөр',
+    clearFilters: 'Чыпкаларды тазалоо',
+    viewingHistory: (label) => `${label} үчүн баа тарыхы көрсөтүлүүдө.`,
+    chooseStudentHint: 'Баа тарыхын жана статистиканы жүктөө үчүн жогорудан студентти тандаңыз.',
+    emptyChooserEyebrow: 'Студенттен баштаңыз',
+    emptyChooserTitle: 'Баалар журналын ачуу үчүн студент тандаңыз',
+    emptyChooserDescription: 'Жыйынтыктарды көрүү жана жаңы баа сактоо үчүн жогорудагы формага студент ID же email киргизиңиз.',
+    emptyNoGradesEyebrow: 'Азырынча баа жок',
+    emptyManagerTitle: 'Бул студент үчүн жазылган баа жок',
+    emptyStudentTitle: 'Азырынча баалар жарыяланган жок',
+    emptyManagerDescription: 'Баа сакталгандан кийин ал ушул жерде тандалган студенттин статистикасы менен кошо көрүнөт.',
+    emptyStudentDescription: 'Окутуучулар экзамен жыйынтыктарын жарыялаганда баалар бул жерде пайда болот.',
+    emptyFilteredEyebrow: 'Дал келген жок',
+    emptyFilteredTitle: 'Активдүү чыпкаларга дал келген баа жок',
+    emptyFilteredDescription: 'Толук gradebook көрүнүшүн кайтаруу үчүн издөө же түр чыпкасын тазалаңыз.'
+  }
+};
 
 function getGradeColor(grade) {
   if (grade >= 90) return '#10b981';
@@ -38,28 +176,28 @@ function getLetterGrade(grade) {
   return 'F';
 }
 
-function formatDate(value) {
-  if (!value) return 'Not graded yet';
+function formatDate(value, locale = 'en-GB', fallback = 'Not graded yet') {
+  if (!value) return fallback;
 
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
 
-  return parsed.toLocaleDateString([], {
+  return parsed.toLocaleDateString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
   });
 }
 
-function GradesTable({ grades, totalCount }) {
+function GradesTable({ grades, totalCount, copy, locale = 'en-GB' }) {
   return (
     <div className="data-table-card">
       <div className="data-table-header">
         <div>
-          <h3>Gradebook</h3>
-          <p className="data-table-meta">Showing {grades.length} of {totalCount} recorded grades</p>
+          <h3>{copy.title}</h3>
+          <p className="data-table-meta">{copy.showing(grades.length, totalCount)}</p>
         </div>
       </div>
 
@@ -68,12 +206,12 @@ function GradesTable({ grades, totalCount }) {
           <caption className="sr-only">CampusOS gradebook table</caption>
           <thead>
             <tr>
-              <th scope="col">Subject</th>
-              <th scope="col">Type</th>
-              <th scope="col">Grade</th>
-              <th scope="col">Letter</th>
-              <th scope="col">Date</th>
-              <th scope="col">Comments</th>
+              <th scope="col">{copy.subject}</th>
+              <th scope="col">{copy.type}</th>
+              <th scope="col">{copy.grade}</th>
+              <th scope="col">{copy.letter}</th>
+              <th scope="col">{copy.date}</th>
+              <th scope="col">{copy.comments}</th>
             </tr>
           </thead>
           <tbody>
@@ -81,10 +219,10 @@ function GradesTable({ grades, totalCount }) {
               <tr key={grade.id}>
                 <td>
                   <div className="grade-primary-cell">
-                    <strong>{grade.subject || 'Unknown subject'}</strong>
+                    <strong>{grade.subject || copy.unknownSubject}</strong>
                   </div>
                 </td>
-                <td>{grade.type || 'Exam'}</td>
+                <td>{grade.type || copy.examFallback}</td>
                 <td>
                   <span className="grade-score" style={{ '--grade-accent': getGradeColor(grade.grade) }}>
                     {grade.grade}%
@@ -93,8 +231,8 @@ function GradesTable({ grades, totalCount }) {
                 <td>
                   <span className="grade-letter-pill">{getLetterGrade(grade.grade)}</span>
                 </td>
-                <td>{formatDate(grade.exam_date || grade.graded_at)}</td>
-                <td className="grade-comment-cell">{grade.comments?.trim() || 'No comments'}</td>
+                <td>{formatDate(grade.exam_date || grade.graded_at, locale, copy.notGradedYet || 'Not graded yet')}</td>
+                <td className="grade-comment-cell">{grade.comments?.trim() || copy.noComments}</td>
               </tr>
             ))}
           </tbody>
@@ -104,7 +242,8 @@ function GradesTable({ grades, totalCount }) {
   );
 }
 
-function Grades({ user }) {
+function Grades({ user, language = 'English', locale = 'en-GB' }) {
+  const copy = GRADES_COPY[language] || GRADES_COPY.English;
   const [grades, setGrades] = useState([]);
   const [stats, setStats] = useState(EMPTY_STATS);
   const [exams, setExams] = useState([]);
@@ -149,7 +288,7 @@ function Grades({ user }) {
 
         if (isStudent) {
           if (!studentId) {
-            setError('Student ID is missing for this account.');
+            setError(copy.missingStudentId);
             setGrades([]);
             setStats(EMPTY_STATS);
             return;
@@ -173,14 +312,14 @@ function Grades({ user }) {
         setGrades([]);
         setStats(EMPTY_STATS);
       } catch (err) {
-        setError(err.message || 'Failed to load grades');
+        setError(err.message || copy.failedLoad);
       } finally {
         setLoading(false);
       }
     };
 
     loadPage();
-  }, [canManage, isStudent, studentId]);
+  }, [canManage, copy.failedLoad, copy.missingStudentId, isStudent, studentId]);
 
   useEffect(() => {
     if (!canManage || !managerForm.studentId) {
@@ -206,20 +345,20 @@ function Grades({ user }) {
           ...(statsResponse?.stats || {})
         });
       } catch (err) {
-        setError(err.message || 'Failed to load grades');
+        setError(err.message || copy.failedLoad);
       }
     };
 
     loadSelectedStudent();
-  }, [canManage, isStudent, managerForm.studentId]);
+  }, [canManage, copy.failedLoad, isStudent, managerForm.studentId]);
 
   const gradeTypes = useMemo(() => (
-    ['all', ...new Set(grades.map((grade) => grade.type || 'Exam'))]
-  ), [grades]);
+    ['all', ...new Set(grades.map((grade) => grade.type || copy.table.examFallback))]
+  ), [copy.table.examFallback, grades]);
 
   const filteredGrades = useMemo(() => (
     grades.filter((grade) => {
-      const matchesType = typeFilter === 'all' || (grade.type || 'Exam') === typeFilter;
+      const matchesType = typeFilter === 'all' || (grade.type || copy.table.examFallback) === typeFilter;
       const searchable = [
         grade.subject,
         grade.type,
@@ -232,7 +371,7 @@ function Grades({ user }) {
 
       return matchesType && searchable.includes(searchTerm.trim().toLowerCase());
     })
-  ), [grades, searchTerm, typeFilter]);
+  ), [copy.table.examFallback, grades, searchTerm, typeFilter]);
 
   const selectedStudent = useMemo(() => (
     students.find((student) => (
@@ -261,7 +400,7 @@ function Grades({ user }) {
         comments: managerForm.comments.trim()
       });
 
-      setNotice('Grade saved successfully.');
+      setNotice(copy.savedSuccess);
 
       const [gradesResponse, statsResponse] = await Promise.all([
         api.getGrades(managerForm.studentId),
@@ -274,7 +413,7 @@ function Grades({ user }) {
         ...(statsResponse?.stats || {})
       });
     } catch (err) {
-      setError(err.message || 'Failed to save grade');
+      setError(err.message || copy.saveFailed);
     }
   };
 
@@ -287,8 +426,8 @@ function Grades({ user }) {
     return (
       <div className="page">
         <div className="page-header">
-          <h1>Grades</h1>
-          <p>{isStudent ? 'Loading your grades...' : 'Loading grade manager...'}</p>
+          <h1>{copy.pageTitle}</h1>
+          <p>{isStudent ? copy.loadingStudent : copy.loadingManager}</p>
         </div>
         <div className="loading-spinner"></div>
       </div>
@@ -299,8 +438,8 @@ function Grades({ user }) {
     return (
       <div className="page">
         <div className="page-header">
-          <h1>Grades</h1>
-          <p>This section is currently available for student and academic management accounts.</p>
+          <h1>{copy.pageTitle}</h1>
+          <p>{copy.unavailableSubtitle}</p>
         </div>
       </div>
     );
@@ -322,29 +461,29 @@ function Grades({ user }) {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Grades</h1>
-          <p>{canManage && !isStudent ? 'Assign, review, and filter grades from one workspace.' : 'Track your academic performance in one view.'}</p>
+          <h1>{copy.pageTitle}</h1>
+          <p>{canManage && !isStudent ? copy.managerSubtitle : copy.studentSubtitle}</p>
         </div>
       </div>
 
-      <StatusBanner tone="error" title="Grades could not be updated" message={error} />
-      <StatusBanner tone="success" title="Grades updated" message={notice} />
+      <StatusBanner tone="error" title={copy.errorTitle} message={error} />
+      <StatusBanner tone="success" title={copy.successTitle} message={notice} />
 
       <div className="management-summary-grid">
         <div className="management-summary-card">
-          <span className="management-summary-label">{canManage && !isStudent ? 'Available exams' : 'Average grade'}</span>
+          <span className="management-summary-label">{canManage && !isStudent ? copy.stats.availableExams : copy.stats.averageGrade}</span>
           <strong>{canManage && !isStudent ? exams.length : average}</strong>
         </div>
         <div className="management-summary-card">
-          <span className="management-summary-label">{canManage && !isStudent ? 'Students loaded' : 'Recorded grades'}</span>
+          <span className="management-summary-label">{canManage && !isStudent ? copy.stats.studentsLoaded : copy.stats.recordedGrades}</span>
           <strong>{canManage && !isStudent ? students.length : totalExams}</strong>
         </div>
         <div className="management-summary-card">
-          <span className="management-summary-label">{canManage && !isStudent ? 'Selected avg' : 'Highest grade'}</span>
+          <span className="management-summary-label">{canManage && !isStudent ? copy.stats.selectedAverage : copy.stats.highestGrade}</span>
           <strong>{canManage && !isStudent ? (managerForm.studentId ? average : '0.0') : highestGrade}</strong>
         </div>
         <div className="management-summary-card">
-          <span className="management-summary-label">{canManage && !isStudent ? 'Visible grades' : 'Lowest grade'}</span>
+          <span className="management-summary-label">{canManage && !isStudent ? copy.stats.visibleGrades : copy.stats.lowestGrade}</span>
           <strong>{canManage && !isStudent ? filteredGrades.length : lowestGrade}</strong>
         </div>
       </div>
@@ -353,19 +492,19 @@ function Grades({ user }) {
         <form className="exam-form-card" onSubmit={handleSaveGrade}>
           <div className="exam-form-header">
             <div>
-              <h3>Save grade</h3>
-              <p>Select an exam, choose a student, and submit the score without leaving the gradebook.</p>
+              <h3>{copy.manager.title}</h3>
+              <p>{copy.manager.subtitle}</p>
             </div>
           </div>
           <div className="exam-form-grid">
             <label className="exam-form-field">
-              <span className="exam-form-label">Exam</span>
+              <span className="exam-form-label">{copy.manager.exam}</span>
               <select
                 value={managerForm.examId}
                 onChange={(event) => handleManagerInput('examId', event.target.value)}
                 required
               >
-                <option value="">Select exam</option>
+                <option value="">{copy.manager.selectExam}</option>
                 {exams.map((exam) => (
                   <option key={exam.id} value={exam.id}>
                     {exam.subject} - {exam.group_name} - {exam.exam_date}
@@ -374,33 +513,33 @@ function Grades({ user }) {
               </select>
             </label>
             <label className="exam-form-field">
-              <span className="exam-form-label">Student ID or email</span>
+              <span className="exam-form-label">{copy.manager.student}</span>
               <input
                 list="grade-student-ids"
                 type="text"
-                placeholder="Start typing a student ID or email"
+                placeholder={copy.manager.studentPlaceholder}
                 value={managerForm.studentId}
                 onChange={(event) => handleManagerInput('studentId', event.target.value)}
                 required
               />
             </label>
             <label className="exam-form-field">
-              <span className="exam-form-label">Grade</span>
+              <span className="exam-form-label">{copy.manager.grade}</span>
               <input
                 type="number"
                 min="0"
                 max="100"
-                placeholder="0 to 100"
+                placeholder={copy.manager.gradePlaceholder}
                 value={managerForm.grade}
                 onChange={(event) => handleManagerInput('grade', event.target.value)}
                 required
               />
             </label>
             <label className="exam-form-field">
-              <span className="exam-form-label">Comments</span>
+              <span className="exam-form-label">{copy.manager.comments}</span>
               <input
                 type="text"
-                placeholder="Optional comment"
+                placeholder={copy.manager.commentsPlaceholder}
                 value={managerForm.comments}
                 onChange={(event) => handleManagerInput('comments', event.target.value)}
               />
@@ -416,7 +555,7 @@ function Grades({ user }) {
             ))}
           </datalist>
           <div className="portal-actions">
-            <button type="submit" className="btn-primary">Save grade</button>
+            <button type="submit" className="btn-primary">{copy.manager.save}</button>
           </div>
         </form>
       )}
@@ -425,8 +564,8 @@ function Grades({ user }) {
         <div className="management-search">
           <input
             type="text"
-            placeholder="Search by subject, type, comments, or grader"
-            aria-label="Search the gradebook"
+            placeholder={copy.searchPlaceholder}
+            aria-label={copy.searchAria}
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />
@@ -439,12 +578,12 @@ function Grades({ user }) {
               className={`management-filter-chip ${typeFilter === type ? 'active' : ''}`}
               onClick={() => setTypeFilter(type)}
             >
-              {type === 'all' ? 'All types' : type}
+              {type === 'all' ? copy.allTypes : type}
             </button>
           ))}
           {hasActiveFilters && (
             <button type="button" className="management-filter-chip" onClick={resetFilters}>
-              Clear filters
+              {copy.clearFilters}
             </button>
           )}
         </div>
@@ -453,38 +592,38 @@ function Grades({ user }) {
       {canManage && !isStudent && (
         <p className="grades-context-note">
           {managerForm.studentId
-            ? `Viewing grade history for ${selectedStudentLabel}.`
-            : 'Choose a student above to load their grade history and statistics.'}
+            ? copy.viewingHistory(selectedStudentLabel)
+            : copy.chooseStudentHint}
         </p>
       )}
 
       {showChooserEmptyState ? (
         <EmptyState
-          eyebrow="Start with a student"
-          title="Choose a student to open the gradebook"
-          description="Enter a student ID or email in the grade form above to review results and save a new score."
+          eyebrow={copy.emptyChooserEyebrow}
+          title={copy.emptyChooserTitle}
+          description={copy.emptyChooserDescription}
           compact
         />
       ) : showNoGradesState ? (
         <EmptyState
-          eyebrow="No grades yet"
-          title={canManage && !isStudent ? 'No grades recorded for this student' : 'No grades published yet'}
+          eyebrow={copy.emptyNoGradesEyebrow}
+          title={canManage && !isStudent ? copy.emptyManagerTitle : copy.emptyStudentTitle}
           description={canManage && !isStudent
-            ? 'Once a grade is saved, it will appear here together with statistics for the selected student.'
-            : 'Grades will appear here after teachers publish exam results.'}
+            ? copy.emptyManagerDescription
+            : copy.emptyStudentDescription}
           compact
         />
       ) : showFilteredEmptyState ? (
         <EmptyState
-          eyebrow="Nothing matched"
-          title="No grades match the active filters"
-          description="Clear the current search or type filter to restore the full gradebook view."
-          actionLabel="Clear filters"
+          eyebrow={copy.emptyFilteredEyebrow}
+          title={copy.emptyFilteredTitle}
+          description={copy.emptyFilteredDescription}
+          actionLabel={copy.clearFilters}
           onAction={resetFilters}
           compact
         />
       ) : (
-        <GradesTable grades={filteredGrades} totalCount={grades.length} />
+        <GradesTable grades={filteredGrades} totalCount={grades.length} copy={copy.table} locale={locale} />
       )}
     </div>
   );
