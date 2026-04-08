@@ -375,11 +375,11 @@ export default function App() {
       case 'schedule':
         return <Schedule user={user} language={appSettings.language} />;
       case 'exams':
-        return <Exams user={user} />;
+        return <Exams user={user} language={appSettings.language} locale={locale} />;
       case 'grades':
         return <Grades user={user} />;
       case 'assignments':
-        return <Assignments user={user} />;
+        return <Assignments user={user} language={appSettings.language} locale={locale} />;
       case 'attendance':
         return <AttendancePage user={user} language={appSettings.language} locale={locale} />;
       case 'messages':

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api';
 import EmptyState from './EmptyState';
@@ -16,12 +16,155 @@ const EMPTY_FORM = {
   studentsText: ''
 };
 
-function formatExamDate(value) {
-  if (!value) return 'Not set';
+const EXAMS_COPY = {
+  English: {
+    pageTitle: 'Exams',
+    loading: 'Loading exam list...',
+    managerSubtitle: 'Create and manage exams for groups.',
+    studentSubtitle: 'Your scheduled exams.',
+    closeComposer: 'Close Composer',
+    addExam: 'Add Exam',
+    errorTitle: 'Exams could not be updated',
+    successTitle: 'Exams updated',
+    summary: {
+      total: 'Total exams',
+      upcoming: 'Upcoming',
+      groups: 'Groups',
+      mine: 'My exams'
+    },
+    searchPlaceholder: 'Search by subject, group, teacher or room',
+    searchAria: 'Search exams',
+    allGroups: 'All groups',
+    allExams: 'All exams',
+    myExams: 'My exams',
+    form: {
+      updateTitle: 'Update exam',
+      createTitle: 'Create new exam',
+      subtitle: 'Use one place to assign date, group and students. Duplicate similar sessions when the structure repeats.',
+      group: 'Group',
+      groupPlaceholder: 'For example CYB-23',
+      subject: 'Subject',
+      subjectPlaceholder: 'For example Database Systems',
+      examDate: 'Exam date',
+      examTime: 'Exam time',
+      room: 'Room',
+      roomPlaceholder: 'For example A-205',
+      type: 'Type',
+      typePlaceholder: 'Exam, Midterm, Quiz',
+      semester: 'Semester',
+      selectSemester: 'Select semester',
+      students: 'Students',
+      studentsPlaceholder: 'Student IDs, separated by commas or new lines',
+      cancel: 'Cancel',
+      update: 'Update Exam',
+      create: 'Create Exam'
+    },
+    notices: {
+      updated: 'Exam updated successfully.',
+      created: 'Exam created successfully.',
+      deleted: 'Exam deleted successfully.',
+      saveFailed: 'Failed to save exam',
+      loadFailed: 'Failed to load exams',
+      deleteFailed: 'Failed to delete exam'
+    },
+    actions: {
+      duplicate: 'Duplicate',
+      edit: 'Edit',
+      delete: 'Delete'
+    },
+    meta: {
+      date: 'Date',
+      time: 'Time',
+      room: 'Room',
+      teacher: 'Teacher',
+      semester: 'Semester',
+      students: 'Students'
+    },
+    notSet: 'Not set',
+    examFallback: 'Exam',
+    emptyTitle: 'No exams match the current filters',
+    emptyFiltered: 'Reset the current filters to reopen the full exam list.',
+    emptyFresh: 'Scheduled exams will appear here once a teacher or admin creates them.',
+    clearFilters: 'Clear filters'
+  },
+  Kyrgyz: {
+    pageTitle: 'Экзамендер',
+    loading: 'Экзамендер тизмеси жүктөлүүдө...',
+    managerSubtitle: 'Топтор үчүн экзамендерди түзүп жана башкарыңыз.',
+    studentSubtitle: 'Сиздин пландалган экзамендериңиз.',
+    closeComposer: 'Форманы жабуу',
+    addExam: 'Экзамен кошуу',
+    errorTitle: 'Экзамендер жаңыртылган жок',
+    successTitle: 'Экзамендер жаңыртылды',
+    summary: {
+      total: 'Жалпы экзамендер',
+      upcoming: 'Алдыдагы',
+      groups: 'Топтор',
+      mine: 'Менин экзамендерим'
+    },
+    searchPlaceholder: 'Предмет, топ, окутуучу же кабинет боюнча издөө',
+    searchAria: 'Экзамендерди издөө',
+    allGroups: 'Бардык топтор',
+    allExams: 'Бардык экзамендер',
+    myExams: 'Менин экзамендерим',
+    form: {
+      updateTitle: 'Экзаменди жаңыртуу',
+      createTitle: 'Жаңы экзамен түзүү',
+      subtitle: 'Датаны, топту жана студенттерди бир жерден дайындаңыз. Түзүмү окшош болсо, сессияларды көчүрүп пайдаланыңыз.',
+      group: 'Топ',
+      groupPlaceholder: 'Мисалы, CYB-23',
+      subject: 'Предмет',
+      subjectPlaceholder: 'Мисалы, Database Systems',
+      examDate: 'Экзамен күнү',
+      examTime: 'Экзамен убактысы',
+      room: 'Кабинет',
+      roomPlaceholder: 'Мисалы, A-205',
+      type: 'Түрү',
+      typePlaceholder: 'Exam, Midterm, Quiz',
+      semester: 'Семестр',
+      selectSemester: 'Семестрди тандаңыз',
+      students: 'Студенттер',
+      studentsPlaceholder: 'Студент IDлерин үтүр же жаңы сап менен жазыңыз',
+      cancel: 'Жокко чыгаруу',
+      update: 'Экзаменди жаңыртуу',
+      create: 'Экзамен түзүү'
+    },
+    notices: {
+      updated: 'Экзамен ийгиликтүү жаңыртылды.',
+      created: 'Экзамен ийгиликтүү түзүлдү.',
+      deleted: 'Экзамен ийгиликтүү өчүрүлдү.',
+      saveFailed: 'Экзаменди сактоо ишке ашкан жок',
+      loadFailed: 'Экзамендерди жүктөө ишке ашкан жок',
+      deleteFailed: 'Экзаменди өчүрүү ишке ашкан жок'
+    },
+    actions: {
+      duplicate: 'Көчүрүү',
+      edit: 'Оңдоо',
+      delete: 'Өчүрүү'
+    },
+    meta: {
+      date: 'Күнү',
+      time: 'Убактысы',
+      room: 'Кабинет',
+      teacher: 'Окутуучу',
+      semester: 'Семестр',
+      students: 'Студенттер'
+    },
+    notSet: 'Коюлган эмес',
+    examFallback: 'Экзамен',
+    emptyTitle: 'Учурдагы чыпкаларга дал келген экзамен жок',
+    emptyFiltered: 'Толук экзамен тизмесин кайра ачуу үчүн чыпкаларды тазалаңыз.',
+    emptyFresh: 'Окутуучу же админ экзамен түзгөндө ал бул жерде пайда болот.',
+    clearFilters: 'Чыпкаларды тазалоо'
+  }
+};
+
+function formatExamDate(value, locale = 'en-GB', fallback = 'Not set') {
+  if (!value) return fallback;
 
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     const [year, month, day] = value.split('-').map(Number);
-    return new Date(year, month - 1, day).toLocaleDateString();
+    return new Date(year, month - 1, day).toLocaleDateString(locale);
   }
 
   const parsed = new Date(value);
@@ -29,7 +172,7 @@ function formatExamDate(value) {
     return value;
   }
 
-  return parsed.toLocaleDateString();
+  return parsed.toLocaleDateString(locale);
 }
 
 function toLocalDateValue(value) {
@@ -44,7 +187,8 @@ function toLocalDateValue(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function Exams({ user }) {
+function Exams({ user, language = 'English', locale = 'en-GB' }) {
+  const copy = EXAMS_COPY[language] || EXAMS_COPY.English;
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -59,7 +203,7 @@ function Exams({ user }) {
   const canManage = canManageAcademicRecords(user);
   const hasActiveFilters = groupFilter !== 'all' || ownershipFilter !== 'all' || searchTerm.trim() !== '';
 
-  const loadExams = async () => {
+  const loadExams = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.getExams();
@@ -67,15 +211,15 @@ function Exams({ user }) {
       setError('');
     } catch (err) {
       console.error('Failed to load exams:', err);
-      setError(err.message || 'Failed to load exams');
+      setError(err.message || copy.notices.loadFailed);
     } finally {
       setLoading(false);
     }
-  };
+  }, [copy.notices.loadFailed]);
 
   useEffect(() => {
     loadExams();
-  }, []);
+  }, [loadExams]);
 
   const resetForm = () => {
     setFormData(EMPTY_FORM);
@@ -112,10 +256,10 @@ function Exams({ user }) {
       let nextNotice = '';
       if (editingId) {
         await api.updateExam(editingId, payload);
-        nextNotice = 'Exam updated successfully.';
+        nextNotice = copy.notices.updated;
       } else {
         await api.createExam(payload);
-        nextNotice = 'Exam created successfully.';
+        nextNotice = copy.notices.created;
       }
 
       await loadExams();
@@ -123,7 +267,7 @@ function Exams({ user }) {
       setNotice(nextNotice);
     } catch (err) {
       console.error('Failed to save exam:', err);
-      setError(err.message || 'Failed to save exam');
+      setError(err.message || copy.notices.saveFailed);
       setNotice('');
     }
   };
@@ -136,7 +280,7 @@ function Exams({ user }) {
       exam_date: exam.exam_date || '',
       exam_time: exam.exam_time || '',
       room: exam.room || '',
-      type: exam.type || 'Exam',
+      type: exam.type || copy.examFallback,
       semester: exam.semester || '',
       studentsText: (exam.students || []).join(', ')
     });
@@ -151,7 +295,7 @@ function Exams({ user }) {
       exam_date: exam.exam_date || '',
       exam_time: exam.exam_time || '',
       room: exam.room || '',
-      type: exam.type || 'Exam',
+      type: exam.type || copy.examFallback,
       semester: exam.semester || '',
       studentsText: (exam.students || []).join(', ')
     });
@@ -162,10 +306,10 @@ function Exams({ user }) {
     try {
       await api.deleteExam(id);
       await loadExams();
-      setNotice('Exam deleted successfully.');
+      setNotice(copy.notices.deleted);
     } catch (err) {
       console.error('Failed to delete exam:', err);
-      setError(err.message || 'Failed to delete exam');
+      setError(err.message || copy.notices.deleteFailed);
       setNotice('');
     }
   };
@@ -206,8 +350,8 @@ function Exams({ user }) {
     return (
       <div className="page">
         <div className="page-header">
-          <h1>Exams</h1>
-          <p>Loading exam list...</p>
+          <h1>{copy.pageTitle}</h1>
+          <p>{copy.loading}</p>
         </div>
         <div className="loading-spinner"></div>
       </div>
@@ -218,35 +362,35 @@ function Exams({ user }) {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Exams</h1>
-          <p>{canManage ? 'Create and manage exams for groups.' : 'Your scheduled exams.'}</p>
+          <h1>{copy.pageTitle}</h1>
+          <p>{canManage ? copy.managerSubtitle : copy.studentSubtitle}</p>
         </div>
         {canManage && (
           <button className="btn-primary" onClick={() => (showForm ? resetForm() : openCreateForm())}>
-            {showForm ? 'Close Composer' : 'Add Exam'}
+            {showForm ? copy.closeComposer : copy.addExam}
           </button>
         )}
       </div>
 
-      <StatusBanner tone="error" title="Exams could not be updated" message={error} />
-      <StatusBanner tone="success" title="Exams updated" message={notice} />
+      <StatusBanner tone="error" title={copy.errorTitle} message={error} />
+      <StatusBanner tone="success" title={copy.successTitle} message={notice} />
 
       <div className="exam-dashboard-grid">
         <div className="management-summary-card">
-          <span className="management-summary-label">Total exams</span>
+          <span className="management-summary-label">{copy.summary.total}</span>
           <strong>{exams.length}</strong>
         </div>
         <div className="management-summary-card">
-          <span className="management-summary-label">Upcoming</span>
+          <span className="management-summary-label">{copy.summary.upcoming}</span>
           <strong>{upcomingCount}</strong>
         </div>
         <div className="management-summary-card">
-          <span className="management-summary-label">Groups</span>
+          <span className="management-summary-label">{copy.summary.groups}</span>
           <strong>{groups.length - 1}</strong>
         </div>
         {canManage && (
           <div className="management-summary-card">
-            <span className="management-summary-label">My exams</span>
+            <span className="management-summary-label">{copy.summary.mine}</span>
             <strong>{mineCount}</strong>
           </div>
         )}
@@ -256,8 +400,8 @@ function Exams({ user }) {
         <div className="management-search">
           <input
             type="text"
-            placeholder="Search by subject, group, teacher or room"
-            aria-label="Search exams"
+            placeholder={copy.searchPlaceholder}
+            aria-label={copy.searchAria}
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />
@@ -270,7 +414,7 @@ function Exams({ user }) {
               className={`management-filter-chip ${groupFilter === group ? 'active' : ''}`}
               onClick={() => setGroupFilter(group)}
             >
-              {group === 'all' ? 'All groups' : group}
+              {group === 'all' ? copy.allGroups : group}
             </button>
           ))}
           {canManage && (
@@ -280,14 +424,14 @@ function Exams({ user }) {
                 className={`management-filter-chip ${ownershipFilter === 'all' ? 'active' : ''}`}
                 onClick={() => setOwnershipFilter('all')}
               >
-                All exams
+                {copy.allExams}
               </button>
               <button
                 type="button"
                 className={`management-filter-chip ${ownershipFilter === 'mine' ? 'active' : ''}`}
                 onClick={() => setOwnershipFilter('mine')}
               >
-                My exams
+                {copy.myExams}
               </button>
             </>
           )}
@@ -298,33 +442,33 @@ function Exams({ user }) {
         <form className="exam-form-card" onSubmit={handleSubmit}>
           <div className="exam-form-header">
             <div>
-              <h3>{editingId ? 'Update exam' : 'Create new exam'}</h3>
-              <p>Use one place to assign date, group and students. Duplicate similar sessions when the structure repeats.</p>
+              <h3>{editingId ? copy.form.updateTitle : copy.form.createTitle}</h3>
+              <p>{copy.form.subtitle}</p>
             </div>
           </div>
           <div className="exam-form-grid">
             <label className="exam-form-field">
-              <span className="exam-form-label">Group</span>
+              <span className="exam-form-label">{copy.form.group}</span>
               <input
                 type="text"
-                placeholder="For example CYB-23"
+                placeholder={copy.form.groupPlaceholder}
                 value={formData.group_name}
                 onChange={(event) => setFormData({ ...formData, group_name: event.target.value })}
                 required
               />
             </label>
             <label className="exam-form-field">
-              <span className="exam-form-label">Subject</span>
+              <span className="exam-form-label">{copy.form.subject}</span>
               <input
                 type="text"
-                placeholder="For example Database Systems"
+                placeholder={copy.form.subjectPlaceholder}
                 value={formData.subject}
                 onChange={(event) => setFormData({ ...formData, subject: event.target.value })}
                 required
               />
             </label>
             <label className="exam-form-field">
-              <span className="exam-form-label">Exam date</span>
+              <span className="exam-form-label">{copy.form.examDate}</span>
               <input
                 type="date"
                 value={formData.exam_date}
@@ -333,7 +477,7 @@ function Exams({ user }) {
               />
             </label>
             <label className="exam-form-field">
-              <span className="exam-form-label">Exam time</span>
+              <span className="exam-form-label">{copy.form.examTime}</span>
               <input
                 type="time"
                 value={formData.exam_time}
@@ -342,39 +486,39 @@ function Exams({ user }) {
               />
             </label>
             <label className="exam-form-field">
-              <span className="exam-form-label">Room</span>
+              <span className="exam-form-label">{copy.form.room}</span>
               <input
                 type="text"
-                placeholder="For example A-205"
+                placeholder={copy.form.roomPlaceholder}
                 value={formData.room}
                 onChange={(event) => setFormData({ ...formData, room: event.target.value })}
               />
             </label>
             <label className="exam-form-field">
-              <span className="exam-form-label">Type</span>
+              <span className="exam-form-label">{copy.form.type}</span>
               <input
                 type="text"
-                placeholder="Exam, Midterm, Quiz"
+                placeholder={copy.form.typePlaceholder}
                 value={formData.type}
                 onChange={(event) => setFormData({ ...formData, type: event.target.value })}
               />
             </label>
             <label className="exam-form-field">
-              <span className="exam-form-label">Semester</span>
+              <span className="exam-form-label">{copy.form.semester}</span>
               <select
                 value={formData.semester}
                 onChange={(event) => setFormData({ ...formData, semester: event.target.value })}
               >
-                <option value="">Select semester</option>
+                <option value="">{copy.form.selectSemester}</option>
                 <option value="Spring 2025-2026">Spring 2025-2026</option>
                 <option value="Fall 2025-2026">Fall 2025-2026</option>
               </select>
             </label>
             <label className="exam-form-field exam-form-field-wide">
-              <span className="exam-form-label">Students</span>
+              <span className="exam-form-label">{copy.form.students}</span>
               <textarea
                 className="exam-students-textarea"
-                placeholder="Student IDs, separated by commas or new lines"
+                placeholder={copy.form.studentsPlaceholder}
                 value={formData.studentsText}
                 onChange={(event) => setFormData({ ...formData, studentsText: event.target.value })}
                 rows="3"
@@ -382,8 +526,8 @@ function Exams({ user }) {
             </label>
           </div>
           <div className="portal-actions">
-            <button type="button" className="btn-secondary" onClick={resetForm}>Cancel</button>
-            <button type="submit" className="btn-primary">{editingId ? 'Update Exam' : 'Create Exam'}</button>
+            <button type="button" className="btn-secondary" onClick={resetForm}>{copy.form.cancel}</button>
+            <button type="submit" className="btn-primary">{editingId ? copy.form.update : copy.form.create}</button>
           </div>
         </form>
       )}
@@ -394,33 +538,33 @@ function Exams({ user }) {
             <div className="exam-card-header">
               <div>
                 <h3>{exam.subject}</h3>
-                <p>{exam.group_name} | {exam.type || 'Exam'}</p>
+                <p>{exam.group_name} | {exam.type || copy.examFallback}</p>
               </div>
               {canManage && (
                 <div className="exam-card-actions">
-                  <button className="btn-secondary" onClick={() => handleDuplicate(exam)}>Duplicate</button>
-                  <button className="btn-secondary" onClick={() => handleEdit(exam)}>Edit</button>
-                  <button className="btn-secondary" onClick={() => handleDelete(exam.id)}>Delete</button>
+                  <button className="btn-secondary" onClick={() => handleDuplicate(exam)}>{copy.actions.duplicate}</button>
+                  <button className="btn-secondary" onClick={() => handleEdit(exam)}>{copy.actions.edit}</button>
+                  <button className="btn-secondary" onClick={() => handleDelete(exam.id)}>{copy.actions.delete}</button>
                 </div>
               )}
             </div>
             <div className="exam-meta-grid">
-              <div><strong>Date:</strong> {formatExamDate(exam.exam_date)}</div>
-              <div><strong>Time:</strong> {exam.exam_time || 'Not set'}</div>
-              <div><strong>Room:</strong> {exam.room || 'Not set'}</div>
-              <div><strong>Teacher:</strong> {exam.teacher_name || 'Not set'}</div>
-              <div><strong>Semester:</strong> {exam.semester || 'Not set'}</div>
-              <div><strong>Students:</strong> {exam.students?.length ? exam.students.join(', ') : 'Not set'}</div>
+              <div><strong>{copy.meta.date}:</strong> {formatExamDate(exam.exam_date, locale, copy.notSet)}</div>
+              <div><strong>{copy.meta.time}:</strong> {exam.exam_time || copy.notSet}</div>
+              <div><strong>{copy.meta.room}:</strong> {exam.room || copy.notSet}</div>
+              <div><strong>{copy.meta.teacher}:</strong> {exam.teacher_name || copy.notSet}</div>
+              <div><strong>{copy.meta.semester}:</strong> {exam.semester || copy.notSet}</div>
+              <div><strong>{copy.meta.students}:</strong> {exam.students?.length ? exam.students.join(', ') : copy.notSet}</div>
             </div>
           </div>
         ))}
 
         {filteredExams.length === 0 && (
           <EmptyState
-            eyebrow="Exams"
-            title="No exams match the current filters"
-            description={hasActiveFilters ? 'Reset the current filters to reopen the full exam list.' : 'Scheduled exams will appear here once a teacher or admin creates them.'}
-            actionLabel={hasActiveFilters ? 'Clear filters' : ''}
+            eyebrow={copy.pageTitle}
+            title={copy.emptyTitle}
+            description={hasActiveFilters ? copy.emptyFiltered : copy.emptyFresh}
+            actionLabel={hasActiveFilters ? copy.clearFilters : ''}
             onAction={() => {
               setSearchTerm('');
               setGroupFilter('all');
