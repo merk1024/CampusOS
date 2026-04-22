@@ -1,0 +1,64 @@
+# Root workspace ignores
+
+# Dependencies
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Build outputs and caches
+frontend/dist/
+frontend/build/
+backend/build/
+coverage/
+.cache/
+.parcel-cache/
+.eslintcache
+.turbo/
+.next/
+
+# Environment files
+backend/.env*
+frontend/.env*
+!.env.example
+!backend/.env.example
+!backend/.env.staging.example
+!backend/.env.production.example
+!frontend/.env.example
+!frontend/.env.staging.example
+!frontend/.env.production.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python virtual environment
+.venv/
+
+# Runtime / generated project data
+backend/uploads/*
+!backend/uploads/.gitkeep
+backups/*
+!backups/.gitkeep
+security-reports/**
+backend/imports/inbox/**
+
+# Local databases and dumps
+backend/database.db
+*.db
+*.sqlite
+*.sqlite3
+*.sql.backup
+*.tar.gz
