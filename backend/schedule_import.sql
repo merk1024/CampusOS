@@ -1,1 +1,0 @@
-INSERT INTO schedule (day, time_slot, group_name, subject, teacher, room) VALUES ('Понедельник', '@', 'COMSE-25', 'COURSE SCHEDULEALATOO INTERNATIONAL  UNIVERSITY - FACULTY OF ENGINEERING AND INFORMATICS2025-2026  SPRING SEMESTER', '', '');

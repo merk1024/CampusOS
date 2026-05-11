@@ -30,8 +30,14 @@ Frontend templates:
 3. Start services:
    - `npm run dev:backend`
    - `npm run dev:frontend`
+   - local SQLite is created and migrated automatically on first backend start
 4. Seed demo data when needed:
    - `npm run seed:demo`
+
+Optional local SQLite helpers:
+
+- `npm run db:init:local`
+- `npm run db:check:local`
 
 ## Staging and production env checks
 

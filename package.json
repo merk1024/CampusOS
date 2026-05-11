@@ -2,6 +2,8 @@
   "scripts": {
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
+    "db:init:local": "npm --prefix backend run db:init",
+    "db:check:local": "npm --prefix backend run db:check",
     "seed:demo": "npm --prefix backend run seed",
     "cleanup:demo": "npm --prefix backend run cleanup-demo-data",
     "env:check:staging": "npm --prefix backend run env:check -- --mode=staging",
@@ -16,8 +18,5 @@
     "export:security-docx": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/reporting/export-security-report-docx.ps1",
     "backup:campusos": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/backup-campusos.ps1",
     "restore:campusos": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/restore-campusos.ps1"
-  },
-  "dependencies": {
-    "@vercel/speed-insights": "^2.0.0"
   }
 }

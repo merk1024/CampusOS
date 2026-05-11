@@ -103,6 +103,14 @@ Default local URLs:
 - backend: `http://localhost:5000`
 - health: `http://localhost:5000/health`
 
+Local SQLite note:
+
+- `backend/database.db` is local-only and is not stored in git
+- the backend creates/migrates the SQLite database automatically on first start
+- optional local helpers:
+  - `npm run db:init:local`
+  - `npm run db:check:local`
+
 ### 4. Seed the pilot dataset
 
 Set real values for the seed passwords in `backend/.env`, then run:

@@ -1,0 +1,22 @@
+# Root dependencies
+/node_modules/
+/backend/node_modules/
+/frontend/node_modules/
+/frontend/dist/
+
+# Generated archives and reports
+/backend.tar.gz
+/backups/
+/security-reports/
+/backend/imports/reports/*.json
+/backend/imports/reports/*.md
+!/backend/imports/reports/.gitkeep
+
+# One-off local import artifacts
+/backend/MONDAY Spring25.html
+/backend/parse_schedule.js
+/backend/schedule_import.sql
+
+# Local databases
+/backend/database.db
+/backend/database/*.db
