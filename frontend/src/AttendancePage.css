@@ -31,9 +31,10 @@
 
 .att-header p {
   color: var(--muted);
-  font-size: 1rem;
-  line-height: 1.65;
-  max-width: 760px;
+  font-size: 0.96rem;
+  line-height: 1.55;
+  max-width: 58ch;
+  text-wrap: pretty;
 }
 
 .att-date-card,
@@ -171,7 +172,10 @@
 .att-panel-head span,
 .att-roster-head p {
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  max-width: 46ch;
+  text-wrap: pretty;
 }
 
 .att-session-list {
@@ -339,6 +343,11 @@
   color: var(--muted);
   font-size: 0.92rem;
   line-height: 1.45;
+}
+
+.att-quick-mark-head p {
+  max-width: 44ch;
+  text-wrap: pretty;
 }
 
 .att-quick-mark-head > span {
@@ -737,9 +746,11 @@
 
 .att-toolbar-note {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   line-height: 1.4;
+  max-width: 56ch;
   padding: 0.8rem 0.2rem;
+  text-wrap: pretty;
 }
 
 .att-roster-scroll {
@@ -1146,6 +1157,17 @@
 
   .att-toolbar-note {
     padding: 0;
+  }
+
+  .att-header p,
+  .att-roster-head p,
+  .att-quick-mark-head p,
+  .att-toolbar-note {
+    max-width: 100%;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
   }
 
   .att-analytics-kpi {

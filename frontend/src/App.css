@@ -555,8 +555,11 @@ body {
 
 .status-banner-copy span {
   color: inherit;
-  line-height: 1.5;
+  max-width: 64ch;
+  font-size: 0.92rem;
+  line-height: 1.45;
   word-break: break-word;
+  text-wrap: pretty;
 }
 
 .status-banner-error {
@@ -617,8 +620,10 @@ body {
 }
 
 .empty-state-card p {
-  max-width: 40rem;
-  line-height: 1.6;
+  max-width: 34rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  text-wrap: pretty;
 }
 
 .empty-state-actions {
@@ -1456,10 +1461,11 @@ body {
 
 .page-header p {
   color: var(--text-muted);
-  font-size: 1rem;
-  max-width: 70ch;
-  line-height: 1.55;
+  font-size: 0.96rem;
+  max-width: 58ch;
+  line-height: 1.5;
   overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 
 .btn-primary {
@@ -1614,8 +1620,11 @@ body {
 }
 
 .dashboard-hero-copy p {
-  max-width: 60ch;
+  max-width: 52ch;
   color: var(--text-light);
+  font-size: 0.94rem;
+  line-height: 1.5;
+  text-wrap: pretty;
 }
 
 .dashboard-pill-list {
@@ -1709,8 +1718,12 @@ body {
 
 .dashboard-action-copy span {
   color: var(--text-muted);
-  font-size: 0.92rem;
-  line-height: 1.5;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .dashboard-context-grid {
@@ -1737,7 +1750,9 @@ body {
 
 .dashboard-context-item strong {
   color: var(--text);
-  line-height: 1.45;
+  line-height: 1.35;
+  max-width: 42ch;
+  text-wrap: pretty;
 }
 
 .dashboard-note-list {
@@ -1797,8 +1812,12 @@ body {
 
 .dashboard-report-item span {
   color: var(--text-muted);
-  font-size: 0.92rem;
-  line-height: 1.5;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .card-header {
@@ -1924,6 +1943,11 @@ body {
   font-size: 0.85rem;
   color: var(--text-muted);
   margin-top: 0.25rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 /* Quick Stats */
@@ -2381,6 +2405,20 @@ body {
 
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .page-header p,
+  .dashboard-hero-copy p {
+    max-width: 100%;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .status-banner-copy span,
+  .empty-state-card p {
+    max-width: 100%;
   }
 }
 

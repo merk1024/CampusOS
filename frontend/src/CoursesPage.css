@@ -76,17 +76,24 @@
   min-width:200px;
 }
 .lms-controls-copy strong {
-  font-size:0.95rem;
+  font-size:0.92rem;
   font-weight:700;
   color:var(--text);
-  line-height:1.35;
+  line-height:1.3;
+  max-width:40ch;
   overflow-wrap:anywhere;
+  text-wrap:pretty;
 }
 .lms-controls-copy span {
-  font-size:0.84rem;
-  line-height:1.45;
+  font-size:0.8rem;
+  line-height:1.4;
   color:var(--muted);
+  max-width:44ch;
   overflow-wrap:anywhere;
+  display:-webkit-box;
+  overflow:hidden;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
 }
 .lms-controls-actions {
   display:flex;
@@ -209,9 +216,11 @@
 
 .lms-admin-ops-head p {
   margin: 0.45rem 0 0;
-  max-width: 760px;
-  line-height: 1.6;
+  max-width: 58ch;
+  font-size: 0.93rem;
+  line-height: 1.5;
   color: var(--muted);
+  text-wrap: pretty;
 }
 
 .lms-admin-ops-actions {
@@ -373,9 +382,11 @@
 }
 
 .lms-admin-inline-note {
-  font-size: 0.88rem;
-  line-height: 1.5;
+  max-width: 42ch;
+  font-size: 0.86rem;
+  line-height: 1.45;
   color: var(--muted);
+  text-wrap: pretty;
 }
 
 .lms-admin-report-actions {
@@ -448,6 +459,10 @@
   color: var(--muted);
   line-height: 1.4;
   overflow-wrap: anywhere;
+  display:-webkit-box;
+  overflow:hidden;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
 }
 
 /* COURSE GRID */
@@ -512,7 +527,7 @@
 .cd-hero-code { font-family:'Outfit',sans-serif; font-size:0.85rem; font-weight:800; color:rgba(255,255,255,.75); letter-spacing:0.08em; margin-bottom:0.5rem; text-transform:uppercase; text-shadow:0 1px 2px rgba(0,0,0,.3); }
 .cd-hero-name { font-family:'Outfit',sans-serif; font-size:2rem; font-weight:800; letter-spacing:-0.02em; margin-bottom:0.875rem; line-height:1.2; text-shadow:0 2px 8px rgba(0,0,0,.3); }
 .cd-hero-meta { display:flex; flex-wrap:wrap; gap:1rem; font-size:0.9rem; color:rgba(255,255,255,.85); font-weight:500; text-shadow:0 1px 2px rgba(0,0,0,.2); }
-.cd-hero-desc { font-size:1rem; color:rgba(255,255,255,.85); line-height:1.7; max-width:680px; text-shadow:0 1px 2px rgba(0,0,0,.2); }
+.cd-hero-desc { font-size:0.96rem; color:rgba(255,255,255,.85); line-height:1.6; max-width:56ch; text-shadow:0 1px 2px rgba(0,0,0,.2); text-wrap:pretty; }
 .cd-hero-actions { display:flex; gap:0.875rem; margin-top:1.5rem; flex-wrap:wrap; }
 .cd-hero-btn { background:rgba(255,255,255,.12); color:#fff; border-color:rgba(255,255,255,.28); }
 .cd-hero-btn:hover { background:rgba(255,255,255,.2); color:#fff; border-color:rgba(255,255,255,.35); }
@@ -1088,8 +1103,10 @@
 
 .lms-course-form-note{
   color:var(--muted);
-  max-width:620px;
-  line-height:1.6;
+  max-width:48ch;
+  font-size:.9rem;
+  line-height:1.5;
+  text-wrap:pretty;
 }
 
 .lms-empty-note{
@@ -1104,5 +1121,15 @@
 
   .lms-course-form-wide{
     grid-column:auto;
+  }
+
+  .lms-admin-ops-head p,
+  .lms-course-form-note,
+  .cd-hero-desc{
+    max-width:100%;
+    display:-webkit-box;
+    overflow:hidden;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:3;
   }
 }
