@@ -97,7 +97,7 @@ test.after(async () => {
   try {
     fs.rmSync(tempDir, { recursive: true, force: true });
   } catch (error) {
-    if (error?.code !== 'EPERM') {
+    if (error?.code !== 'EPERM' && error?.code !== 'EBUSY') {
       throw error;
     }
   }
@@ -487,6 +487,88 @@ test('admin can bulk assign a teacher to multiple courses', async () => {
   assert.equal(assignmentResult.response.status, 200, JSON.stringify(assignmentResult.body));
   assert.equal(assignmentResult.body.summary.updated_courses, 2);
   assert.ok(assignmentResult.body.courses.every((course) => course.teacher_id === teacherSession.user.id));
+});
+
+test('teacher assignment flow requires a managed course and stores course context', async () => {
+  const adminSession = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+  const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  const otherTeacherSession = await login('askar.eskendirov@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  const uniqueSuffix = Date.now();
+
+  const ownedCourse = await request('/api/courses', {
+    method: 'POST',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({
+      code: `ASN${uniqueSuffix}`,
+      name: 'Assignment Ownership',
+      description: 'Course used for assignment ownership regression coverage',
+      credits: 3,
+      semester: 'Spring 2026',
+      teacher_id: teacherSession.user.id
+    })
+  });
+
+  const foreignCourse = await request('/api/courses', {
+    method: 'POST',
+    headers: authHeaders(adminSession.token),
+    body: JSON.stringify({
+      code: `ASX${uniqueSuffix}`,
+      name: 'Foreign Assignment Ownership',
+      description: 'Course used for forbidden assignment creation coverage',
+      credits: 3,
+      semester: 'Spring 2026',
+      teacher_id: otherTeacherSession.user.id
+    })
+  });
+
+  assert.equal(ownedCourse.response.status, 201, JSON.stringify(ownedCourse.body));
+  assert.equal(foreignCourse.response.status, 201, JSON.stringify(foreignCourse.body));
+
+  const missingCourse = await request('/api/assignments', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      title: 'Course selection required',
+      description: 'Teacher should not be able to publish without choosing a course',
+      dueDate: '2026-05-20T10:00:00.000Z',
+      maxGrade: 100
+    })
+  });
+
+  assert.equal(missingCourse.response.status, 400, JSON.stringify(missingCourse.body));
+  assert.equal(missingCourse.body.error, 'Select a course before publishing an assignment');
+
+  const createdAssignment = await request('/api/assignments', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      courseId: ownedCourse.body.course.id,
+      title: 'Threat model draft',
+      description: 'Attach this assignment to the teacher-managed course',
+      dueDate: '2026-05-21T12:00:00.000Z',
+      maxGrade: 95
+    })
+  });
+
+  assert.equal(createdAssignment.response.status, 201, JSON.stringify(createdAssignment.body));
+  assert.equal(createdAssignment.body.assignment.course_id, ownedCourse.body.course.id);
+  assert.equal(createdAssignment.body.assignment.created_by, teacherSession.user.id);
+  assert.equal(createdAssignment.body.assignment.max_grade, 95);
+
+  const forbiddenAssignment = await request('/api/assignments', {
+    method: 'POST',
+    headers: authHeaders(teacherSession.token),
+    body: JSON.stringify({
+      courseId: foreignCourse.body.course.id,
+      title: 'Unauthorized assignment',
+      description: 'Teacher should not be able to publish into another teacher course',
+      dueDate: '2026-05-22T12:00:00.000Z',
+      maxGrade: 100
+    })
+  });
+
+  assert.equal(forbiddenAssignment.response.status, 403, JSON.stringify(forbiddenAssignment.body));
+  assert.equal(forbiddenAssignment.body.error, 'Access denied');
 });
 
 test('admin can bulk enroll students and export course operations data', async () => {

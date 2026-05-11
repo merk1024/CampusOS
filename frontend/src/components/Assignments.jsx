@@ -6,6 +6,7 @@ import StatusBanner from './StatusBanner';
 import { canManageAcademicRecords } from '../roles';
 
 const EMPTY_ASSIGNMENT_FORM = {
+  courseId: '',
   title: '',
   description: '',
   dueDate: '',
@@ -44,6 +45,8 @@ const ASSIGNMENTS_COPY = {
       duplicateTitle: 'Duplicate assignment',
       createTitle: 'Create assignment',
       subtitle: 'Keep the teacher flow fast: title, brief, deadline, and points in one place.',
+      course: 'Course',
+      coursePlaceholder: 'Select a course',
       title: 'Title',
       titlePlaceholder: 'For example Lab 05 - Trees',
       dueDate: 'Due date',
@@ -224,6 +227,7 @@ function AssignmentSummary({ assignments, copy, language = 'English' }) {
 
 function AssignmentComposer({
   formData,
+  courses,
   onChange,
   onCancel,
   onSubmit,
@@ -240,6 +244,21 @@ function AssignmentComposer({
         </div>
       </div>
       <div className="exam-form-grid">
+        <label className="exam-form-field">
+          <span className="exam-form-label">{copy.course || 'Course'}</span>
+          <select
+            value={formData.courseId}
+            onChange={(event) => onChange('courseId', event.target.value)}
+            required={courses.length > 0}
+          >
+            <option value="">{copy.coursePlaceholder || 'Select a course'}</option>
+            {courses.map((course) => (
+              <option key={course.id} value={course.id}>
+                {course.code} | {course.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="exam-form-field">
           <span className="exam-form-label">{copy.title}</span>
           <input
@@ -296,6 +315,7 @@ function Assignments({ user, language = 'English', locale = 'en-GB' }) {
   const copy = ASSIGNMENTS_COPY[language] || ASSIGNMENTS_COPY.English;
   const filters = getAssignmentFilters(language);
   const [assignments, setAssignments] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -309,19 +329,37 @@ function Assignments({ user, language = 'English', locale = 'en-GB' }) {
   const canManage = canManageAcademicRecords(user);
   const isTemplateMode = composerMode === 'duplicate';
   const hasActiveFilters = filterKey !== 'all' || searchTerm.trim() !== '';
+  const manageableCourses = useMemo(() => (
+    courses.filter((course) => {
+      if (!canManage) {
+        return false;
+      }
+
+      if (user?.role === 'admin') {
+        return true;
+      }
+
+      return Number(course.teacher_id) === Number(user?.id)
+        || course.teacher_email === user?.email;
+    })
+  ), [canManage, courses, user]);
 
   const loadAssignments = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.getAssignments();
-      setAssignments(response?.assignments || []);
+      const [assignmentResponse, courseResponse] = await Promise.all([
+        api.getAssignments(),
+        canManage ? api.getCourses() : Promise.resolve({ courses: [] })
+      ]);
+      setAssignments(assignmentResponse?.assignments || []);
+      setCourses(courseResponse?.courses || []);
       setError('');
     } catch (err) {
       setError(err.message || copy.failedLoad);
     } finally {
       setLoading(false);
     }
-  }, [copy.failedLoad]);
+  }, [canManage, copy.failedLoad]);
 
   useEffect(() => {
     loadAssignments();
@@ -375,6 +413,7 @@ function Assignments({ user, language = 'English', locale = 'en-GB' }) {
       setNotice('');
 
       await api.createAssignment({
+        courseId: formData.courseId ? Number(formData.courseId) : null,
         title: formData.title.trim(),
         description: formData.description.trim(),
         dueDate: new Date(formData.dueDate).toISOString(),
@@ -396,6 +435,7 @@ function Assignments({ user, language = 'English', locale = 'en-GB' }) {
   const handleDuplicate = (assignment) => {
     setComposerMode('duplicate');
     setFormData({
+      courseId: assignment.course_id ? String(assignment.course_id) : '',
       title: `${assignment.title} (Copy)`,
       description: assignment.description || '',
       dueDate: toDatetimeLocalInput(assignment.due_date),
@@ -434,7 +474,10 @@ function Assignments({ user, language = 'English', locale = 'en-GB' }) {
               }
 
               setComposerMode('create');
-              setFormData(EMPTY_ASSIGNMENT_FORM);
+              setFormData({
+                ...EMPTY_ASSIGNMENT_FORM,
+                courseId: manageableCourses.length === 1 ? String(manageableCourses[0].id) : ''
+              });
               setShowComposer(true);
             }}
           >
@@ -475,6 +518,7 @@ function Assignments({ user, language = 'English', locale = 'en-GB' }) {
       {canManage && showComposer && (
         <AssignmentComposer
           formData={formData}
+          courses={manageableCourses}
           onChange={handleFormChange}
           onCancel={resetComposer}
           onSubmit={handleSubmit}

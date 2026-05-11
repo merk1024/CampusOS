@@ -102,7 +102,7 @@ test.after(() => {
   try {
     fs.rmSync(tempDir, { recursive: true, force: true });
   } catch (error) {
-    if (error?.code !== 'EPERM') {
+    if (error?.code !== 'EPERM' && error?.code !== 'EBUSY') {
       throw error;
     }
   }

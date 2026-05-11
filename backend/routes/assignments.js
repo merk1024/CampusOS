@@ -1,54 +1,55 @@
 const express = require('express');
+
 const router = express.Router();
 const { auth, isTeacherOrAdmin } = require('../middleware/auth');
-const db = require('../config/database');
 const { logSystemAudit } = require('../utils/platformOps');
+const { createAssignment, listAssignments } = require('../services/assignmentService');
+const { getServiceErrorStatus } = require('../services/serviceError');
 
-// Get assignments
+const respondWithServiceError = (res, error, label) => {
+  const status = getServiceErrorStatus(error);
+  if (status) {
+    return res.status(status).json({ error: error.message });
+  }
+
+  console.error(label, error);
+  return res.status(500).json({ error: 'Server error' });
+};
+
 router.get('/', auth, async (req, res) => {
   try {
-    const result = await db.query(
-      `SELECT
-         a.*,
-         u.name AS created_by_name,
-         c.name AS course_name,
-         c.code AS course_code
-       FROM assignments a
-       LEFT JOIN users u ON u.id = a.created_by
-       LEFT JOIN courses c ON c.id = a.course_id
-       ORDER BY a.due_date DESC`
-    );
-    res.json({ assignments: result.rows });
+    const assignments = await listAssignments();
+    res.json({ assignments });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    respondWithServiceError(res, error, 'Get assignments error:');
   }
 });
 
-// Create assignment
 router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
   try {
-    const { title, description, dueDate, maxGrade } = req.body;
-    const result = await db.query(
-      'INSERT INTO assignments (title, description, due_date, max_grade, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [title, description, dueDate, maxGrade || 100, req.user.id]
-    );
+    const result = await createAssignment({
+      requester: req.user,
+      data: req.body
+    });
 
     await logSystemAudit({
       entityType: 'assignment',
-      entityId: result.rows[0].id,
+      entityId: result.assignment.id,
       action: 'create',
-      summary: `${req.user.email} created assignment "${title}"`,
+      summary: `${req.user.email} created assignment "${result.assignment.title}"`,
       details: {
-        dueDate,
-        maxGrade: maxGrade || 100
+        dueDate: result.assignment.due_date,
+        maxGrade: result.assignment.max_grade,
+        courseId: result.course?.id || result.assignment.course_id || null,
+        courseCode: result.course?.code || result.assignment.course_code || null
       },
       changedBy: req.user.id,
       requestId: req.requestId
     });
 
-    res.status(201).json({ assignment: result.rows[0] });
+    res.status(201).json({ assignment: result.assignment });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    respondWithServiceError(res, error, 'Create assignment error:');
   }
 });
 
