@@ -157,7 +157,7 @@ body { background: var(--bg); color: var(--text); }
   color: var(--muted);
   border-radius: 8px 8px 0 0;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   white-space: nowrap;
   border-bottom: 3px solid transparent;
 }
@@ -190,7 +190,7 @@ body { background: var(--bg); color: var(--text); }
   color: var(--muted);
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   white-space: nowrap;
 }
 
@@ -235,7 +235,7 @@ body { background: var(--bg); color: var(--text); }
   border-radius: 8px;
   min-width: 240px;
   flex-shrink: 0;
-  transition: box-shadow 0.15s;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .ep-card:hover {
@@ -586,7 +586,7 @@ body { background: var(--bg); color: var(--text); }
   font-size: 0.85rem;
   cursor: pointer;
   color: var(--muted);
-  transition: all 0.15s;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
 .sf-close:hover { background: #fee2e2; color: var(--danger); }
@@ -646,7 +646,7 @@ body { background: var(--bg); color: var(--text); }
   cursor: pointer;
   font-size: 0.82rem;
   font-weight: 500;
-  transition: all 0.15s;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   text-align: center;
 }
 
@@ -678,7 +678,7 @@ body { background: var(--bg); color: var(--text); }
   border: 1.5px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .sf-elective-item input { display: none; }
@@ -729,7 +729,7 @@ body { background: var(--bg); color: var(--text); }
   font-weight: 500;
   color: var(--muted);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .sf-btn-cancel:hover { border-color: var(--muted); color: var(--text); }
@@ -743,7 +743,7 @@ body { background: var(--bg); color: var(--text); }
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .sf-btn-save:hover { background: var(--accent2); }

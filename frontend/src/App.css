@@ -39,6 +39,23 @@
   --radius-lg: 20px;
   --header-height: 70px;
   --sidebar-width: 200px;
+  --motion-fast: 160ms;
+  --motion-base: 220ms;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --interactive-transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease),
+    opacity var(--motion-fast) var(--motion-ease);
+  --field-transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+  --hover-lift-sm: translateY(-1px);
+  --hover-lift-md: translateY(-2px);
 }
 
 :root[data-theme='dark'] {
@@ -158,6 +175,37 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .btn-login:hover,
+  .menu-btn:hover,
+  .theme-toggle:hover,
+  .icon-btn:hover,
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .nav-item:hover,
+  .management-filter-chip:hover,
+  .course-card:hover,
+  .lms-create-btn:hover,
+  .lms-stat:hover,
+  .lms-pstrip-item:hover,
+  .cv-card:hover,
+  .cv-btn-join:hover,
+  .cd-btn-pri:hover,
+  .cd-btn-danger:hover,
+  .cd-add-btn:hover,
+  .cd-topic-row.clickable:hover,
+  .cd-mat-card:hover,
+  .cd-mat-open:hover,
+  .lms-icon-btn:hover,
+  .lms-color-btn:hover,
+  .lms-btn-pri:hover,
+  .att-session-card:hover,
+  .att-bulk-actions button:hover,
+  .att-quick-actions button:hover {
+    transform: none !important;
   }
 }
 
@@ -334,11 +382,11 @@ body {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 28px 80px rgba(2, 6, 23, 0.35);
-  animation: slideUp 0.6s ease;
+  animation: slideUp 0.45s var(--motion-ease);
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(30px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -599,7 +647,7 @@ body {
   border-radius: var(--radius);
   font-size: 1rem;
   font-family: inherit;
-  transition: all 0.2s;
+  transition: var(--field-transition);
   background: var(--input-bg);
   color: var(--text);
 }
@@ -656,12 +704,12 @@ body {
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: var(--interactive-transition);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .btn-login:hover {
-  transform: translateY(-2px);
+  transform: var(--hover-lift-sm);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
@@ -727,12 +775,12 @@ body {
   justify-content: center;
   cursor: pointer;
   color: var(--text-light);
-  transition: all 0.2s;
+  transition: var(--interactive-transition);
 }
 
 .menu-btn:hover {
   background: var(--surface-soft-hover);
-  transform: translateY(-2px);
+  transform: var(--hover-lift-sm);
 }
 
 .menu-btn svg {
@@ -789,12 +837,12 @@ body {
   background: var(--surface-soft);
   color: var(--text);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--interactive-transition);
 }
 
 .theme-toggle:hover {
   background: var(--surface-soft-hover);
-  transform: translateY(-1px);
+  transform: var(--hover-lift-sm);
 }
 
 .theme-toggle.active {
@@ -841,7 +889,7 @@ body {
   border-radius: var(--radius);
   font-size: 0.95rem;
   font-family: inherit;
-  transition: all 0.2s;
+  transition: var(--field-transition);
   background: var(--input-bg);
   color: var(--text);
 }
@@ -877,12 +925,12 @@ body {
   justify-content: center;
   cursor: pointer;
   color: #334155;
-  transition: all 0.2s;
+  transition: var(--interactive-transition);
 }
 
 .icon-btn:hover {
   background: var(--surface-soft-hover);
-  transform: translateY(-2px);
+  transform: var(--hover-lift-sm);
 }
 
 .icon-btn:disabled,
@@ -935,7 +983,7 @@ body {
   background: var(--surface-soft);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--interactive-transition);
   max-width: min(100%, 220px);
 }
 
@@ -1038,7 +1086,7 @@ body {
   padding: 0.75rem 1rem;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--interactive-transition);
   font-size: 0.9rem;
 }
 
@@ -1319,7 +1367,7 @@ body {
   background: none;
   border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--interactive-transition);
   font-size: 0.95rem;
   font-weight: 500;
   font-family: inherit;
@@ -1380,11 +1428,11 @@ body {
 ══════════════════════════════════════════════════════════ */
 .page {
   max-width: 1400px;
-  animation: pageIn 0.4s ease;
+  animation: pageIn 0.35s var(--motion-ease);
 }
 
 @keyframes pageIn {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -1423,7 +1471,7 @@ body {
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: var(--interactive-transition);
   font-family: inherit;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
   min-width: 0;
@@ -1435,7 +1483,7 @@ body {
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
+  transform: var(--hover-lift-sm);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
 }
 
@@ -2131,13 +2179,13 @@ body {
   padding: 1.5rem;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  transition: all 0.3s;
+  transition: var(--interactive-transition);
   border-top: 4px solid var(--course-color);
   cursor: pointer;
 }
 
 .course-card:hover {
-  transform: translateY(-4px);
+  transform: var(--hover-lift-md);
   box-shadow: var(--shadow-lg);
 }
 
@@ -2845,7 +2893,7 @@ body {
   color: var(--text);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--interactive-transition);
 }
 
 .filter-btn:hover {
@@ -3075,7 +3123,7 @@ body {
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--interactive-transition);
   font-family: inherit;
   min-width: 0;
   text-align: center;
@@ -3087,7 +3135,7 @@ body {
 
 .btn-secondary:hover {
   background: #f8fbff;
-  transform: translateY(-1px);
+  transform: var(--hover-lift-sm);
 }
 
 .portal-profile {
@@ -3598,7 +3646,7 @@ body {
   cursor: pointer;
   font-family: inherit;
   font-weight: 600;
-  transition: all 0.2s;
+  transition: var(--interactive-transition);
   min-width: 0;
   max-width: 100%;
   text-align: center;
@@ -3917,7 +3965,7 @@ body {
   padding: 0.45rem 0.8rem;
   font-size: 0.82rem;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: var(--interactive-transition);
 }
 
 .schedule-slot-chip:hover {
@@ -4543,7 +4591,7 @@ button.schedule-mobile-strip {
   color: var(--text);
   font-size: 0.95rem;
   font-family: inherit;
-  transition: all 0.2s ease;
+  transition: var(--field-transition);
 }
 
 .integration-field input:focus,
