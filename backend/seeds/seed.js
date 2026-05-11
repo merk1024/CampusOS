@@ -582,12 +582,14 @@ function getSeedPassword(account) {
   const password = String(process.env[envKey] || '').trim();
 
   if (!password) {
-    throw new Error(
-      `Missing required environment variable ${envKey} for seeded account ${account.email}.`
-    );
+    return null;
   }
 
   return password;
+}
+
+function isRequiredSeedAccount(account) {
+  return account.password_env === 'SUPERADMIN_BOOTSTRAP_PASSWORD';
 }
 
 async function ensureUser(user, hashedPassword) {
@@ -613,8 +615,7 @@ async function ensureUser(user, hashedPassword) {
       'study_status = ?',
       'grant_type = ?',
       'registration_date = ?',
-      'is_active = ?',
-      'updated_at = CURRENT_TIMESTAMP'
+      'is_active = ?'
     ];
     const values = [
       user.student_id || null,
@@ -638,9 +639,16 @@ async function ensureUser(user, hashedPassword) {
       ACTIVE_STATUS
     ];
 
+    if (hashedPassword) {
+      fields.push('password = ?');
+      values.push(hashedPassword);
+    }
+
     if (user.is_superadmin) {
       fields.push('is_superadmin = 1');
     }
+
+    fields.push('updated_at = CURRENT_TIMESTAMP');
 
     await db.run(
       `UPDATE users
@@ -816,9 +824,22 @@ async function seedUsers() {
 
   for (const account of ACCOUNTS) {
     const existing = await findUserByEmail(account.email);
-    const hashedPassword = existing
-      ? existing.password
-      : await bcrypt.hash(getSeedPassword(account), salt);
+    const seedPassword = getSeedPassword(account);
+    const isRequired = isRequiredSeedAccount(account);
+
+    if (!seedPassword && !existing) {
+      if (isRequired) {
+        throw new Error(
+          `Missing required environment variable ${account.password_env} for seeded account ${account.email}.`
+        );
+      }
+
+      continue;
+    }
+
+    const hashedPassword = seedPassword
+      ? await bcrypt.hash(seedPassword, salt)
+      : existing?.password || null;
     const user = await ensureUser(account, hashedPassword);
     usersByEmail.set(user.email, user);
   }
