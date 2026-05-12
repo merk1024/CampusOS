@@ -1,16 +1,18 @@
-import AttendancePage from '../AttendancePage';
-import CoursesPage from '../CoursesPage';
-import UserManagement from '../UserManagement';
-import Assignments from '../components/Assignments';
-import Dashboard from '../components/Dashboard';
-import Exams from '../components/Exams';
-import Grades from '../components/Grades';
-import InfoCenter from '../components/InfoCenter';
-import IntegrationCenter from '../components/IntegrationCenter';
-import Messages from '../components/Messages';
-import Profile from '../components/Profile';
-import Schedule from '../components/Schedule';
-import Settings from '../components/Settings';
+import { lazy } from 'react';
+
+const AttendancePage = lazy(() => import('../AttendancePage'));
+const CoursesPage = lazy(() => import('../CoursesPage'));
+const UserManagement = lazy(() => import('../UserManagement'));
+const Assignments = lazy(() => import('../components/Assignments'));
+const Dashboard = lazy(() => import('../components/Dashboard'));
+const Exams = lazy(() => import('../components/Exams'));
+const Grades = lazy(() => import('../components/Grades'));
+const InfoCenter = lazy(() => import('../components/InfoCenter'));
+const IntegrationCenter = lazy(() => import('../components/IntegrationCenter'));
+const Messages = lazy(() => import('../components/Messages'));
+const Profile = lazy(() => import('../components/Profile'));
+const Schedule = lazy(() => import('../components/Schedule'));
+const Settings = lazy(() => import('../components/Settings'));
 
 export function renderActivePage({
   resolvedActivePage,

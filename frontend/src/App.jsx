@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 import './App.css';
 import {
@@ -180,6 +180,13 @@ export default function App() {
     return <LoginPage onLogin={handleLogin} notice={authNotice} language={appSettings.language} />;
   }
 
+  const pageLoadingFallback = (
+    <div className="page">
+      <div className="loading-spinner"></div>
+      <p>{shellCopy.app.loading}</p>
+    </div>
+  );
+
   return (
     <div className={`app ${sidebarOpen ? 'sidebar-open' : ''}`}>
       <a className="skip-link" href="#main-content">Skip to main content</a>
@@ -204,21 +211,23 @@ export default function App() {
           labels={shellCopy.nav}
         />
         <main id="main-content" className="main-content" tabIndex="-1">
-          {renderActivePage({
-            resolvedActivePage,
-            user,
-            locale,
-            language: appSettings.language,
-            onNavigate: handleNavigate,
-            onUnreadCountChange: handleMessageUnreadSync,
-            onUserChange: handleUserSync,
-            settings: appSettings,
-            theme,
-            onThemeChange: handleThemeChange,
-            onSaveSettings: handleSettingsSave,
-            mobileInstall,
-            lastWorkspacePage
-          })}
+          <Suspense fallback={pageLoadingFallback}>
+            {renderActivePage({
+              resolvedActivePage,
+              user,
+              locale,
+              language: appSettings.language,
+              onNavigate: handleNavigate,
+              onUnreadCountChange: handleMessageUnreadSync,
+              onUserChange: handleUserSync,
+              settings: appSettings,
+              theme,
+              onThemeChange: handleThemeChange,
+              onSaveSettings: handleSettingsSave,
+              mobileInstall,
+              lastWorkspacePage
+            })}
+          </Suspense>
         </main>
       </div>
       <Footer theme={theme} language={appSettings.language} onNavigate={handleNavigate} />
