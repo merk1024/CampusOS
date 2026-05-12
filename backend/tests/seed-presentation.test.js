@@ -34,6 +34,9 @@ test.after(() => {
 });
 
 test('seed builds presentation-ready demo academics with audits', async () => {
+  const scheduleCount = await db.get('SELECT COUNT(*) AS total FROM schedule');
+  const scheduleDayCount = await db.get('SELECT COUNT(DISTINCT day) AS total FROM schedule');
+  const scheduleAudienceCount = await db.get('SELECT COUNT(DISTINCT audience_type) AS total FROM schedule');
   const assignmentCount = await db.get('SELECT COUNT(*) AS total FROM assignments');
   const examCount = await db.get('SELECT COUNT(*) AS total FROM exams');
   const examGroupCount = await db.get('SELECT COUNT(DISTINCT group_name) AS total FROM exams');
@@ -63,6 +66,9 @@ test('seed builds presentation-ready demo academics with audits', async () => {
     ['Midterm']
   );
 
+  assert.ok(Number(scheduleCount.total) >= 25);
+  assert.ok(Number(scheduleDayCount.total) >= 6);
+  assert.ok(Number(scheduleAudienceCount.total) >= 3);
   assert.equal(Number(assignmentCount.total), 8);
   assert.equal(Number(examCount.total), 8);
   assert.equal(Number(examGroupCount.total), 6);

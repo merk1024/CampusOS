@@ -505,6 +505,15 @@ const SCHEDULE_BLUEPRINTS = [
     room: 'A-204'
   },
   {
+    courseCode: 'CYB201',
+    day: 'Tuesday',
+    slots: ['13:10-13:55', '14:00-14:40'],
+    group_name: 'CYB-23',
+    audience_type: 'subgroup',
+    subgroup_name: '2-Group',
+    room: 'Security Hub'
+  },
+  {
     courseCode: 'WEB310',
     day: 'Wednesday',
     slots: ['13:10-13:55', '14:00-14:40'],
@@ -512,6 +521,15 @@ const SCHEDULE_BLUEPRINTS = [
     audience_type: 'subgroup',
     subgroup_name: '1-Group',
     room: 'Lab-2'
+  },
+  {
+    courseCode: 'NET220',
+    day: 'Wednesday',
+    slots: ['09:30-10:10'],
+    group_name: 'CYB-23',
+    audience_type: 'subgroup',
+    subgroup_name: '2-Group',
+    room: 'Packet Lab'
   },
   {
     courseCode: 'DAT305',
@@ -523,12 +541,37 @@ const SCHEDULE_BLUEPRINTS = [
     room: 'Data-1'
   },
   {
+    courseCode: 'NET220',
+    day: 'Thursday',
+    slots: ['11:45-12:25'],
+    group_name: 'CYB-23',
+    audience_type: 'group',
+    room: 'A-204'
+  },
+  {
     courseCode: 'DEV230',
     day: 'Monday',
     slots: ['11:45-12:25', '12:30-13:10'],
     group_name: 'SE-23',
     audience_type: 'group',
     room: 'B-110'
+  },
+  {
+    courseCode: 'WEB310',
+    day: 'Monday',
+    slots: ['15:30-16:10', '16:15-16:55'],
+    group_name: 'CYB-23',
+    audience_type: 'subgroup',
+    subgroup_name: '1-Group',
+    room: 'Lab-2'
+  },
+  {
+    courseCode: 'DEV230',
+    day: 'Tuesday',
+    slots: ['08:45-09:25', '09:30-10:10'],
+    group_name: 'SE-23',
+    audience_type: 'group',
+    room: 'Ops Garage'
   },
   {
     courseCode: 'UX210',
@@ -539,12 +582,47 @@ const SCHEDULE_BLUEPRINTS = [
     room: 'Media-3'
   },
   {
+    courseCode: 'UX210',
+    day: 'Wednesday',
+    slots: ['13:10-13:55', '14:00-14:40'],
+    group_name: 'SE-23',
+    audience_type: 'subgroup',
+    subgroup_name: '1-Group',
+    room: 'Studio-1'
+  },
+  {
     courseCode: 'DAT305',
     day: 'Wednesday',
     slots: ['15:30-16:10'],
     group_name: 'SE-23',
     audience_type: 'group',
     room: 'Analytics Hub'
+  },
+  {
+    courseCode: 'UX210',
+    day: 'Thursday',
+    slots: ['11:00-11:40'],
+    group_name: 'SE-23',
+    audience_type: 'subgroup',
+    subgroup_name: '2-Group',
+    room: 'Studio-2'
+  },
+  {
+    courseCode: 'DAT305',
+    day: 'Friday',
+    slots: ['11:45-12:25'],
+    group_name: 'CYB-23',
+    audience_type: 'subgroup',
+    subgroup_name: '2-Group',
+    room: 'Data-1'
+  },
+  {
+    courseCode: 'DEV230',
+    day: 'Friday',
+    slots: ['13:10-13:55', '14:00-14:40'],
+    group_name: 'SE-23',
+    audience_type: 'group',
+    room: 'Release Lab'
   },
   {
     courseCode: 'CYB201',
@@ -563,6 +641,22 @@ const SCHEDULE_BLUEPRINTS = [
     audience_type: 'individual',
     studentEmail: 'alina.janybekova@alatoo.edu.kg',
     room: 'Design Studio'
+  },
+  {
+    courseCode: 'CYB201',
+    day: 'Saturday',
+    slots: ['09:30-10:10'],
+    group_name: 'CYB-23',
+    audience_type: 'group',
+    room: 'A-301'
+  },
+  {
+    courseCode: 'DAT305',
+    day: 'Saturday',
+    slots: ['11:45-12:25'],
+    group_name: 'SE-23',
+    audience_type: 'group',
+    room: 'Analytics Hub'
   }
 ];
 
