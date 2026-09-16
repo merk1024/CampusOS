@@ -17,7 +17,7 @@ It combines courses, schedule, exams, grades, assignments, attendance, announcem
 - profile and settings pages
 - light and dark theme
 - installable PWA-first mobile pilot
-- SQLite for local work and PostgreSQL for deployed environments
+- PostgreSQL for local and deployed environments; SQLite remains available for tests
 
 ## Stack
 
@@ -66,22 +66,20 @@ npm --prefix backend install
 npm --prefix frontend install
 ```
 
-### 2. Configure environment files
+### 2. Start PostgreSQL and configure the app
 
-Backend:
+Start Docker Desktop, then run from the repository root:
 
-- copy `backend/.env.example` to `backend/.env`
+```bash
+npm run db:setup
+npm run db:up
+npm run db:init
+npm run db:check
+```
 
-Frontend:
+The setup creates a private `backend/.env` with generated credentials. If it already exists, configure it using [the PostgreSQL guide](./docs/POSTGRESQL.md) and skip `db:setup`.
 
-- copy `frontend/.env.example` to `frontend/.env`
-
-Additional templates:
-
-- `backend/.env.staging.example`
-- `backend/.env.production.example`
-- `frontend/.env.staging.example`
-- `frontend/.env.production.example`
+Copy `frontend/.env.example` to `frontend/.env`.
 
 ### 3. Start the app locally
 
@@ -103,13 +101,13 @@ Default local URLs:
 - backend: `http://localhost:5000`
 - health: `http://localhost:5000/health`
 
-Local SQLite note:
+Local database note:
 
-- `backend/database.db` is local-only and is not stored in git
-- the backend creates/migrates the SQLite database automatically on first start
-- optional local helpers:
-  - `npm run db:init:local`
-  - `npm run db:check:local`
+- PostgreSQL data persists in the Docker volume `campusos_postgres_data`.
+- `npm run db:stop` stops PostgreSQL and preserves data.
+- `db:init` applies migrations without deleting existing records.
+- SQLite remains opt-in via `DB_CLIENT=sqlite`; existing SQLite files are not automatically imported.
+- See [PostgreSQL setup](./docs/POSTGRESQL.md).
 
 ### 4. Seed the pilot dataset
 

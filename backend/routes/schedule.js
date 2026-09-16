@@ -4,6 +4,11 @@ const router = express.Router();
 const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const db = require('../config/database');
 const { logSystemAudit } = require('../utils/platformOps');
+const { hasAdminAccess } = require('../utils/access');
+
+const canManageCourse = async (user, courseId) => hasAdminAccess(user) || Boolean(courseId && await db.get(
+  'SELECT id FROM courses WHERE id = ? AND teacher_id = ?', [courseId, user.id]
+));
 
 const SCHEDULE_SELECT = `
   SELECT
@@ -198,6 +203,10 @@ router.get('/', auth, async (req, res) => {
       ];
     }
 
+    if (req.user.role === 'teacher' && !hasAdminAccess(req.user)) {
+      query = `${SCHEDULE_SELECT} WHERE c.teacher_id = ? ORDER BY s.day, s.time_slot`;
+      params = [req.user.id];
+    }
     const result = await db.all(query, params);
     res.json({ schedule: result });
   } catch (error) {
@@ -210,6 +219,10 @@ router.get('/', auth, async (req, res) => {
 router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
   try {
     const normalized = await normalizeSchedulePayload(req.body);
+
+    if (!await canManageCourse(req.user, normalized.courseId)) {
+      return res.status(403).json({ error: 'Access denied. Select a course assigned to you.' });
+    }
 
     const result = await db.run(
       `INSERT INTO schedule (
@@ -266,7 +279,15 @@ router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Schedule not found' });
     }
 
+    if (!await canManageCourse(req.user, existingSchedule.course_id)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     const normalized = await normalizeSchedulePayload(req.body);
+
+    if (!await canManageCourse(req.user, normalized.courseId)) {
+      return res.status(403).json({ error: 'Access denied. Select a course assigned to you.' });
+    }
 
     const result = await db.run(
       `UPDATE schedule
@@ -341,6 +362,10 @@ router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
     const existingSchedule = await getScheduleById(req.params.id);
     if (!existingSchedule) {
       return res.status(404).json({ error: 'Schedule not found' });
+    }
+
+    if (!await canManageCourse(req.user, existingSchedule.course_id)) {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
     const result = await db.run('DELETE FROM schedule WHERE id = ?', [req.params.id]);

@@ -26,7 +26,8 @@ const allowedOriginPatterns = [
 const isAllowedOrigin = (origin) => {
   if (!origin) return true;
   if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) return true;
-  return allowedOriginPatterns.some((pattern) => pattern.test(origin));
+  return ['development', 'test'].includes(appEnvironment)
+    && allowedOriginPatterns.some((pattern) => pattern.test(origin));
 };
 
 const shouldTrustProxy = (() => {

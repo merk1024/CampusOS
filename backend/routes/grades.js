@@ -4,6 +4,8 @@ const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const db = require('../config/database');
 const { logGradeChange } = require('../utils/auditTrail');
 const { logSystemAudit } = require('../utils/platformOps');
+const { hasAdminAccess } = require('../utils/access');
+const { canManageExam, teacherExamScope } = require('../utils/examAccess');
 
 // @route   POST /api/grades
 // @desc    Add or update grade
@@ -11,6 +13,22 @@ const { logSystemAudit } = require('../utils/platformOps');
 router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
   try {
     const { examId, studentId, grade, comments } = req.body;
+
+    if (!Number.isInteger(Number(examId)) || Number(examId) <= 0
+      || typeof studentId !== 'string' || !studentId.trim()
+      || !Number.isInteger(grade) || grade < 0 || grade > 100
+      || (comments != null && (typeof comments !== 'string' || comments.length > 5000))) {
+      return res.status(400).json({ error: 'Valid examId, studentId and an integer grade from 0 to 100 are required' });
+    }
+    const exam = await db.get('SELECT id FROM exams WHERE id = ?', [examId]);
+    if (!exam) return res.status(404).json({ error: 'Exam not found' });
+    if (!await canManageExam(req.user, examId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    const enrolled = await db.get(
+      'SELECT id FROM exam_students WHERE exam_id = ? AND student_id = ?', [examId, studentId]
+    );
+    if (!enrolled) return res.status(400).json({ error: 'Student is not assigned to this exam' });
 
     // Check if grade exists
     const existing = await db.query(
@@ -79,9 +97,18 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
 // @access  Private (Teacher/Admin)
 router.get('/audit', auth, isTeacherOrAdmin, async (req, res) => {
   try {
-    const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 200);
+    const requestedLimit = Number(req.query.limit || 50);
+    if (!Number.isInteger(requestedLimit) || requestedLimit < 1) {
+      return res.status(400).json({ error: 'Valid limit is required' });
+    }
+    const limit = Math.min(requestedLimit, 200);
     const conditions = [];
     const params = [];
+
+    if (!hasAdminAccess(req.user)) {
+      conditions.push(teacherExamScope());
+      params.push(req.user.id, req.user.id);
+    }
 
     if (req.query.studentId) {
       conditions.push('gal.student_id = ?');
@@ -142,9 +169,10 @@ router.get('/student/:studentId', auth, async (req, res) => {
        FROM grades g
        JOIN exams e ON g.exam_id = e.id
        LEFT JOIN users u ON g.graded_by = u.id
-       WHERE g.student_id = $1
+       WHERE g.student_id = ?
+       ${!hasAdminAccess(req.user) && req.user.role === 'teacher' ? `AND ${teacherExamScope()}` : ''}
        ORDER BY e.exam_date DESC`,
-      [studentId]
+      !hasAdminAccess(req.user) && req.user.role === 'teacher' ? [studentId, req.user.id, req.user.id] : [studentId]
     );
 
     res.json({ grades: result.rows });
@@ -176,9 +204,10 @@ router.get('/stats/:studentId', auth, async (req, res) => {
         COUNT(CASE WHEN grade >= 70 AND grade < 90 THEN 1 END) as good_count,
         COUNT(CASE WHEN grade >= 50 AND grade < 70 THEN 1 END) as satisfactory_count,
         COUNT(CASE WHEN grade < 50 THEN 1 END) as fail_count
-       FROM grades
-       WHERE student_id = $1`,
-      [studentId]
+       FROM grades g JOIN exams e ON e.id = g.exam_id
+       WHERE g.student_id = ?
+       ${!hasAdminAccess(req.user) && req.user.role === 'teacher' ? `AND ${teacherExamScope()}` : ''}`,
+      !hasAdminAccess(req.user) && req.user.role === 'teacher' ? [studentId, req.user.id, req.user.id] : [studentId]
     );
 
     res.json({ stats: result.rows[0] });

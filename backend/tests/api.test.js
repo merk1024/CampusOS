@@ -1303,3 +1303,7 @@ test('targeted announcements and inbox read state work for student recipients', 
   assert.ok(readInboxItem);
   assert.equal(readInboxItem.is_read, true);
 });
+
+test('academic permissions reject unauthorized registration and cross-teacher changes', async () => {
+  await require('./helpers/academicAccess')({ request, login, db, authHeaders });
+});

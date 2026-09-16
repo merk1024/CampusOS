@@ -4,6 +4,37 @@ const router = express.Router();
 const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const db = require('../config/database');
 const { logSystemAudit } = require('../utils/platformOps');
+const { hasAdminAccess } = require('../utils/access');
+const { canManageExam, teacherExamScope } = require('../utils/examAccess');
+
+const validateExam = async (req, res, next) => {
+  try {
+    const data = req.body;
+    if (typeof data.subject !== 'string' || !data.subject.trim()
+      || typeof (data.group_name || data.groupName) !== 'string' || !(data.group_name || data.groupName).trim()
+      || !/^\d{4}-\d{2}-\d{2}$/.test(data.exam_date || data.examDate || '')
+      || !/^([01]\d|2[0-3]):[0-5]\d$/.test(data.exam_time || data.examTime || '')
+      || !Array.isArray(data.students || []) || (data.students || []).length > 1000) {
+      return res.status(400).json({ error: 'Subject, group, date, time and a student ID list are required' });
+    }
+    const date = data.exam_date || data.examDate;
+    const parsed = new Date(date);
+    if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) {
+      return res.status(400).json({ error: 'Invalid exam date' });
+    }
+    for (const studentId of data.students || []) {
+      if (typeof studentId !== 'string' || !studentId.trim()) {
+        return res.status(400).json({ error: 'Student IDs must be nonempty strings' });
+      }
+      const student = await db.get("SELECT id FROM users WHERE student_id = ? AND role = 'student'", [studentId]);
+      if (!student) return res.status(400).json({ error: 'Unknown student ID' });
+    }
+    next();
+  } catch (error) {
+    console.error('Validate exam error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
 
 router.get('/', auth, async (req, res) => {
   try {
@@ -18,6 +49,11 @@ router.get('/', auth, async (req, res) => {
          ORDER BY e.exam_date DESC, e.exam_time DESC`,
         [req.user.student_id]
       );
+    } else if (!hasAdminAccess(req.user)) {
+      exams = await db.all(
+        `SELECT e.* FROM exams e WHERE ${teacherExamScope()} ORDER BY e.exam_date DESC, e.exam_time DESC`,
+        [req.user.id, req.user.id]
+      );
     } else {
       exams = await db.all(
         'SELECT * FROM exams ORDER BY exam_date DESC, exam_time DESC'
@@ -27,13 +63,17 @@ router.get('/', auth, async (req, res) => {
     const examsWithStudents = await Promise.all(
       exams.map(async (exam) => {
         const students = await db.all(
-          'SELECT student_id FROM exam_students WHERE exam_id = ? ORDER BY student_id',
+          `SELECT es.student_id, u.name, u.email FROM exam_students es
+           LEFT JOIN users u ON u.student_id = es.student_id
+           WHERE es.exam_id = ? ORDER BY es.student_id`,
           [exam.id]
         );
 
         return {
           ...exam,
+          ...(req.user.role !== 'student' ? { roster: students } : {}),
           students: students.map((student) => student.student_id)
+            .filter((studentId) => req.user.role !== 'student' || studentId === req.user.student_id)
         };
       })
     );
@@ -45,7 +85,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
+router.post('/', auth, isTeacherOrAdmin, validateExam, async (req, res) => {
   try {
     const {
       group_name,
@@ -111,7 +151,7 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
   }
 });
 
-router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
+router.put('/:id', auth, isTeacherOrAdmin, validateExam, async (req, res) => {
   try {
     const {
       group_name,
@@ -134,6 +174,10 @@ router.put('/:id', auth, isTeacherOrAdmin, async (req, res) => {
 
     if (!existingExam) {
       return res.status(404).json({ error: 'Exam not found' });
+    }
+
+    if (!await canManageExam(req.user, existingExam.id)) {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
     const result = await db.run(
@@ -202,6 +246,10 @@ router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
 
     if (!existingExam) {
       return res.status(404).json({ error: 'Exam not found' });
+    }
+
+    if (!await canManageExam(req.user, existingExam.id)) {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
     await db.run('DELETE FROM exam_students WHERE exam_id = ?', [req.params.id]);

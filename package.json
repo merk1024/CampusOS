@@ -17,6 +17,13 @@
     "scan:zap": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/security/run-zap-baseline.ps1",
     "export:security-docx": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/reporting/export-security-report-docx.ps1",
     "backup:campusos": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/backup-campusos.ps1",
-    "restore:campusos": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/restore-campusos.ps1"
+    "restore:campusos": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/restore-campusos.ps1",
+    "db:setup": "node backend/scripts/setup-local-postgres.js",
+    "db:up": "docker compose --env-file backend/.env up -d --wait postgres",
+    "db:stop": "docker compose --env-file backend/.env stop postgres",
+    "db:init": "npm --prefix backend run db:init",
+    "db:check": "npm --prefix backend run db:check",
+    "db:backup": "node backend/scripts/backup-local-postgres.js",
+    "db:verify-backup": "node backend/scripts/backup-local-postgres.js --verify"
   }
 }

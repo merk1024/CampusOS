@@ -242,6 +242,11 @@ function GradesTable({ grades, totalCount, copy, locale = 'en-GB' }) {
   );
 }
 
+function resolveStudentId(value, students) {
+  const input = String(value || '').trim();
+  return students.find(student => student.email?.toLowerCase() === input.toLowerCase())?.student_id || input;
+}
+
 function Grades({ user, language = 'English', locale = 'en-GB' }) {
   const copy = GRADES_COPY[language] || GRADES_COPY.English;
   const [grades, setGrades] = useState([]);
@@ -298,17 +303,11 @@ function Grades({ user, language = 'English', locale = 'en-GB' }) {
           return;
         }
 
-        const [examsResponse, usersResponse] = await Promise.allSettled([
-          api.getExams(),
-          api.getUsers()
-        ]);
-
-        setExams(examsResponse.status === 'fulfilled' ? (examsResponse.value?.exams || []) : []);
-        setStudents(
-          usersResponse.status === 'fulfilled'
-            ? (usersResponse.value?.users || []).filter((item) => item.role === 'student')
-            : []
-        );
+        const examsResponse = await api.getExams();
+        const accessibleExams = examsResponse?.exams || [];
+        setExams(accessibleExams);
+        setStudents([...new Map(accessibleExams.flatMap(exam => exam.roster || [])
+          .map(student => [student.student_id, student])).values()]);
         setGrades([]);
         setStats(EMPTY_STATS);
       } catch (err) {
@@ -335,8 +334,8 @@ function Grades({ user, language = 'English', locale = 'en-GB' }) {
         setError('');
 
         const [gradesResponse, statsResponse] = await Promise.all([
-          api.getGrades(managerForm.studentId),
-          api.getGradeStats(managerForm.studentId)
+          api.getGrades(resolveStudentId(managerForm.studentId, students)),
+          api.getGradeStats(resolveStudentId(managerForm.studentId, students))
         ]);
 
         setGrades(gradesResponse?.grades || []);
@@ -350,7 +349,7 @@ function Grades({ user, language = 'English', locale = 'en-GB' }) {
     };
 
     loadSelectedStudent();
-  }, [canManage, copy.failedLoad, isStudent, managerForm.studentId]);
+  }, [canManage, copy.failedLoad, isStudent, managerForm.studentId, students]);
 
   const gradeTypes = useMemo(() => (
     ['all', ...new Set(grades.map((grade) => grade.type || copy.table.examFallback))]
@@ -395,7 +394,7 @@ function Grades({ user, language = 'English', locale = 'en-GB' }) {
 
       await api.saveGrade({
         examId: Number(managerForm.examId),
-        studentId: managerForm.studentId.trim(),
+        studentId: resolveStudentId(managerForm.studentId, students),
         grade: Number(managerForm.grade),
         comments: managerForm.comments.trim()
       });
@@ -403,8 +402,8 @@ function Grades({ user, language = 'English', locale = 'en-GB' }) {
       setNotice(copy.savedSuccess);
 
       const [gradesResponse, statsResponse] = await Promise.all([
-        api.getGrades(managerForm.studentId),
-        api.getGradeStats(managerForm.studentId)
+        api.getGrades(resolveStudentId(managerForm.studentId, students)),
+        api.getGradeStats(resolveStudentId(managerForm.studentId, students))
       ]);
 
       setGrades(gradesResponse?.grades || []);
@@ -548,7 +547,7 @@ function Grades({ user, language = 'English', locale = 'en-GB' }) {
           <datalist id="grade-student-ids">
             {students.map((student) => (
               <option
-                key={student.id}
+                key={student.student_id}
                 value={student.student_id || student.email}
                 label={`${student.name} (${student.email})`}
               />

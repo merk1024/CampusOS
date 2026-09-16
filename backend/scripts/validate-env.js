@@ -71,7 +71,11 @@ requireValue('FRONTEND_URL', 'FRONTEND_URL is required so the API can allow the 
 requireNonPlaceholder('JWT_SECRET', 'JWT_SECRET must be a real secret and not the default placeholder.');
 
 if (dbClient === 'postgres') {
-  requireValue('DATABASE_URL', 'DATABASE_URL is required when DB_CLIENT=postgres.');
+  if (!hasValue('DATABASE_URL')) {
+    for (const key of ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']) {
+      requireValue(key, `${key} is required when DATABASE_URL is not set.`);
+    }
+  }
 
   if (mode !== 'development' && !hasValue('PGSSLMODE') && !hasValue('PGSSL_REJECT_UNAUTHORIZED') && !hasValue('PGSSL_ALLOW_SELF_SIGNED')) {
     warnings.push('No explicit PostgreSQL SSL policy is set. Define PGSSLMODE, PGSSL_REJECT_UNAUTHORIZED, or PGSSL_ALLOW_SELF_SIGNED for predictable deploys.');

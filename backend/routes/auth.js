@@ -37,77 +37,10 @@ const AUTH_USER_FIELDS = `
   last_login_ip
 `;
 
-router.post(
-  '/register',
-  [
-    body('email').isEmail().normalizeEmail(),
-    body('password').isLength({ min: 6 }),
-    body('name').trim().notEmpty(),
-    body('role').isIn(['student', 'teacher', 'admin'])
-  ],
-  async (req, res) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-      }
-
-      const { email, password, name, role, studentId, groupName, subgroupName, phone } = req.body;
-
-      const existingUser = await db.get('SELECT id FROM users WHERE email = ?', [email]);
-      if (existingUser) {
-        return res.status(400).json({ error: 'User already exists' });
-      }
-
-      if (role === 'student' && studentId) {
-        const existingStudentId = await db.get('SELECT id FROM users WHERE student_id = ?', [studentId]);
-        if (existingStudentId) {
-          return res.status(400).json({ error: 'Student ID already exists' });
-        }
-      }
-
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-
-      await db.run(
-        `INSERT INTO users (email, password, name, role, student_id, group_name, subgroup_name, phone)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [email, hashedPassword, name, role, studentId || null, groupName || null, subgroupName || null, phone || null]
-      );
-
-      const user = await db.get(
-        `SELECT ${AUTH_USER_FIELDS} FROM users WHERE email = ?`,
-        [email]
-      );
-
-      const token = jwt.sign(
-        { id: user.id, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRE || '7d' }
-      );
-
-      res.cookie(
-        AUTH_COOKIE_NAME,
-        token,
-        buildAuthCookieOptions({ rememberMe: true })
-      );
-
-      const payload = {
-        message: 'User registered successfully',
-        user
-      };
-
-      if (shouldExposeTokenResponse()) {
-        payload.token = token;
-      }
-
-      res.status(201).json(payload);
-    } catch (error) {
-      console.error('Register error:', error);
-      res.status(500).json({ error: 'Server error' });
-    }
-  }
-);
+// Accounts are provisioned through the audited admin-only /api/users flow.
+router.post('/register', (req, res) => {
+  res.status(403).json({ error: 'Self-registration is disabled. Contact your administrator.' });
+});
 
 router.post(
   '/login',

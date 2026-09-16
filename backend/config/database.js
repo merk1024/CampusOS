@@ -1,6 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const { Pool } = require('pg');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const { Pool, types } = require('pg');
+
+// Academic calendar dates are dates, not instants. Preserve YYYY-MM-DD across
+// time zones and keep the API contract consistent with SQLite.
+types.setTypeParser(1082, value => value);
 
 const SQLITE_DB_PATH = process.env.SQLITE_DB_PATH || path.join(__dirname, '..', 'database.db');
 const SQLITE_SCHEMA_PATH = path.join(__dirname, '..', 'database', 'schema.sql');
@@ -212,10 +217,13 @@ const POSTGRES_MIGRATION_TABLE_SQL = `
   )
 `;
 
-const shouldUsePostgres = () => (
-  String(process.env.DB_CLIENT || '').toLowerCase() === 'postgres'
-  || Boolean(process.env.DATABASE_URL)
-);
+const shouldUsePostgres = () => {
+  const client = String(process.env.DB_CLIENT || '').toLowerCase();
+  if (client && !['postgres', 'sqlite'].includes(client)) {
+    throw new Error('Unsupported DB_CLIENT. Use postgres or sqlite.');
+  }
+  return client ? client === 'postgres' : Boolean(process.env.DATABASE_URL);
+};
 
 const convertQuestionParamsToDollarParams = (sql) => {
   let parameterIndex = 0;
@@ -458,6 +466,7 @@ const createSqliteAdapter = () => {
   const adapter = {
     client: 'sqlite',
     schemaVersion: null,
+    close() { return new Promise((resolve, reject) => sqlite.close(error => error ? reject(error) : resolve())); },
 
     run(sql, params = []) {
       const normalizedSql = convertDollarParamsToQuestionParams(sql);
@@ -576,6 +585,7 @@ const createPostgresAdapter = () => {
   const adapter = {
     client: 'postgres',
     schemaVersion: null,
+    close() { return pool.end(); },
 
     async run(sql, params = []) {
       let normalizedSql = convertQuestionParamsToDollarParams(sql);
