@@ -103,6 +103,11 @@ const PROFILE_WRITABLE_FIELDS = new Set([...PERSONAL_FIELDS,
   'group_name', 'subgroup_name', 'faculty', 'major', 'year_of_study',
   'program_class', 'advisor', 'study_status', 'balance_info', 'grant_type', 'registration_date'
 ]);
+const changedProtectedField = (payload, existing, allowed) => {
+  const serialized = JSON.parse(JSON.stringify(existing));
+  return Object.keys(payload || {}).find(key => !allowed.has(key)
+    && (payload[key] ?? null) !== (serialized[key] ?? null));
+};
 const updateProfileFields = async (id, payload = {}) => {
   const entries = Object.entries(payload).filter(([key, value]) => PROFILE_WRITABLE_FIELDS.has(key) && value !== undefined);
   if (!entries.length) return;
@@ -146,6 +151,11 @@ router.put('/profile/me', auth, async (req, res) => {
   try {
     const existingUser = await db.get(`SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`, [req.user.id]);
     if (!existingUser) return res.status(404).json({ error: 'User not found' });
+    const protectedField = changedProtectedField(req.body, existingUser, PERSONAL_FIELDS);
+    if (protectedField) return res.status(403).json({ error: `Field is read-only: ${protectedField}` });
+    if (Object.hasOwn(req.body, 'name') && !normalizeOptionalText(req.body.name)) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
     await updateProfileFields(req.user.id, personalPayload(req.body));
 
     const user = await db.get(
@@ -449,8 +459,15 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(403).json({ error: 'Only a super admin can update admin accounts' });
     }
 
+    const allowAcademic = hasAdminAccess(req.user) && req.user.id !== Number(req.params.id);
+    const protectedField = changedProtectedField(req.body, existingUser,
+      allowAcademic ? PROFILE_WRITABLE_FIELDS : PERSONAL_FIELDS);
+    if (protectedField) return res.status(403).json({ error: `Field is read-only: ${protectedField}` });
+    if (Object.hasOwn(req.body, 'name') && !normalizeOptionalText(req.body.name)) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
     await updateProfileFields(req.params.id,
-      hasAdminAccess(req.user) && req.user.id !== Number(req.params.id)
+      allowAcademic
         ? req.body : personalPayload(req.body));
 
     const user = await db.get(

@@ -91,12 +91,24 @@ test('course reassignment revokes attendance writes and all management reads des
   assert.deepEqual((await service.listManagementSessions({ user: teacher, date: input.date })).sessions, []);
 });
 
-test('grade checks use only the transaction executor and return denial statuses', async () => {
+test('grade checks stay inside the transaction and return denial statuses', async () => {
   const router = require('../routes/grades');
   const handler = router.stack.find(layer => layer.route?.path === '/' && layer.route.methods.post).route.stack.at(-1).handle;
   await db.run('UPDATE exams SET course_id = 1, created_by = 2 WHERE id = 1');
   const originalGet = db.get;
-  db.get = () => { throw new Error('Authorization read escaped the transaction'); };
+  const originalTransaction = db.transaction;
+  let transactionActive = false;
+  let transactionReads = 0;
+  db.transaction = callback => originalTransaction.call(db, async tx => {
+    transactionActive = true;
+    try { return await callback(tx); }
+    finally { transactionActive = false; }
+  });
+  db.get = (...args) => {
+    if (!transactionActive) throw new Error('Authorization read escaped the transaction');
+    transactionReads += 1;
+    return originalGet.apply(db, args);
+  };
   try {
     const invoke = async (user, examId, studentId) => {
       let status = 200;
@@ -108,8 +120,10 @@ test('grade checks use only the transaction executor and return denial statuses'
     assert.equal(await invoke(teacher, 1, 'S1'), 403);
     assert.equal(await invoke(admin, 1, 'not-enrolled'), 400);
     assert.equal(await invoke(admin, 99999, 'S1'), 404);
+    assert.ok(transactionReads >= 3, 'Authorization must execute database reads within the transaction');
   } finally {
     db.get = originalGet;
+    db.transaction = originalTransaction;
   }
   assert.equal((await db.get('SELECT COUNT(*) AS n FROM grades')).n, 0);
 });

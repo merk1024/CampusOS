@@ -85,13 +85,13 @@ async function listAssignments(requester) {
   let params = [];
   if (!hasAdminAccess(requester)) {
     if (requester.role === 'teacher') {
-      where = 'WHERE c.teacher_id = ? OR (a.course_id IS NULL AND a.created_by = ?)';
-      params = [requester.id, requester.id];
+      where = 'WHERE c.teacher_id = ?';
+      params = [requester.id];
     } else if (requester.role === 'student') {
       where = `WHERE EXISTS (
         SELECT 1 FROM course_enrollments ce
         WHERE ce.course_id = a.course_id AND ce.student_id = ?
-      ) OR (a.course_id IS NULL AND (u.role = 'admin' OR u.is_superadmin = 1))`;
+      )`;
       params = [requester.id];
     } else {
       throw createServiceError(403, 'Access denied');

@@ -834,8 +834,9 @@ async function getStudentAttendance({ requester, studentId }) {
      LEFT JOIN courses c ON c.id = s.course_id
      LEFT JOIN users u ON u.id = a.marked_by
      WHERE a.student_id = ?
+     ${requester.role === 'teacher' && !hasAdminAccess(requester) ? 'AND c.teacher_id = ?' : ''}
      ORDER BY a.date DESC, ${DAY_ORDER_SQL}, s.time_slot`,
-    [studentId]
+    requester.role === 'teacher' && !hasAdminAccess(requester) ? [studentId, requester.id] : [studentId]
   );
 
   return { attendance };

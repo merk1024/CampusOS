@@ -1407,3 +1407,7 @@ test('password changes revoke bearer and cookie sessions and require a fresh log
   const fresh = await login(email, 'ChangedTeacher456!');
   assert.equal((await request('/api/auth/me', { headers: authHeaders(fresh.token) })).response.status, 200);
 });
+
+test('audit remediation enforces permissions, session revocation and atomic writes', async () => {
+  await require('./helpers/auditRemediation')({ request, login, db, authHeaders });
+});

@@ -25,6 +25,7 @@ CREATE TABLE users (
     student_id TEXT UNIQUE, -- For students only (e.g., 240145121)
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
+    session_version INTEGER NOT NULL DEFAULT 0,
     name TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('student', 'teacher', 'admin')),
     group_name TEXT, -- For students

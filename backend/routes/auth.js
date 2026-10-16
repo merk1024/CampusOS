@@ -141,12 +141,8 @@ router.post(
 
 router.post('/logout', auth, async (req, res) => {
   try {
-    await db.run('UPDATE users SET session_version = session_version + 1 WHERE id = ?', [req.user.id]);
-    res.clearCookie(
-      AUTH_COOKIE_NAME,
-      buildAuthCookieOptions({ clear: true })
-    );
-
+    await db.transaction(async (tx) => {
+    await tx.run('UPDATE users SET session_version = session_version + 1 WHERE id = ?', [req.user.id]);
     await logSystemAudit({
       entityType: 'auth',
       entityId: req.user.id,
@@ -157,7 +153,9 @@ router.post('/logout', auth, async (req, res) => {
       },
       changedBy: req.user.id,
       requestId: req.requestId
+    }, tx);
     });
+    res.clearCookie(AUTH_COOKIE_NAME, buildAuthCookieOptions({ clear: true }));
 
     res.json({ message: 'Logout successful' });
   } catch (error) {
@@ -217,23 +215,24 @@ router.put(
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-      const result = await db.run(
-        'UPDATE users SET password = ?, session_version = session_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND password = ? AND session_version = ?',
-        [hashedPassword, req.user.id, user.password, req.user.session_version]
-      );
-      if (result.changes !== 1) {
-        return res.status(401).json({ error: 'Session expired. Please sign in again.' });
-      }
-
-      res.clearCookie(AUTH_COOKIE_NAME, buildAuthCookieOptions({ clear: true }));
-      await logSystemAudit({
-        entityType: 'auth',
-        entityId: req.user.id,
-        action: 'password-change',
-        summary: `${req.user.email} updated the account password`,
-        changedBy: req.user.id,
-        requestId: req.requestId
+      const changed = await db.transaction(async (tx) => {
+        const result = await tx.run(
+          'UPDATE users SET password = ?, session_version = session_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND password = ? AND session_version = ?',
+          [hashedPassword, req.user.id, user.password, req.user.session_version]
+        );
+        if (result.changes !== 1) return false;
+        await logSystemAudit({
+          entityType: 'auth',
+          entityId: req.user.id,
+          action: 'password-change',
+          summary: `${req.user.email} updated the account password`,
+          changedBy: req.user.id,
+          requestId: req.requestId
+        }, tx);
+        return true;
       });
+      if (!changed) return res.status(401).json({ error: 'Session expired. Please sign in again.' });
+      res.clearCookie(AUTH_COOKIE_NAME, buildAuthCookieOptions({ clear: true }));
 
       res.json({ message: 'Password updated successfully' });
     } catch (error) {

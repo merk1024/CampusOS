@@ -2,6 +2,15 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const { Pool, types } = require('pg');
+const { AsyncLocalStorage } = require('node:async_hooks');
+
+const transactionExecutor = (adapter, storage, context) => ({
+  client: adapter.client,
+  ...Object.fromEntries(['run', 'get', 'all', 'query'].map(method => [method, (...args) => {
+    if (!context.active) return Promise.reject(new Error('Transaction is no longer active'));
+    return storage.run(context, () => adapter[method](...args));
+  }]))
+});
 
 // Academic calendar dates are dates, not instants. Preserve YYYY-MM-DD across
 // time zones and keep the API contract consistent with SQLite.
@@ -410,7 +419,7 @@ const getMigrationDefinitions = () => ([
   },
   {
     version: '2026-10-16-007-session-version',
-    description: 'Persist authentication session revocation version',
+    description: 'Invalidate sessions after credential or account status changes',
     async apply(context) {
       await context.ensureColumns('users', [['session_version', 'INTEGER NOT NULL DEFAULT 0']]);
     }
@@ -523,46 +532,50 @@ const createSqliteAdapter = () => {
       const hasReturning = /\breturning\b/i.test(normalizedSql);
 
       if (isReadQuery || hasReturning) {
-        const rows = await this.all(normalizedSql, params);
+        const rows = await adapter.all(normalizedSql, params);
         return { rows, rowCount: rows.length };
       }
 
-      const result = await this.run(normalizedSql, params);
+      const result = await adapter.run(normalizedSql, params);
       return { rows: [], rowCount: result.changes };
     }
   };
 
-  // Queue all access to the shared connection, not only transaction writes.
-  const raw = {};
-  for (const method of ['run', 'get', 'all', 'query', 'close']) raw[method] = adapter[method].bind(raw);
+  // A single SQLite connection must exclude ALL unrelated operations while a
+  // transaction owns it, including reads from other HTTP requests.
+  const transactionContext = new AsyncLocalStorage();
   let queue = Promise.resolve();
-  const enqueue = (operation) => {
-    const result = queue.then(operation);
-    queue = result.catch(() => {});
-    return result;
+  const exclusive = (work) => {
+    const pending = queue.then(work);
+    queue = pending.catch(() => {});
+    return pending;
   };
-  for (const method of ['run', 'get', 'all', 'query', 'close']) {
-    adapter[method] = (...args) => enqueue(() => raw[method](...args));
+  for (const method of ['run', 'get', 'all']) {
+    const execute = adapter[method].bind(adapter);
+    adapter[method] = (...args) => {
+      const context = transactionContext.getStore();
+      if (context && !context.active) return Promise.reject(new Error('Transaction already ended'));
+      return context ? execute(...args) : exclusive(() => execute(...args));
+    };
   }
-  adapter.transaction = (callback) => enqueue(async () => {
-    await raw.run('BEGIN IMMEDIATE');
-    let active = true;
-    const tx = Object.fromEntries(['run', 'get', 'all', 'query'].map(method => [method, (...args) => {
-      if (!active) return Promise.reject(new Error('Transaction is no longer active'));
-      return raw[method](...args);
-    }]));
-    tx.client = 'sqlite';
-    try {
-      const result = await callback(tx);
-      await raw.run('COMMIT');
-      return result;
-    } catch (error) {
-      await raw.run('ROLLBACK');
-      throw error;
-    } finally {
-      active = false;
-    }
-  });
+  adapter.transaction = (work) => {
+    if (transactionContext.getStore()) throw new Error('Nested transactions are not supported');
+    return exclusive(async () => {
+      await execSqlite('BEGIN IMMEDIATE');
+      const context = { active: true };
+      try {
+        const tx = transactionExecutor(adapter, transactionContext, context);
+        const result = await transactionContext.run(context, () => work(tx));
+        await execSqlite('COMMIT');
+        return result;
+      } catch (error) {
+        await execSqlite('ROLLBACK');
+        throw error;
+      } finally {
+        context.active = false;
+      }
+    });
+  };
 
   let migrationPromise;
 
@@ -621,6 +634,12 @@ const createPostgresAdapter = () => {
     console.error('Unexpected PostgreSQL pool error:', error);
   });
 
+  const transactionContext = new AsyncLocalStorage();
+  const connection = () => {
+    const context = transactionContext.getStore();
+    if (context && !context.active) throw new Error('Transaction already ended');
+    return context?.connection || pool;
+  };
   const adapter = {
     client: 'postgres',
     schemaVersion: null,
@@ -635,7 +654,7 @@ const createPostgresAdapter = () => {
         normalizedSql = `${normalizedSql.trim()} RETURNING *`;
       }
 
-      const result = await pool.query(normalizedSql, params);
+      const result = await connection().query(normalizedSql, params);
       return {
         id: result.rows[0]?.id ?? null,
         changes: result.rowCount
@@ -644,51 +663,37 @@ const createPostgresAdapter = () => {
 
     async get(sql, params = []) {
       const normalizedSql = convertQuestionParamsToDollarParams(sql);
-      const result = await pool.query(normalizedSql, params);
+      const result = await connection().query(normalizedSql, params);
       return result.rows[0];
     },
 
     async all(sql, params = []) {
       const normalizedSql = convertQuestionParamsToDollarParams(sql);
-      const result = await pool.query(normalizedSql, params);
+      const result = await connection().query(normalizedSql, params);
       return result.rows;
     },
 
     async query(sql, params = []) {
       const normalizedSql = sql.includes('?') ? convertQuestionParamsToDollarParams(sql) : sql;
-      return pool.query(normalizedSql, params);
+      return connection().query(normalizedSql, params);
     }
   };
 
-  adapter.transaction = async (callback) => {
+  adapter.transaction = async (work) => {
+    if (transactionContext.getStore()) throw new Error('Nested transactions are not supported');
     const client = await pool.connect();
-    let active = true;
-    const query = (sql, params = []) => {
-      if (!active) return Promise.reject(new Error('Transaction is no longer active'));
-      return client.query(convertQuestionParamsToDollarParams(sql), params);
-    };
-    const tx = {
-      client: 'postgres',
-      query,
-      async get(sql, params) { return (await query(sql, params)).rows[0]; },
-      async all(sql, params) { return (await query(sql, params)).rows; },
-      async run(sql, params) {
-        const statement = /^\s*insert\b/i.test(sql) && !/\breturning\b/i.test(sql)
-          ? `${sql.trim()} RETURNING *` : sql;
-        const result = await query(statement, params);
-        return { id: result.rows[0]?.id ?? null, changes: result.rowCount };
-      }
-    };
+    const context = { connection: client, active: true };
     try {
-      await query('BEGIN');
-      const result = await callback(tx);
-      await query('COMMIT');
+      await client.query('BEGIN');
+      const tx = transactionExecutor(adapter, transactionContext, context);
+      const result = await transactionContext.run(context, () => work(tx));
+      await client.query('COMMIT');
       return result;
     } catch (error) {
-      await query('ROLLBACK');
+      await client.query('ROLLBACK');
       throw error;
     } finally {
-      active = false;
+      context.active = false;
       client.release();
     }
   };

@@ -25,6 +25,9 @@ test('PostgreSQL migrations, seed and authenticated API', {
       ['2026-10-16-007-session-version']));
     assert.ok(await db.get("SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'session_version'"));
     const firstCount = await db.get('SELECT COUNT(*)::int AS count FROM users');
+    // Exercise migration of an existing database without losing users.
+    await db.run('ALTER TABLE users DROP COLUMN session_version');
+    await db.run('DELETE FROM schema_migrations WHERE version = ?', ['2026-10-16-007-session-version']);
     const { execFileSync } = require('node:child_process');
     execFileSync(process.execPath, [require('node:path').join(__dirname, '..', 'init-db.js')], {
       env: process.env,
@@ -67,6 +70,9 @@ test('PostgreSQL migrations, seed and authenticated API', {
       request, login: loginUser, db, authHeaders: token => ({ Authorization: `Bearer ${token}` })
     });
     await require('./helpers/contentSecurity')({
+      request, login: loginUser, db, authHeaders: token => ({ Authorization: `Bearer ${token}` })
+    });
+    await require('./helpers/auditRemediation')({
       request, login: loginUser, db, authHeaders: token => ({ Authorization: `Bearer ${token}` })
     });
   } finally {

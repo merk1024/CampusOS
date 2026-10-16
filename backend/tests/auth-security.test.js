@@ -64,7 +64,13 @@ test('self updates preserve omitted personal and protected fields on both routes
   const token = await login('student@test.local');
   const student = await db.get('SELECT id FROM users WHERE email = ?', ['student@test.local']);
   for (const route of ['/users/profile/me', `/users/${student.id}`]) {
-    const result = await request(route, 'PUT', { name: 'New Name', group_name: 'Forged', faculty: 'Forged', balance_info: 'Forged', is_active: false }, token);
+    for (const change of [{ group_name: 'Forged' }, { faculty: 'Forged' }, { balance_info: 'Forged' }, { is_active: false }]) {
+      const denied = await request(route, 'PUT', { name: 'Must Not Save', ...change }, token);
+      assert.equal(denied.status, 403);
+      const unchanged = await request('/users/profile/me', 'GET', undefined, token);
+      assert.notEqual(unchanged.body.user.name, 'Must Not Save');
+    }
+    const result = await request(route, 'PUT', { name: 'New Name' }, token);
     assert.equal(result.status, 200);
     assert.equal(result.body.user.name, 'New Name');
     assert.equal(result.body.user.phone, '123');
