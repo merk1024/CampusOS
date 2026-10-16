@@ -30,7 +30,7 @@ $files = Get-ChildItem -Path $RootPath -Recurse -File -Include $includePatterns 
 
 foreach ($file in $files) {
   $lineNumber = 0
-  foreach ($line in Get-Content -Path $file.FullName) {
+  foreach ($line in Get-Content -LiteralPath $file.FullName -Encoding UTF8) {
     $lineNumber += 1
     $matches = @()
     $quotedMatch = $quotedSecretRegex.Match($line)
@@ -57,7 +57,7 @@ foreach ($file in $files) {
     $findings += [PSCustomObject]@{
       File = $file.FullName.Replace($RootPath, ".")
       Line = $lineNumber
-      Snippet = $line.Trim()
+      Snippet = '[REDACTED: potential secret]'
     }
   }
 }

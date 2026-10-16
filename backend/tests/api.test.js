@@ -83,6 +83,16 @@ const authHeaders = (token) => ({
   Authorization: `Bearer ${token}`
 });
 
+const ownedCourseForStudent = async (teacherId, studentId = '240141052') => {
+  const course = await db.get(`SELECT c.id FROM courses c
+    JOIN course_enrollments ce ON ce.course_id = c.id
+    JOIN users u ON u.id = ce.student_id
+    WHERE c.teacher_id = ? AND u.student_id = ? ORDER BY c.id LIMIT 1`,
+  [teacherId, studentId]);
+  assert.ok(course, 'Expected an owned course with the student enrolled');
+  return course.id;
+};
+
 test.before(async () => {
   await seed();
   server = await startServer(0);
@@ -143,13 +153,17 @@ test('GET /health returns request tracing metadata', async () => {
 });
 
 test('database migrations expose the current schema version and platform tables', async () => {
-  assert.equal(db.schemaVersion, '2026-04-03-006-announcement-audience');
+  assert.ok(db.schemaVersion);
 
   const migrationRow = await db.get(
     'SELECT version FROM schema_migrations WHERE version = ?',
-    ['2026-04-03-006-announcement-audience']
+    [db.schemaVersion]
   );
   assert.ok(migrationRow);
+  assert.ok(await db.get('SELECT version FROM schema_migrations WHERE version = ?',
+    ['2026-10-16-007-session-version']));
+  const columns = await db.all('PRAGMA table_info(users)');
+  assert.ok(columns.some(column => column.name === 'session_version'));
 
   const systemAuditTable = await db.get(
     `SELECT name
@@ -243,8 +257,8 @@ test('superadmin can access admin-only user directory', async () => {
   assert.ok(body.users.some((user) => user.email === SUPERADMIN_EMAIL));
 });
 
-test('admin can create another admin without student-only fields', async () => {
-  const adminSession = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+test('superadmin can create another admin without student-only fields', async () => {
+  const adminSession = await login(SUPERADMIN_EMAIL, process.env.SUPERADMIN_BOOTSTRAP_PASSWORD);
   const uniqueEmail = `admin-${Date.now()}@campusos.test`;
 
   const { response, body } = await request('/api/users', {
@@ -695,6 +709,7 @@ test('admin can analyze academic record integration snapshots in read-only mode'
     body: JSON.stringify({
       group_name: 'CYB-23',
       subject: uniqueSubject,
+      courseId: await ownedCourseForStudent(teacherSession.user.id),
       exam_date: '2026-04-22',
       exam_time: '11:00',
       room: 'A-301',
@@ -875,6 +890,7 @@ test('teacher and student can read academic risk flags for their scope', async (
     body: JSON.stringify({
       group_name: 'CYB-23',
       subject: uniqueSubject,
+      courseId: await ownedCourseForStudent(teacherSession.user.id),
       exam_date: '2026-04-16',
       exam_time: '12:00',
       room: 'A-204',
@@ -959,6 +975,7 @@ test('teacher and student can read performance dashboards for their scope', asyn
     body: JSON.stringify({
       group_name: 'CYB-23',
       subject: uniqueSubject,
+      courseId: targetSession.course_id,
       exam_date: '2026-04-18',
       exam_time: '09:30',
       room: 'B-101',
@@ -1036,6 +1053,7 @@ test('admin can export faculty overview and dean office intervention reports', a
     body: JSON.stringify({
       group_name: 'CYB-23',
       subject: `Dean Report ${Date.now()}`,
+      courseId: await ownedCourseForStudent(teacherSession.user.id),
       exam_date: '2026-04-19',
       exam_time: '14:00',
       room: 'A-110',
@@ -1089,6 +1107,7 @@ test('teacher can create an exam and publish a grade while student cannot submit
     body: JSON.stringify({
       group_name: 'CYB-23',
       subject: uniqueSubject,
+      courseId: await ownedCourseForStudent(teacherSession.user.id),
       exam_date: '2026-04-15',
       exam_time: '10:00',
       room: 'A-201',
@@ -1165,12 +1184,12 @@ test('teacher can create an exam and publish a grade while student cannot submit
 });
 
 test('announcement creation writes system audit entries and queued notifications', async () => {
-  const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  const adminSession = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
   const uniqueTitle = `CampusOS Notice ${Date.now()}`;
 
   const createdAnnouncement = await request('/api/announcements', {
     method: 'POST',
-    headers: authHeaders(teacherSession.token),
+    headers: authHeaders(adminSession.token),
     body: JSON.stringify({
       title: uniqueTitle,
       content: 'Regression test for background notification delivery.',
@@ -1226,7 +1245,7 @@ test('announcement creation writes system audit entries and queued notifications
 });
 
 test('targeted announcements and inbox read state work for student recipients', async () => {
-  const teacherSession = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  const adminSession = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
   const primaryStudentSession = await login('240141052', process.env.SEED_STUDENT_PASSWORD);
   const secondaryStudent = await db.get(
     `SELECT id, student_id
@@ -1241,7 +1260,7 @@ test('targeted announcements and inbox read state work for student recipients', 
 
   const createdAnnouncement = await request('/api/announcements', {
     method: 'POST',
-    headers: authHeaders(teacherSession.token),
+    headers: authHeaders(adminSession.token),
     body: JSON.stringify({
       title: uniqueTitle,
       content: 'Targeted announcement regression test.',
@@ -1306,4 +1325,85 @@ test('targeted announcements and inbox read state work for student recipients', 
 
 test('academic permissions reject unauthorized registration and cross-teacher changes', async () => {
   await require('./helpers/academicAccess')({ request, login, db, authHeaders });
+});
+
+test('content permissions restrict teachers to owned courses', async () => {
+  await require('./helpers/contentSecurity')({ request, login, db, authHeaders });
+});
+
+test('regular admins cannot provision admins individually or through bulk import', async () => {
+  const admin = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+  const email = `denied-admin-${Date.now()}@campusos.test`;
+  const created = await request('/api/users', {
+    method: 'POST', headers: authHeaders(admin.token),
+    body: JSON.stringify({ name: 'Denied Admin', email, password: 'DeniedAdmin123!', role: 'admin' })
+  });
+  assert.equal(created.response.status, 403, JSON.stringify(created.body));
+  for (const action of ['preview', 'apply']) {
+    const result = await request(`/api/users/bulk/${action}`, {
+      method: 'POST', headers: authHeaders(admin.token),
+      body: JSON.stringify({ csvText: `name,email,role,password\nDenied Admin,${email},admin,DeniedAdmin123!` })
+    });
+    assert.equal(result.response.status, 403, JSON.stringify(result.body));
+  }
+  assert.equal(await db.get('SELECT id FROM users WHERE email = ?', [email]), undefined);
+});
+
+test('cookie writes require trusted Origin and logout revokes existing sessions', async () => {
+  const session = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  const cookie = `campusos_session=${session.token}`;
+  for (const origin of [undefined, 'https://foreign.example']) {
+    const denied = await request('/api/auth/logout', {
+      method: 'POST', headers: { Cookie: cookie, ...(origin ? { Origin: origin } : {}) }
+    });
+    assert.equal(denied.response.status, 403, JSON.stringify(denied.body));
+    assert.equal((await request('/api/auth/me', { headers: { Cookie: cookie } })).response.status, 200);
+  }
+  const second = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  for (const authorization of ['Basic junk', 'Bearer ', 'Bearer invalid']) {
+    const denied = await request('/api/auth/logout', {
+      method: 'POST', headers: { Cookie: cookie, Authorization: authorization }
+    });
+    assert.ok([401, 403].includes(denied.response.status), JSON.stringify(denied.body));
+    assert.equal((await request('/api/auth/me', { headers: { Cookie: cookie } })).response.status, 200);
+  }
+  const before = await db.get('SELECT session_version FROM users WHERE id = ?', [session.user.id]);
+  const logout = await request('/api/auth/logout', {
+    method: 'POST', headers: { Cookie: cookie, Origin: baseUrl }
+  });
+  assert.equal(logout.response.status, 200, JSON.stringify(logout.body));
+  const after = await db.get('SELECT session_version FROM users WHERE id = ?', [session.user.id]);
+  assert.equal(Number(after.session_version), Number(before.session_version) + 1);
+  for (const headers of [{ Cookie: cookie }, authHeaders(session.token), authHeaders(second.token)]) {
+    assert.equal((await request('/api/auth/me', { headers })).response.status, 401);
+  }
+  const fresh = await login('teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
+  assert.equal((await request('/api/auth/me', { headers: authHeaders(fresh.token) })).response.status, 200);
+});
+
+test('password changes revoke bearer and cookie sessions and require a fresh login', async () => {
+  const admin = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+  const email = `session-teacher-${Date.now()}@campusos.test`;
+  const password = 'SessionTeacher123!';
+  const created = await request('/api/users', {
+    method: 'POST', headers: authHeaders(admin.token),
+    body: JSON.stringify({ name: 'Session Teacher', email, password, role: 'teacher' })
+  });
+  assert.equal(created.response.status, 201, JSON.stringify(created.body));
+  const first = await login(email, password);
+  const second = await login(email, password);
+  const changed = await request('/api/auth/password', {
+    method: 'PUT', headers: authHeaders(first.token),
+    body: JSON.stringify({ currentPassword: password, newPassword: 'ChangedTeacher456!' })
+  });
+  assert.equal(changed.response.status, 200, JSON.stringify(changed.body));
+  for (const headers of [authHeaders(first.token), { Cookie: `campusos_session=${second.token}` }]) {
+    assert.equal((await request('/api/auth/me', { headers })).response.status, 401);
+  }
+  const oldLogin = await request('/api/auth/login', {
+    method: 'POST', body: JSON.stringify({ login: email, password })
+  });
+  assert.equal(oldLogin.response.status, 401);
+  const fresh = await login(email, 'ChangedTeacher456!');
+  assert.equal((await request('/api/auth/me', { headers: authHeaders(fresh.token) })).response.status, 200);
 });

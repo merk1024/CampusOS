@@ -3,9 +3,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import EmptyState from './EmptyState';
 import StatusBanner from './StatusBanner';
-import { canManageAcademicRecords } from '../roles';
+import { canManageAcademicRecords, hasAdminAccess } from '../roles';
 
 const EMPTY_FORM = {
+  course_id: '',
   group_name: '',
   subject: '',
   exam_date: '',
@@ -190,6 +191,7 @@ function toLocalDateValue(value) {
 function Exams({ user, language = 'English', locale = 'en-GB' }) {
   const copy = EXAMS_COPY[language] || EXAMS_COPY.English;
   const [exams, setExams] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -206,8 +208,13 @@ function Exams({ user, language = 'English', locale = 'en-GB' }) {
   const loadExams = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.getExams();
+      const [response, courseResponse] = await Promise.all([
+        api.getExams(), canManage ? api.getCourses() : Promise.resolve({ courses: [] })
+      ]);
       setExams(response?.exams || []);
+      setCourses((courseResponse?.courses || []).filter((course) => (
+        hasAdminAccess(user) || Number(course.teacher_id) === Number(user?.id)
+      )));
       setError('');
     } catch (err) {
       console.error('Failed to load exams:', err);
@@ -215,7 +222,7 @@ function Exams({ user, language = 'English', locale = 'en-GB' }) {
     } finally {
       setLoading(false);
     }
-  }, [copy.notices.loadFailed]);
+  }, [copy.notices.loadFailed, canManage, user]);
 
   useEffect(() => {
     loadExams();
@@ -242,6 +249,7 @@ function Exams({ user, language = 'English', locale = 'en-GB' }) {
       .filter(Boolean);
 
     const payload = {
+      course_id: formData.course_id ? Number(formData.course_id) : null,
       group_name: formData.group_name,
       subject: formData.subject,
       exam_date: formData.exam_date,
@@ -275,6 +283,7 @@ function Exams({ user, language = 'English', locale = 'en-GB' }) {
   const handleEdit = (exam) => {
     setEditingId(exam.id);
     setFormData({
+      course_id: exam.course_id || '',
       group_name: exam.group_name || '',
       subject: exam.subject || '',
       exam_date: exam.exam_date || '',
@@ -290,6 +299,7 @@ function Exams({ user, language = 'English', locale = 'en-GB' }) {
   const handleDuplicate = (exam) => {
     setEditingId(null);
     setFormData({
+      course_id: exam.course_id || '',
       group_name: exam.group_name || '',
       subject: exam.subject || '',
       exam_date: exam.exam_date || '',
@@ -447,6 +457,19 @@ function Exams({ user, language = 'English', locale = 'en-GB' }) {
             </div>
           </div>
           <div className="exam-form-grid">
+            <label className="exam-form-field">
+              <span className="exam-form-label">{language === 'Kyrgyz' ? 'Курс' : 'Course'}</span>
+              <select
+                value={formData.course_id}
+                required={!hasAdminAccess(user)}
+                onChange={(event) => setFormData({ ...formData, course_id: event.target.value })}
+              >
+                <option value="">{language === 'Kyrgyz' ? 'Курсту тандаңыз' : 'Select course'}</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>{course.name || course.title || course.code || course.id}</option>
+                ))}
+              </select>
+            </label>
             <label className="exam-form-field">
               <span className="exam-form-label">{copy.form.group}</span>
               <input

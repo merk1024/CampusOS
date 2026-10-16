@@ -30,7 +30,7 @@ const isProduction = () => (
 const getCookieSecureFlag = () => {
   const explicit = readBooleanEnv(process.env.AUTH_COOKIE_SECURE);
   if (explicit !== null) {
-    return explicit;
+    return isProduction() || explicit;
   }
 
   return isProduction();
@@ -39,7 +39,7 @@ const getCookieSecureFlag = () => {
 const getCookieSameSite = (secureCookie) => {
   const explicit = normalizeSameSite(process.env.AUTH_COOKIE_SAMESITE);
   if (explicit) {
-    return explicit;
+    return explicit === 'none' && !secureCookie ? 'lax' : explicit;
   }
 
   return secureCookie ? 'none' : 'lax';
@@ -75,7 +75,7 @@ const buildAuthCookieOptions = ({ rememberMe = false, clear = false } = {}) => {
 };
 
 const getTokenFromRequest = (req) => {
-  const authorizationToken = req.header('Authorization')?.replace('Bearer ', '').trim();
+  const authorizationToken = req.header('Authorization')?.match(/^Bearer\s+(\S+)$/i)?.[1];
   if (authorizationToken) {
     return authorizationToken;
   }

@@ -32,7 +32,7 @@ const auth = async (req, res, next) => {
     
     // Get user from database
     const user = await db.get(
-      `SELECT id, email, name, role, student_id, group_name, subgroup_name, is_superadmin
+      `SELECT id, email, name, role, student_id, group_name, subgroup_name, is_superadmin, session_version
        FROM users
        WHERE id = ? AND ${getActiveUserFilter()}`,
       [decoded.id]
@@ -40,6 +40,11 @@ const auth = async (req, res, next) => {
 
     if (!user) {
       return res.status(401).json({ error: 'User not found or inactive' });
+    }
+
+    if (!Number.isSafeInteger(decoded.sessionVersion)
+        || decoded.sessionVersion !== Number(user.session_version)) {
+      return res.status(401).json({ error: 'Session expired. Please sign in again.' });
     }
 
     req.user = user;

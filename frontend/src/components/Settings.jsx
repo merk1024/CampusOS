@@ -210,6 +210,11 @@ function Settings({
           <span className="management-summary-label">{copy.quickActions}</span>
           <strong>{user?.name || 'CampusOS user'}</strong>
           <p className="page-context-note">{copy.quickActionsBody.replace('{role}', roleLabel)}</p>
+          <p className="page-context-note">
+            {language === 'Kyrgyz'
+              ? 'Профилде жеке жана байланыш маалыматын өзгөртө аласыз. Академиялык маалыматты администраторлор башкарат. Жаңы сырсөз кеминде 12 белги жана эң көп 72 UTF-8 байт болушу керек.'
+              : 'Edit personal and contact details in Profile. Academic records are managed by administrators. New passwords must contain at least 12 characters and no more than 72 UTF-8 bytes.'}
+          </p>
         </div>
         <div className="management-filters">
           <button className="management-filter-chip" onClick={() => onNavigate('profile')}>{copy.openProfile}</button>

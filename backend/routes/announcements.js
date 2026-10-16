@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const db = require('../config/database');
-const { canManageAcademicRecords } = require('../utils/access');
+const { hasAdminAccess } = require('../utils/access');
+const { createServiceError, getServiceErrorStatus } = require('../services/serviceError');
 const {
   normalizeAudienceInput,
   getAnnouncementAudienceLabel,
@@ -36,7 +37,7 @@ const formatAnnouncementForClient = (announcement, user) => {
   const isOwned = Number(announcement.created_by) === Number(user?.id);
   const isRead = notificationWasDelivered
     ? normalizeBooleanFlag(announcement.notification_is_read)
-    : (isOwned || canManageAcademicRecords(user));
+    : (isOwned || hasAdminAccess(user));
 
   return {
     ...announcement,
@@ -78,11 +79,15 @@ router.get('/', auth, async (req, res) => {
     const enrolledCourseIds = req.user.role === 'student'
       ? await getStudentCourseIds(req.user.id)
       : new Set();
+    const ownedCourseIds = req.user.role === 'teacher'
+      ? new Set((await db.all('SELECT id FROM courses WHERE teacher_id = ?', [req.user.id])).map((course) => Number(course.id)))
+      : new Set();
     const announcements = result.rows
       .filter((announcement) => canUserSeeAnnouncement({
         announcement,
         user: req.user,
-        enrolledCourseIds
+        enrolledCourseIds,
+        ownedCourseIds
       }))
       .map((announcement) => formatAnnouncementForClient(announcement, req.user));
 
@@ -112,19 +117,28 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
       return res.status(400).json({ error: audience.errors[0] });
     }
 
+    if (!hasAdminAccess(req.user) && audience.audienceScope !== 'course') {
+      return res.status(403).json({ error: 'Teachers may publish only to their own courses' });
+    }
+
+    const { course, result } = await db.transaction(async (tx) => {
     let course = null;
     if (audience.courseId) {
-      course = await db.get(
-        'SELECT id, code, name FROM courses WHERE id = ?',
+      course = await tx.get(
+        'SELECT id, code, name, teacher_id FROM courses WHERE id = ?'
+          + (tx.client === 'postgres' ? ' FOR UPDATE' : ''),
         [audience.courseId]
       );
 
       if (!course) {
-        return res.status(400).json({ error: 'Selected course was not found' });
+        throw createServiceError(400, 'Selected course was not found');
+      }
+      if (!hasAdminAccess(req.user) && Number(course.teacher_id) !== Number(req.user.id)) {
+        throw createServiceError(403, 'Access denied');
       }
     }
 
-    const result = await db.query(
+    const result = await tx.query(
       `INSERT INTO announcements
         (title, content, type, audience_scope, audience_value, course_id, is_pinned, created_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -140,6 +154,8 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
         req.user.id
       ]
     );
+    return { course, result };
+    });
     const announcement = {
       ...result.rows[0],
       author_name: req.user.name,
@@ -193,6 +209,8 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
       announcement: formatAnnouncementForClient(announcement, req.user)
     });
   } catch (error) {
+    const status = getServiceErrorStatus(error);
+    if (status) return res.status(status).json({ error: error.message });
     console.error('Create announcement error:', error);
     res.status(500).json({ error: 'Server error' });
   }
@@ -201,15 +219,30 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
 // Delete announcement
 router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
   try {
-    const announcement = await db.get(
-      'SELECT id, title, type, audience_scope, audience_value, course_id FROM announcements WHERE id = ?',
+    await db.transaction(async (tx) => {
+    const announcement = await tx.get(
+      'SELECT id, title, type, audience_scope, audience_value, course_id, created_by FROM announcements WHERE id = ?'
+        + (tx.client === 'postgres' ? ' FOR UPDATE' : ''),
       [req.params.id]
     );
     if (!announcement) {
-      return res.status(404).json({ error: 'Announcement not found' });
+      throw createServiceError(404, 'Announcement not found');
     }
 
-    await db.query('DELETE FROM announcements WHERE id = $1', [req.params.id]);
+    if (!hasAdminAccess(req.user)) {
+      if (Number(announcement.created_by) !== Number(req.user.id)) {
+        throw createServiceError(403, 'Access denied');
+      }
+      if (announcement.course_id) {
+        const course = await tx.get('SELECT teacher_id FROM courses WHERE id = ?'
+          + (tx.client === 'postgres' ? ' FOR UPDATE' : ''), [announcement.course_id]);
+        if (!course || Number(course.teacher_id) !== Number(req.user.id)) {
+          throw createServiceError(403, 'Access denied');
+        }
+      }
+    }
+
+    await tx.query('DELETE FROM announcements WHERE id = $1', [req.params.id]);
 
     await logSystemAudit({
       entityType: 'announcement',
@@ -224,10 +257,13 @@ router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
       },
       changedBy: req.user.id,
       requestId: req.requestId
+    }, tx);
     });
 
     res.json({ message: 'Announcement deleted' });
   } catch (error) {
+    const status = getServiceErrorStatus(error);
+    if (status) return res.status(status).json({ error: error.message });
     res.status(500).json({ error: 'Server error' });
   }
 });

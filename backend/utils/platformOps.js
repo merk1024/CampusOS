@@ -45,12 +45,12 @@ async function logSystemAudit({
   details = null,
   changedBy = null,
   requestId = null
-}) {
+}, executor = db) {
   if (!entityType || !action || !summary) {
     return null;
   }
 
-  return db.run(
+  return executor.run(
     `INSERT INTO system_audit_log
       (entity_type, entity_id, action, summary, details, changed_by, request_id)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,

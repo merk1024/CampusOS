@@ -295,12 +295,14 @@ async function bulkAssignTeacherToCourses({ teacherId, courseIds }) {
     throw createServiceError(404, 'Selected courses were not found');
   }
 
-  for (const course of foundCourses) {
-    await db.run(
-      'UPDATE courses SET teacher_id = ? WHERE id = ?',
-      [normalizedTeacherId, course.id]
-    );
-  }
+  await db.transaction(async (tx) => {
+    for (const course of foundCourses) {
+      await tx.run(
+        'UPDATE courses SET teacher_id = ? WHERE id = ?',
+        [normalizedTeacherId, course.id]
+      );
+    }
+  });
 
   const courses = await Promise.all(
     foundCourses.map((course) => getCourseWithTeacher(course.id))
@@ -340,25 +342,28 @@ async function bulkEnrollStudents({ courseIds, studentIdentifiers }) {
   let created = 0;
   let skipped = 0;
 
-  for (const course of foundCourses) {
-    for (const student of students) {
-      const existingEnrollment = await db.get(
-        'SELECT id FROM course_enrollments WHERE course_id = ? AND student_id = ?',
-        [course.id, student.id]
-      );
+  await db.transaction(async (tx) => {
+    for (const course of foundCourses) {
+      for (const student of students) {
+        const existingEnrollment = await tx.get(
+          'SELECT id FROM course_enrollments WHERE course_id = ? AND student_id = ?',
+          [course.id, student.id]
+        );
 
-      if (existingEnrollment) {
-        skipped += 1;
-        continue;
+        if (existingEnrollment) {
+          skipped += 1;
+          continue;
+        }
+
+        const result = await tx.run(
+          'INSERT INTO course_enrollments (course_id, student_id) VALUES (?, ?) ON CONFLICT (student_id, course_id) DO NOTHING',
+          [course.id, student.id]
+        );
+        if (result.changes) created += 1;
+        else skipped += 1;
       }
-
-      await db.run(
-        'INSERT INTO course_enrollments (course_id, student_id) VALUES (?, ?)',
-        [course.id, student.id]
-      );
-      created += 1;
     }
-  }
+  });
 
   return {
     courses: foundCourses,

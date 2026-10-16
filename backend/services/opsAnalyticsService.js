@@ -169,11 +169,9 @@ const getScopedAttendanceRecords = async ({ user, studentIds, from, to }) => {
     sql += `
       AND (
         c.teacher_id = ?
-        OR COALESCE(s.teacher, '') = ?
-        OR COALESCE(s.teacher, '') = ?
       )
     `;
-    params.push(user.id, user.name, user.email);
+    params.push(user.id);
   }
 
   return db.all(sql, params);
@@ -198,8 +196,8 @@ const getScopedGradeRecords = async ({ user, studentIds, from, to }) => {
   `;
 
   if (canManageAcademicRecords(user) && !hasAdminAccess(user)) {
-    sql += ' AND e.created_by = ?';
-    params.push(user.id);
+    sql += ` AND ${require('../utils/examAccess').teacherExamScope()}`;
+    params.push(user.id, user.id);
   }
 
   return db.all(sql, params);
@@ -794,11 +792,9 @@ async function getRiskFlags({ user, from: rawFrom, to: rawTo, limit: rawLimit })
     attendanceSql += `
       AND (
         c.teacher_id = ?
-        OR COALESCE(s.teacher, '') = ?
-        OR COALESCE(s.teacher, '') = ?
       )
     `;
-    attendanceParams.push(user.id, user.name, user.email);
+    attendanceParams.push(user.id);
   }
 
   attendanceSql += ' GROUP BY a.student_id';
@@ -819,8 +815,8 @@ async function getRiskFlags({ user, from: rawFrom, to: rawTo, limit: rawLimit })
   `;
 
   if (canManageAcademicRecords(user) && !hasAdminAccess(user)) {
-    gradeSql += ' AND e.created_by = ?';
-    gradeParams.push(user.id);
+    gradeSql += ` AND ${require('../utils/examAccess').teacherExamScope()}`;
+    gradeParams.push(user.id, user.id);
   }
 
   gradeSql += ' GROUP BY g.student_id';

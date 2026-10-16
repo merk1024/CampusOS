@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
 const db = require('../config/database');
+const { validatePassword } = require('./passwordPolicy');
 
 const ACTIVE_STATUS = db.client === 'postgres' ? true : 1;
 const ALLOWED_ROLES = new Set(['student', 'teacher', 'admin']);
@@ -245,6 +246,11 @@ const createRowResult = (rowNumber, record) => ({
 });
 
 const validateRecord = (rowResult, sourceRecord) => {
+  if (rowResult.password) {
+    try { validatePassword(rowResult.password); } catch (error) {
+      rowResult.errors.push(error.message);
+    }
+  }
   if (!rowResult.name) {
     rowResult.errors.push('Name is required.');
   }

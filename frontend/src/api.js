@@ -214,6 +214,14 @@ export const api = {
     return request('/users/profile/me', { headers: getHeaders() });
   },
 
+  async changePassword(currentPassword, newPassword) {
+    return request('/auth/password', {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+  },
+
   async updateProfile(profileData) {
     return request('/users/profile/me', {
       method: 'PUT',

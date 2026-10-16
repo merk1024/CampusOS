@@ -5,7 +5,7 @@ const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const db = require('../config/database');
 const { logSystemAudit } = require('../utils/platformOps');
 const { hasAdminAccess } = require('../utils/access');
-const { canManageExam, teacherExamScope } = require('../utils/examAccess');
+const { canManageExam, teacherExamScope, validateExamCourse } = require('../utils/examAccess');
 
 const validateExam = async (req, res, next) => {
   try {
@@ -101,9 +101,13 @@ router.post('/', auth, isTeacherOrAdmin, validateExam, async (req, res) => {
       students = []
     } = req.body;
 
-    const result = await db.run(
-      `INSERT INTO exams (group_name, subject, exam_date, exam_time, room, teacher_name, type, semester, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    const outcome = await db.transaction(async (tx) => {
+    const access = await validateExamCourse(req.user, req.body, students, null, tx);
+    if (access.error) return access;
+
+    const result = await tx.run(
+      `INSERT INTO exams (group_name, subject, exam_date, exam_time, room, teacher_name, type, semester, created_by, course_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         group_name || groupName,
         subject,
@@ -113,18 +117,19 @@ router.post('/', auth, isTeacherOrAdmin, validateExam, async (req, res) => {
         req.user.name,
         type || 'Exam',
         semester || null,
-        req.user.id
+        req.user.id,
+        access.courseId
       ]
     );
 
     for (const studentId of students) {
-      await db.run(
+      await tx.run(
         'INSERT INTO exam_students (exam_id, student_id) VALUES (?, ?) ON CONFLICT (exam_id, student_id) DO NOTHING',
         [result.id, studentId]
       );
     }
 
-    const exam = await db.get('SELECT * FROM exams WHERE id = ?', [result.id]);
+    const exam = await tx.get('SELECT * FROM exams WHERE id = ?', [result.id]);
 
     await logSystemAudit({
       entityType: 'exam',
@@ -139,7 +144,11 @@ router.post('/', auth, isTeacherOrAdmin, validateExam, async (req, res) => {
       },
       changedBy: req.user.id,
       requestId: req.requestId
+    }, tx);
+    return { exam };
     });
+    if (outcome.error) return res.status(outcome.status).json({ error: outcome.error });
+    const { exam } = outcome;
 
     res.status(201).json({
       message: 'Exam created successfully',
@@ -167,22 +176,27 @@ router.put('/:id', auth, isTeacherOrAdmin, validateExam, async (req, res) => {
       students = []
     } = req.body;
 
-    const existingExam = await db.get(
-      'SELECT id, subject, group_name, type, exam_date, exam_time FROM exams WHERE id = ?',
+    const outcome = await db.transaction(async (tx) => {
+    const existingExam = await tx.get(
+      'SELECT id, subject, group_name, type, exam_date, exam_time, course_id FROM exams WHERE id = ?'
+        + (tx.client === 'postgres' ? ' FOR UPDATE' : ''),
       [req.params.id]
     );
 
     if (!existingExam) {
-      return res.status(404).json({ error: 'Exam not found' });
+      return { status: 404, error: 'Exam not found' };
     }
 
-    if (!await canManageExam(req.user, existingExam.id)) {
-      return res.status(403).json({ error: 'Access denied' });
+    if (!await canManageExam(req.user, existingExam.id, tx)) {
+      return { status: 403, error: 'Access denied' };
     }
 
-    const result = await db.run(
+    const access = await validateExamCourse(req.user, req.body, students, existingExam.course_id, tx);
+    if (access.error) return access;
+
+    await tx.run(
       `UPDATE exams
-       SET group_name = ?, subject = ?, exam_date = ?, exam_time = ?, room = ?, type = ?, semester = ?
+       SET group_name = ?, subject = ?, exam_date = ?, exam_time = ?, room = ?, type = ?, semester = ?, course_id = ?
        WHERE id = ?`,
       [
         group_name || groupName,
@@ -192,20 +206,21 @@ router.put('/:id', auth, isTeacherOrAdmin, validateExam, async (req, res) => {
         room,
         type || 'Exam',
         semester || null,
+        access.courseId,
         req.params.id
       ]
     );
 
-    await db.run('DELETE FROM exam_students WHERE exam_id = ?', [req.params.id]);
+    await tx.run('DELETE FROM exam_students WHERE exam_id = ?', [req.params.id]);
 
     for (const studentId of students) {
-      await db.run(
+      await tx.run(
         'INSERT INTO exam_students (exam_id, student_id) VALUES (?, ?) ON CONFLICT (exam_id, student_id) DO NOTHING',
         [req.params.id, studentId]
       );
     }
 
-    const exam = await db.get('SELECT * FROM exams WHERE id = ?', [req.params.id]);
+    const exam = await tx.get('SELECT * FROM exams WHERE id = ?', [req.params.id]);
 
     await logSystemAudit({
       entityType: 'exam',
@@ -225,7 +240,11 @@ router.put('/:id', auth, isTeacherOrAdmin, validateExam, async (req, res) => {
       },
       changedBy: req.user.id,
       requestId: req.requestId
+    }, tx);
+    return { exam };
     });
+    if (outcome.error) return res.status(outcome.status).json({ error: outcome.error });
+    const { exam } = outcome;
 
     res.json({
       message: 'Exam updated successfully',
@@ -239,21 +258,23 @@ router.put('/:id', auth, isTeacherOrAdmin, validateExam, async (req, res) => {
 
 router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
   try {
-    const existingExam = await db.get(
-      'SELECT id, subject, group_name, type, exam_date, exam_time FROM exams WHERE id = ?',
+    const outcome = await db.transaction(async (tx) => {
+    const existingExam = await tx.get(
+      'SELECT id, subject, group_name, type, exam_date, exam_time FROM exams WHERE id = ?'
+        + (tx.client === 'postgres' ? ' FOR UPDATE' : ''),
       [req.params.id]
     );
 
     if (!existingExam) {
-      return res.status(404).json({ error: 'Exam not found' });
+      return { status: 404, error: 'Exam not found' };
     }
 
-    if (!await canManageExam(req.user, existingExam.id)) {
-      return res.status(403).json({ error: 'Access denied' });
+    if (!await canManageExam(req.user, existingExam.id, tx)) {
+      return { status: 403, error: 'Access denied' };
     }
 
-    await db.run('DELETE FROM exam_students WHERE exam_id = ?', [req.params.id]);
-    const result = await db.run('DELETE FROM exams WHERE id = ?', [req.params.id]);
+    await tx.run('DELETE FROM exam_students WHERE exam_id = ?', [req.params.id]);
+    await tx.run('DELETE FROM exams WHERE id = ?', [req.params.id]);
 
     await logSystemAudit({
       entityType: 'exam',
@@ -263,7 +284,10 @@ router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
       details: existingExam,
       changedBy: req.user.id,
       requestId: req.requestId
+    }, tx);
+    return {};
     });
+    if (outcome.error) return res.status(outcome.status).json({ error: outcome.error });
 
     res.json({ message: 'Exam deleted successfully' });
   } catch (error) {

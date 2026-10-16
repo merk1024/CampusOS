@@ -2,8 +2,6 @@ const express = require('express');
 
 const router = express.Router();
 const { auth, isTeacherOrAdmin } = require('../middleware/auth');
-const { logAttendanceChange } = require('../utils/auditTrail');
-const { logSystemAudit } = require('../utils/platformOps');
 const {
   getAttendanceAnalytics,
   getAttendanceAudit,
@@ -69,34 +67,7 @@ router.post('/bulk', auth, isTeacherOrAdmin, async (req, res) => {
       user: req.user,
       scheduleId: req.body.scheduleId,
       date: req.body.date,
-      records: req.body.records
-    });
-
-    for (const auditEntry of result.auditEntries) {
-      await logAttendanceChange({
-        attendanceId: auditEntry.attendanceId,
-        scheduleId: auditEntry.scheduleId,
-        studentId: auditEntry.studentId,
-        date: auditEntry.date,
-        previousStatus: auditEntry.previousStatus,
-        newStatus: auditEntry.newStatus,
-        changedBy: req.user.id
-      });
-    }
-
-    await logSystemAudit({
-      entityType: 'attendance',
-      entityId: `${req.body.scheduleId}:${result.date}`,
-      action: 'bulk-update',
-      summary: `${req.user.email} saved attendance for ${result.savedCount} student(s)`,
-      details: {
-        scheduleId: Number(req.body.scheduleId),
-        date: result.date,
-        savedCount: result.savedCount,
-        course_name: result.session.course_name || result.session.subject || null,
-        group_name: result.session.group_name || null
-      },
-      changedBy: req.user.id,
+      records: req.body.records,
       requestId: req.requestId
     });
 
@@ -119,31 +90,7 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
       scheduleId: req.body.scheduleId,
       studentId: req.body.studentId,
       date: req.body.date,
-      status: req.body.status
-    });
-
-    await logAttendanceChange({
-      attendanceId: result.auditEntry.attendanceId,
-      scheduleId: result.auditEntry.scheduleId,
-      studentId: result.auditEntry.studentId,
-      date: result.auditEntry.date,
-      previousStatus: result.auditEntry.previousStatus,
-      newStatus: result.auditEntry.newStatus,
-      changedBy: req.user.id
-    });
-
-    await logSystemAudit({
-      entityType: 'attendance',
-      entityId: `${result.auditEntry.scheduleId}:${result.auditEntry.studentId}:${result.auditEntry.date}`,
-      action: result.action,
-      summary: `${req.user.email} marked attendance for ${result.auditEntry.studentId}`,
-      details: {
-        scheduleId: result.auditEntry.scheduleId,
-        studentId: result.auditEntry.studentId,
-        date: result.auditEntry.date,
-        status: result.auditEntry.newStatus
-      },
-      changedBy: req.user.id,
+      status: req.body.status,
       requestId: req.requestId
     });
 

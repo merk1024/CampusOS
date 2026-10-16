@@ -407,6 +407,13 @@ const getMigrationDefinitions = () => ([
          WHERE audience_scope IS NULL`
       );
     }
+  },
+  {
+    version: '2026-10-16-007-session-version',
+    description: 'Persist authentication session revocation version',
+    async apply(context) {
+      await context.ensureColumns('users', [['session_version', 'INTEGER NOT NULL DEFAULT 0']]);
+    }
   }
 ]);
 
@@ -516,14 +523,46 @@ const createSqliteAdapter = () => {
       const hasReturning = /\breturning\b/i.test(normalizedSql);
 
       if (isReadQuery || hasReturning) {
-        const rows = await adapter.all(normalizedSql, params);
+        const rows = await this.all(normalizedSql, params);
         return { rows, rowCount: rows.length };
       }
 
-      const result = await adapter.run(normalizedSql, params);
+      const result = await this.run(normalizedSql, params);
       return { rows: [], rowCount: result.changes };
     }
   };
+
+  // Queue all access to the shared connection, not only transaction writes.
+  const raw = {};
+  for (const method of ['run', 'get', 'all', 'query', 'close']) raw[method] = adapter[method].bind(raw);
+  let queue = Promise.resolve();
+  const enqueue = (operation) => {
+    const result = queue.then(operation);
+    queue = result.catch(() => {});
+    return result;
+  };
+  for (const method of ['run', 'get', 'all', 'query', 'close']) {
+    adapter[method] = (...args) => enqueue(() => raw[method](...args));
+  }
+  adapter.transaction = (callback) => enqueue(async () => {
+    await raw.run('BEGIN IMMEDIATE');
+    let active = true;
+    const tx = Object.fromEntries(['run', 'get', 'all', 'query'].map(method => [method, (...args) => {
+      if (!active) return Promise.reject(new Error('Transaction is no longer active'));
+      return raw[method](...args);
+    }]));
+    tx.client = 'sqlite';
+    try {
+      const result = await callback(tx);
+      await raw.run('COMMIT');
+      return result;
+    } catch (error) {
+      await raw.run('ROLLBACK');
+      throw error;
+    } finally {
+      active = false;
+    }
+  });
 
   let migrationPromise;
 
@@ -618,6 +657,39 @@ const createPostgresAdapter = () => {
     async query(sql, params = []) {
       const normalizedSql = sql.includes('?') ? convertQuestionParamsToDollarParams(sql) : sql;
       return pool.query(normalizedSql, params);
+    }
+  };
+
+  adapter.transaction = async (callback) => {
+    const client = await pool.connect();
+    let active = true;
+    const query = (sql, params = []) => {
+      if (!active) return Promise.reject(new Error('Transaction is no longer active'));
+      return client.query(convertQuestionParamsToDollarParams(sql), params);
+    };
+    const tx = {
+      client: 'postgres',
+      query,
+      async get(sql, params) { return (await query(sql, params)).rows[0]; },
+      async all(sql, params) { return (await query(sql, params)).rows; },
+      async run(sql, params) {
+        const statement = /^\s*insert\b/i.test(sql) && !/\breturning\b/i.test(sql)
+          ? `${sql.trim()} RETURNING *` : sql;
+        const result = await query(statement, params);
+        return { id: result.rows[0]?.id ?? null, changes: result.rowCount };
+      }
+    };
+    try {
+      await query('BEGIN');
+      const result = await callback(tx);
+      await query('COMMIT');
+      return result;
+    } catch (error) {
+      await query('ROLLBACK');
+      throw error;
+    } finally {
+      active = false;
+      client.release();
     }
   };
 

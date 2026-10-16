@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { api } from '../api';
+import { api, AUTH_SESSION_EXPIRED_EVENT, clearAuthSession } from '../api';
 import EmptyState from './EmptyState';
 import StatusBanner from './StatusBanner';
 import AvatarBadge from './AvatarBadge';
 import { getRoleLabel } from '../roles';
+
+const PERSONAL_PROFILE_FIELDS = [
+  'name', 'phone', 'avatar', 'date_of_birth', 'address', 'emergency_contact', 'father_name'
+];
+
+const getPersonalProfileFields = (profile = {}) => Object.fromEntries(
+  PERSONAL_PROFILE_FIELDS.map((field) => [field, profile[field] ?? ''])
+);
 
 const PROFILE_COPY = {
   English: {
@@ -17,7 +25,7 @@ const PROFILE_COPY = {
     emptyDescription: 'Try loading the page again. Once the API responds, your academic card will appear here.',
     retry: 'Retry',
     pageTitle: 'Account Profile',
-    pageSubtitle: 'Review and update your academic identity, contact details, and account history.',
+    pageSubtitle: 'Update your personal and contact details. Academic records are read-only.',
     editProfile: 'Edit Profile',
     updateErrorTitle: 'Profile could not be updated',
     updateSuccessTitle: 'Profile updated',
@@ -29,7 +37,7 @@ const PROFILE_COPY = {
     accountKicker: 'CampusOS account',
     notAvailable: 'Not available',
     academicTitle: 'Academic details',
-    academicDescription: 'Core study identity and enrollment information.',
+    academicDescription: 'Academic records are managed by administrators and cannot be edited here.',
     fullName: 'Full name',
     subgroup: 'Subgroup',
     programClass: 'Program / Class',
@@ -57,7 +65,18 @@ const PROFILE_COPY = {
     useGenerated: 'Use generated',
     cancel: 'Cancel',
     saving: 'Saving...',
-    saveChanges: 'Save Changes'
+    saveChanges: 'Save Changes',
+    passwordTitle: 'Change password',
+    passwordDescription: 'Changing your password signs you out of all sessions.',
+    currentPassword: 'Current password',
+    newPassword: 'New password',
+    confirmPassword: 'Confirm new password',
+    passwordPolicy: 'Use at least 12 characters and no more than 72 UTF-8 bytes. Some characters use multiple bytes.',
+    passwordMismatch: 'New passwords do not match.',
+    passwordFailed: 'Password could not be changed',
+    passwordChanged: 'Password changed. Sign in again.',
+    changingPassword: 'Changing password...',
+    changePassword: 'Change password'
   },
   Kyrgyz: {
     loadingTitle: 'Профиль',
@@ -69,7 +88,7 @@ const PROFILE_COPY = {
     emptyDescription: 'Кайра аракет кылып көрүңүз. API жооп берери менен академиялык картаңыз ушул жерде көрүнөт.',
     retry: 'Кайра аракет кылуу',
     pageTitle: 'Аккаунт профили',
-    pageSubtitle: 'Академиялык маалыматтарыңызды, байланыштарын жана аккаунт тарыхын карап чыгып жаңыртыңыз.',
+    pageSubtitle: 'Жеке жана байланыш маалыматын жаңыртыңыз. Академиялык маалыматты окууга гана болот.',
     editProfile: 'Профилди оңдоо',
     updateErrorTitle: 'Профиль жаңыртылган жок',
     updateSuccessTitle: 'Профиль жаңырды',
@@ -81,7 +100,7 @@ const PROFILE_COPY = {
     accountKicker: 'CampusOS аккаунту',
     notAvailable: 'Жеткиликтүү эмес',
     academicTitle: 'Академиялык маалымат',
-    academicDescription: 'Окуу идентификациясы жана катталуу боюнча негизги маалымат.',
+    academicDescription: 'Академиялык маалыматты администраторлор башкарат. Бул жерде аны өзгөртүүгө болбойт.',
     fullName: 'Толук аты-жөнү',
     subgroup: 'Подгруппа',
     programClass: 'Программа / Класс',
@@ -109,7 +128,18 @@ const PROFILE_COPY = {
     useGenerated: 'Generated вариантты колдонуу',
     cancel: 'Жокко чыгаруу',
     saving: 'Сакталып жатат...',
-    saveChanges: 'Өзгөртүүлөрдү сактоо'
+    saveChanges: 'Өзгөртүүлөрдү сактоо',
+    passwordTitle: 'Сырсөздү өзгөртүү',
+    passwordDescription: 'Сырсөз өзгөргөндө бардык сеанстардан чыгасыз.',
+    currentPassword: 'Учурдагы сырсөз',
+    newPassword: 'Жаңы сырсөз',
+    confirmPassword: 'Жаңы сырсөздү кайталоо',
+    passwordPolicy: 'Кеминде 12 белги жана эң көп 72 UTF-8 байт колдонуңуз. Айрым белгилер бир нече байт ээлейт.',
+    passwordMismatch: 'Жаңы сырсөздөр дал келбейт.',
+    passwordFailed: 'Сырсөз өзгөртүлгөн жок',
+    passwordChanged: 'Сырсөз өзгөрдү. Кайра кириңиз.',
+    changingPassword: 'Сырсөз өзгөртүлүүдө...',
+    changePassword: 'Сырсөздү өзгөртүү'
   }
 };
 
@@ -151,6 +181,37 @@ function Profile({ onUserChange, language = 'English', locale = 'en-GB' }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordError, setPasswordError] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  const handleChangePassword = async (event) => {
+    event.preventDefault();
+    if (changingPassword) return;
+    setPasswordError('');
+    if (Array.from(passwordForm.newPassword).length < 12
+      || new TextEncoder().encode(passwordForm.newPassword).length > 72) {
+      setPasswordError(copy.passwordPolicy);
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError(copy.passwordMismatch);
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      await api.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      clearAuthSession();
+      window.dispatchEvent(new CustomEvent(AUTH_SESSION_EXPIRED_EVENT, {
+        detail: { message: copy.passwordChanged }
+      }));
+    } catch (err) {
+      setPasswordError(err.message || copy.passwordFailed);
+    } finally {
+      setChangingPassword(false);
+    }
+  };
 
   const loadProfile = useCallback(async () => {
     try {
@@ -158,7 +219,7 @@ function Profile({ onUserChange, language = 'English', locale = 'en-GB' }) {
       setError('');
       const response = await api.getProfile();
       setProfile(response.user);
-      setFormData(response.user);
+      setFormData(getPersonalProfileFields(response.user));
     } catch (err) {
       console.error('Failed to load profile:', err);
       setError(err.message || 'Failed to load profile');
@@ -177,9 +238,9 @@ function Profile({ onUserChange, language = 'English', locale = 'en-GB' }) {
       setSaving(true);
       setError('');
       setNotice('');
-      const response = await api.updateProfile(formData);
+      const response = await api.updateProfile(getPersonalProfileFields(formData));
       setProfile(response.user);
-      setFormData(response.user);
+      setFormData(getPersonalProfileFields(response.user));
       onUserChange?.(response.user);
       setEditing(false);
       setNotice(copy.saveSuccess);
@@ -192,7 +253,7 @@ function Profile({ onUserChange, language = 'English', locale = 'en-GB' }) {
   };
 
   const handleCancel = () => {
-    setFormData(profile);
+    setFormData(getPersonalProfileFields(profile));
     setEditing(false);
     setError('');
     setNotice('');
@@ -223,13 +284,13 @@ function Profile({ onUserChange, language = 'English', locale = 'en-GB' }) {
       rows: [
         { label: copy.studentId, value: getField('student_id') },
         { label: copy.fullName, value: getField('name'), field: 'name' },
-        { label: copy.group, value: getField('group_name'), field: 'group_name' },
-        { label: copy.subgroup, value: getField('subgroup_name'), field: 'subgroup_name' },
-        { label: copy.programClass, value: getField('program_class', profile?.major || copy.notAvailable), field: 'program_class' },
-        { label: copy.advisor, value: getField('advisor'), field: 'advisor' },
-        { label: copy.status, value: getField('study_status'), field: 'study_status' },
-        { label: copy.grantType, value: getField('grant_type'), field: 'grant_type' },
-        { label: copy.balance, value: getField('balance_info'), field: 'balance_info' }
+        { label: copy.group, value: getField('group_name') },
+        { label: copy.subgroup, value: getField('subgroup_name') },
+        { label: copy.programClass, value: getField('program_class', profile?.major || copy.notAvailable) },
+        { label: copy.advisor, value: getField('advisor') },
+        { label: copy.status, value: getField('study_status') },
+        { label: copy.grantType, value: getField('grant_type') },
+        { label: copy.balance, value: getField('balance_info') }
       ]
     },
     {
@@ -250,7 +311,7 @@ function Profile({ onUserChange, language = 'English', locale = 'en-GB' }) {
       title: copy.accessTitle,
       description: copy.accessDescription,
       rows: [
-        { label: copy.registrationDate, value: formatDate(getField('registration_date', null), locale, copy.notAvailable), field: 'registration_date', type: 'date' },
+        { label: copy.registrationDate, value: formatDate(getField('registration_date', null), locale, copy.notAvailable) },
         { label: copy.lastLoginDate, value: formatDate(getField('last_login_at', null), locale, copy.notAvailable) },
         { label: copy.lastLoginIp, value: getField('last_login_ip') }
       ]
@@ -422,6 +483,37 @@ function Profile({ onUserChange, language = 'English', locale = 'en-GB' }) {
             </button>
           </div>
         )}
+        <form className="portal-section-card" onSubmit={handleChangePassword}>
+          <div className="portal-section-header">
+            <h3>{copy.passwordTitle}</h3>
+            <p>{copy.passwordDescription}</p>
+          </div>
+          <StatusBanner tone="error" title={copy.passwordFailed} message={passwordError} />
+          <p id="profile-password-policy" className="page-context-note">{copy.passwordPolicy}</p>
+          <div className="exam-form-grid">
+            {['currentPassword', 'newPassword', 'confirmPassword'].map((field) => (
+              <label key={field} className="exam-form-field">
+                <span className="exam-form-label">{copy[field]}</span>
+                <input
+                  type="password"
+                  name={field}
+                  value={passwordForm[field]}
+                  onChange={(event) => setPasswordForm({ ...passwordForm, [field]: event.target.value })}
+                  autoComplete={field === 'currentPassword' ? 'current-password' : 'new-password'}
+                  minLength={field === 'currentPassword' ? undefined : 12}
+                  aria-describedby={field === 'currentPassword' ? undefined : 'profile-password-policy'}
+                  disabled={changingPassword}
+                  required
+                />
+              </label>
+            ))}
+          </div>
+          <div className="portal-actions">
+            <button type="submit" className="btn-primary" disabled={changingPassword || saving}>
+              {changingPassword ? copy.changingPassword : copy.changePassword}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

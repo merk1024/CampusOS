@@ -14,10 +14,16 @@ module.exports = async function verifyAcademicAccess({ request, login, db, authH
   const other = await login('askar.eskendirov@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD);
   const admin = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
   const student = await login('240141052', process.env.SEED_STUDENT_PASSWORD);
-  const data = { group_name: 'CYB-23', subject: 'Access regression', exam_date: '2026-10-20',
+  const ownedCourse = await db.get(`SELECT c.id FROM courses c
+    JOIN course_enrollments ce ON ce.course_id = c.id JOIN users u ON u.id = ce.student_id
+    WHERE c.teacher_id = ? AND u.student_id = ?`, [teacher.user.id, '240141052']);
+  assert.ok(ownedCourse, 'Seed must enroll the student in an owned course');
+  const data = { course_id: ownedCourse.id, group_name: 'CYB-23', subject: 'Access regression', exam_date: '2026-10-20',
     exam_time: '10:00', room: 'A-201', students: ['240141052'] };
   const created = await request('/api/exams', { method: 'POST', headers: authHeaders(teacher.token), body: JSON.stringify(data) });
   assert.equal(created.response.status, 201, JSON.stringify(created.body));
+  assert.equal(Number(created.body.exam.course_id), Number(ownedCourse.id));
+  await require('./examSecurity')({ request, db, authHeaders, teacher, other, admin, data, examId: created.body.exam.id });
   const examId = created.body.exam.id;
   const ownExams = await request('/api/exams', { headers: authHeaders(teacher.token) });
   const ownExam = ownExams.body.exams.find(row => row.id === examId);

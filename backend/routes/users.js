@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const { validatePassword } = require('../utils/passwordPolicy');
 
 const router = express.Router();
 const { auth, isAdmin } = require('../middleware/auth');
@@ -93,6 +94,36 @@ const normalizeUserPayload = (payload = {}) => {
   };
 };
 
+const PERSONAL_FIELDS = new Set(['name', 'phone', 'avatar', 'date_of_birth', 'address', 'emergency_contact', 'father_name']);
+const personalPayload = (payload) => Object.fromEntries(
+  Object.entries(payload || {}).filter(([key]) => PERSONAL_FIELDS.has(key))
+);
+
+const PROFILE_WRITABLE_FIELDS = new Set([...PERSONAL_FIELDS,
+  'group_name', 'subgroup_name', 'faculty', 'major', 'year_of_study',
+  'program_class', 'advisor', 'study_status', 'balance_info', 'grant_type', 'registration_date'
+]);
+const updateProfileFields = async (id, payload = {}) => {
+  const entries = Object.entries(payload).filter(([key, value]) => PROFILE_WRITABLE_FIELDS.has(key) && value !== undefined);
+  if (!entries.length) return;
+  const assignments = entries.map(([key]) => `${key} = ?`).join(', ');
+  const values = entries.map(([key, value]) => key === 'year_of_study'
+    ? normalizeOptionalInteger(value) : normalizeOptionalText(value));
+  await db.run(`UPDATE users SET ${assignments}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [...values, id]);
+};
+
+const checkBulkSecurity = (preview, user) => {
+  if (!hasSuperadminAccess(user) && preview.rows.some(row => row.role === 'admin')) {
+    return 'Only a super admin can create admin accounts';
+  }
+  for (const row of preview.rows) {
+    if (row.password) {
+      try { validatePassword(row.password); } catch (error) { return error.message; }
+    }
+  }
+  return null;
+};
+
 router.get('/profile/me', auth, async (req, res) => {
   try {
     const user = await db.get(
@@ -113,74 +144,9 @@ router.get('/profile/me', auth, async (req, res) => {
 
 router.put('/profile/me', auth, async (req, res) => {
   try {
-    const {
-      name,
-      group_name,
-      subgroup_name,
-      phone,
-      avatar,
-      date_of_birth,
-      faculty,
-      major,
-      year_of_study,
-      address,
-      emergency_contact,
-      father_name,
-      program_class,
-      advisor,
-      study_status,
-      balance_info,
-      grant_type,
-      registration_date
-    } = normalizeUserPayload({
-      ...req.body,
-      role: req.user.role
-    });
-
-    await db.run(
-      `UPDATE users
-       SET name = ?,
-           group_name = ?,
-           subgroup_name = ?,
-           phone = ?,
-           avatar = ?,
-           date_of_birth = ?,
-           faculty = ?,
-           major = ?,
-           year_of_study = ?,
-           address = ?,
-           emergency_contact = ?,
-           father_name = ?,
-           program_class = ?,
-           advisor = ?,
-           study_status = ?,
-           balance_info = ?,
-           grant_type = ?,
-           registration_date = ?,
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [
-        name,
-        group_name,
-        subgroup_name,
-        phone,
-        avatar,
-        date_of_birth,
-        faculty,
-        major,
-        year_of_study,
-        address,
-        emergency_contact,
-        father_name,
-        program_class,
-        advisor,
-        study_status,
-        balance_info,
-        grant_type,
-        registration_date,
-        req.user.id
-      ]
-    );
+    const existingUser = await db.get(`SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`, [req.user.id]);
+    if (!existingUser) return res.status(404).json({ error: 'User not found' });
+    await updateProfileFields(req.user.id, personalPayload(req.body));
 
     const user = await db.get(
       `SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`,
@@ -246,6 +212,16 @@ router.post('/', auth, isAdmin, async (req, res) => {
 
     if (!email || !password || !name || !role) {
       return res.status(400).json({ error: 'Name, email, password, and role are required' });
+    }
+
+    if (!['student', 'teacher', 'admin'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
+    if (role === 'admin' && !hasSuperadminAccess(req.user)) {
+      return res.status(403).json({ error: 'Only a super admin can create admin accounts' });
+    }
+    try { validatePassword(password); } catch (error) {
+      return res.status(400).json({ error: error.message });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -316,6 +292,8 @@ router.post('/', auth, isAdmin, async (req, res) => {
 router.post('/bulk/preview', auth, isAdmin, async (req, res) => {
   try {
     const preview = await previewBulkUserImport(req.body?.csvText);
+    const securityError = checkBulkSecurity(preview, req.user);
+    if (securityError) return res.status(securityError.startsWith('Only') ? 403 : 400).json({ error: securityError });
     res.json(preview);
   } catch (error) {
     console.error('Bulk user preview error:', error);
@@ -325,6 +303,9 @@ router.post('/bulk/preview', auth, isAdmin, async (req, res) => {
 
 router.post('/bulk/apply', auth, isAdmin, async (req, res) => {
   try {
+    const preview = await previewBulkUserImport(req.body?.csvText);
+    const securityError = checkBulkSecurity(preview, req.user);
+    if (securityError) return res.status(securityError.startsWith('Only') ? 403 : 400).json({ error: securityError });
     const result = await applyBulkUserImport(req.body?.csvText);
 
     await logSystemAudit({
@@ -393,7 +374,7 @@ router.patch('/:id/status', auth, isAdmin, async (req, res) => {
     }
 
     await db.run(
-      'UPDATE users SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE users SET is_active = ?, session_version = session_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [toActiveDatabaseValue(req.body.is_active), userId]
     );
 
@@ -454,7 +435,7 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     const existingUser = await db.get(
-      'SELECT role FROM users WHERE id = ?',
+      `SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`,
       [req.params.id]
     );
 
@@ -462,74 +443,15 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const {
-      name,
-      group_name,
-      subgroup_name,
-      phone,
-      avatar,
-      date_of_birth,
-      faculty,
-      major,
-      year_of_study,
-      address,
-      emergency_contact,
-      father_name,
-      program_class,
-      advisor,
-      study_status,
-      balance_info,
-      grant_type,
-      registration_date
-    } = normalizeUserPayload({
-      ...req.body,
-      role: existingUser.role
-    });
+    if (hasAdminAccess(req.user) && req.user.id !== Number(req.params.id)
+        && (existingUser.role === 'admin' || hasSuperadminAccess(existingUser))
+        && !hasSuperadminAccess(req.user)) {
+      return res.status(403).json({ error: 'Only a super admin can update admin accounts' });
+    }
 
-    await db.run(
-      `UPDATE users
-       SET name = ?,
-           group_name = ?,
-           subgroup_name = ?,
-           phone = ?,
-           avatar = ?,
-           date_of_birth = ?,
-           faculty = ?,
-           major = ?,
-           year_of_study = ?,
-           address = ?,
-           emergency_contact = ?,
-           father_name = ?,
-           program_class = ?,
-           advisor = ?,
-           study_status = ?,
-           balance_info = ?,
-           grant_type = ?,
-           registration_date = ?,
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [
-        name,
-        group_name,
-        subgroup_name,
-        phone,
-        avatar,
-        date_of_birth,
-        faculty,
-        major,
-        year_of_study,
-        address,
-        emergency_contact,
-        father_name,
-        program_class,
-        advisor,
-        study_status,
-        balance_info,
-        grant_type,
-        registration_date,
-        req.params.id
-      ]
-    );
+    await updateProfileFields(req.params.id,
+      hasAdminAccess(req.user) && req.user.id !== Number(req.params.id)
+        ? req.body : personalPayload(req.body));
 
     const user = await db.get(
       `SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`,

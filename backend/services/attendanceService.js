@@ -1,6 +1,8 @@
 const db = require('../config/database');
 const { hasAdminAccess } = require('../utils/access');
 const { createServiceError } = require('./serviceError');
+const { logAttendanceChange } = require('../utils/auditTrail');
+const { logSystemAudit } = require('../utils/platformOps');
 
 const VALID_STATUSES = new Set(['present', 'absent', 'late', 'excused']);
 const ATTENDED_STATUSES = new Set(['present', 'late', 'excused']);
@@ -68,8 +70,8 @@ const toDateKey = (value) => {
   return normalized || String(value || '');
 };
 
-const getScheduleRecord = async (scheduleId) => (
-  db.get(
+const getScheduleRecord = async (scheduleId, executor = db) => (
+  executor.get(
     `SELECT
        s.*,
        c.code AS course_code,
@@ -94,24 +96,27 @@ const assertScheduleAccess = (schedule, user) => {
     return;
   }
 
-  const scheduleTeachers = [
-    schedule.teacher,
-    schedule.assigned_teacher_name,
-    schedule.assigned_teacher_email
-  ].filter(Boolean);
-
-  const matchesTeacher = Number(schedule.teacher_id) === Number(user.id)
-    || scheduleTeachers.includes(user.name)
-    || scheduleTeachers.includes(user.email);
-
-  if (user.role === 'teacher' && matchesTeacher) {
+  // Display names are not identities; unlinked legacy schedules are admin-only.
+  if (user.role === 'teacher' && schedule.course_id
+    && Number(schedule.teacher_id) === Number(user.id)) {
     return;
   }
 
   throw createServiceError(403, 'Access denied');
 };
 
-const getRosterForSchedule = async (schedule, date) => {
+const getLockedSchedule = async (scheduleId, tx) => {
+  const lock = db.client === 'postgres' ? ' FOR UPDATE' : '';
+  const schedule = await tx.get(`SELECT id, course_id FROM schedule WHERE id = ?${lock}`, [scheduleId]);
+  if (!schedule) throw createServiceError(404, 'Schedule not found');
+  // Course reassignment must not race the ownership check or the write.
+  if (schedule.course_id != null) {
+    await tx.get(`SELECT id FROM courses WHERE id = ?${lock}`, [schedule.course_id]);
+  }
+  return getScheduleRecord(scheduleId, tx);
+};
+
+const getRosterForSchedule = async (schedule, date, executor = db) => {
   const audienceType = String(schedule.audience_type || 'group').toLowerCase();
   const baseSelect = `
     SELECT
@@ -189,7 +194,7 @@ const getRosterForSchedule = async (schedule, date) => {
       u.name
   `;
 
-  const roster = await db.all(sql, params);
+  const roster = await executor.all(sql, params);
 
   return roster.map((student) => ({
     ...student,
@@ -442,8 +447,8 @@ const buildAttendanceAnalytics = (records) => {
   };
 };
 
-const upsertAttendance = async ({ scheduleId, studentId, date, status, markedBy }) => (
-  db.run(
+const upsertAttendance = async ({ scheduleId, studentId, date, status, markedBy }, executor = db) => (
+  executor.run(
     `INSERT INTO attendance (schedule_id, student_id, date, status, marked_by)
      VALUES (?, ?, ?, ?, ?)
      ON CONFLICT (schedule_id, student_id, date)
@@ -484,10 +489,8 @@ async function listManagementSessions({ user, date: requestedDate }) {
     sql += `
       WHERE
         c.teacher_id = ?
-        OR COALESCE(s.teacher, '') = ?
-        OR COALESCE(s.teacher, '') = ?
     `;
-    params.push(user.id, user.name, user.email);
+    params.push(user.id);
   }
 
   sql += `
@@ -570,11 +573,9 @@ async function getAttendanceAnalytics({ user, from: rawFrom, to: rawTo }) {
     sql += `
       AND (
         c.teacher_id = ?
-        OR COALESCE(s.teacher, '') = ?
-        OR COALESCE(s.teacher, '') = ?
       )
     `;
-    params.push(user.id, user.name, user.email);
+    params.push(user.id);
   }
 
   sql += `
@@ -594,7 +595,7 @@ async function getAttendanceAnalytics({ user, from: rawFrom, to: rawTo }) {
   };
 }
 
-async function saveAttendanceBatch({ user, scheduleId: rawScheduleId, date: requestedDate, records }) {
+async function saveAttendanceBatch({ user, scheduleId: rawScheduleId, date: requestedDate, records, requestId }) {
   const scheduleId = Number(rawScheduleId);
   const date = normalizeDateInput(requestedDate);
   const normalizedRecords = Array.isArray(records) ? records : [];
@@ -607,76 +608,87 @@ async function saveAttendanceBatch({ user, scheduleId: rawScheduleId, date: requ
     throw createServiceError(400, 'Attendance records are required');
   }
 
-  const session = await getScheduleRecord(scheduleId);
-  assertScheduleAccess(session, user);
+  return db.transaction(async (tx) => {
+    const session = await getLockedSchedule(scheduleId, tx);
+    assertScheduleAccess(session, user);
 
-  const roster = await getRosterForSchedule(session, date);
-  const allowedStudentIds = new Set(
-    roster.map((student) => String(student.student_id || '').trim()).filter(Boolean)
-  );
-  const previousStatusByStudentId = new Map(
-    roster.map((student) => [String(student.student_id || '').trim(), student.status || null])
-  );
-
-  let savedCount = 0;
-  const auditEntries = [];
-
-  for (const record of normalizedRecords) {
-    const studentId = String(record.studentId || '').trim();
-    const status = normalizeStatus(record.status);
-    const previousStatus = previousStatusByStudentId.get(studentId) || null;
-
-    if (!studentId || !status || !allowedStudentIds.has(studentId)) {
-      continue;
-    }
-
-    await upsertAttendance({
-      scheduleId,
-      studentId,
-      date,
-      status,
-      markedBy: user.id
-    });
-
-    const attendanceRecord = await db.get(
-      `SELECT *
-       FROM attendance
-       WHERE schedule_id = ?
-         AND student_id = ?
-         AND date = ?`,
-      [scheduleId, studentId, date]
+    const roster = await getRosterForSchedule(session, date, tx);
+    const allowedStudentIds = new Set(
+      roster.map((student) => String(student.student_id || '').trim()).filter(Boolean)
+    );
+    const previousStatusByStudentId = new Map(
+      roster.map((student) => [String(student.student_id || '').trim(), student.status || null])
     );
 
-    auditEntries.push({
-      attendanceId: attendanceRecord?.id,
-      scheduleId,
-      studentId,
+    let savedCount = 0;
+    const auditEntries = [];
+
+    for (const record of normalizedRecords) {
+      const studentId = String(record.studentId || '').trim();
+      const status = normalizeStatus(record.status);
+      const previousStatus = previousStatusByStudentId.get(studentId) || null;
+
+      if (!studentId || !status || !allowedStudentIds.has(studentId)) {
+        continue;
+      }
+
+      await upsertAttendance({
+        scheduleId,
+        studentId,
+        date,
+        status,
+        markedBy: user.id
+      }, tx);
+
+      const attendanceRecord = await tx.get(
+        `SELECT *
+         FROM attendance
+         WHERE schedule_id = ?
+           AND student_id = ?
+           AND date = ?`,
+        [scheduleId, studentId, date]
+      );
+
+      auditEntries.push({
+        attendanceId: attendanceRecord?.id,
+        scheduleId,
+        studentId,
+        date,
+        previousStatus,
+        newStatus: status
+      });
+
+      previousStatusByStudentId.set(studentId, status);
+      savedCount += 1;
+    }
+
+    if (savedCount === 0) {
+      throw createServiceError(400, 'No valid attendance updates were provided');
+    }
+
+    for (const entry of auditEntries) {
+      await logAttendanceChange({ ...entry, changedBy: user.id }, tx);
+    }
+    await logSystemAudit({
+      entityType: 'attendance', entityId: `${scheduleId}:${date}`, action: 'bulk-update',
+      summary: `${user.email} saved attendance for ${savedCount} student(s)`,
+      details: { scheduleId, date, savedCount, course_name: session.course_name || session.subject || null, group_name: session.group_name || null },
+      changedBy: user.id, requestId
+    }, tx);
+    const students = await getRosterForSchedule(session, date, tx);
+
+    return {
       date,
-      previousStatus,
-      newStatus: status
-    });
-
-    previousStatusByStudentId.set(studentId, status);
-    savedCount += 1;
-  }
-
-  if (savedCount === 0) {
-    throw createServiceError(400, 'No valid attendance updates were provided');
-  }
-
-  const students = await getRosterForSchedule(session, date);
-
-  return {
-    date,
-    session,
-    savedCount,
-    students,
-    summary: buildSummary(students),
-    auditEntries
-  };
+      session,
+      savedCount,
+      students,
+      summary: buildSummary(students),
+      auditEntries
+    };
+  });
 }
 
-async function saveAttendanceRecord({ user, scheduleId: rawScheduleId, studentId: rawStudentId, date: requestedDate, status: rawStatus }) {
+async function saveAttendanceRecord({ user, scheduleId: rawScheduleId, studentId: rawStudentId, date: requestedDate, status: rawStatus, requestId }) {
   const scheduleId = Number(rawScheduleId);
   const studentId = String(rawStudentId || '').trim();
   const date = normalizeDateInput(requestedDate);
@@ -686,45 +698,56 @@ async function saveAttendanceRecord({ user, scheduleId: rawScheduleId, studentId
     throw createServiceError(400, 'Schedule, student, date, and valid status are required');
   }
 
-  const session = await getScheduleRecord(scheduleId);
-  assertScheduleAccess(session, user);
+  return db.transaction(async (tx) => {
+    const session = await getLockedSchedule(scheduleId, tx);
+    assertScheduleAccess(session, user);
 
-  const roster = await getRosterForSchedule(session, date);
-  const selectedStudent = roster.find((student) => student.student_id === studentId);
-  if (!selectedStudent) {
-    throw createServiceError(400, 'Student does not belong to this schedule');
-  }
+    const roster = await getRosterForSchedule(session, date, tx);
+    const selectedStudent = roster.find((student) => student.student_id === studentId);
+    if (!selectedStudent) {
+      throw createServiceError(400, 'Student does not belong to this schedule');
+    }
 
-  await upsertAttendance({
-    scheduleId,
-    studentId,
-    date,
-    status,
-    markedBy: user.id
-  });
-
-  const attendance = await db.get(
-    `SELECT *
-     FROM attendance
-     WHERE schedule_id = ?
-       AND student_id = ?
-       AND date = ?`,
-    [scheduleId, studentId, date]
-  );
-
-  return {
-    attendance,
-    session,
-    auditEntry: {
-      attendanceId: attendance?.id,
+    await upsertAttendance({
       scheduleId,
       studentId,
       date,
-      previousStatus: selectedStudent?.status || null,
-      newStatus: status
-    },
-    action: selectedStudent?.status ? 'update' : 'create'
-  };
+      status,
+      markedBy: user.id
+    }, tx);
+
+    const attendance = await tx.get(
+      `SELECT *
+       FROM attendance
+       WHERE schedule_id = ?
+         AND student_id = ?
+         AND date = ?`,
+      [scheduleId, studentId, date]
+    );
+
+    const auditEntry = { attendanceId: attendance?.id, scheduleId, studentId, date,
+      previousStatus: selectedStudent.status || null, newStatus: status };
+    await logAttendanceChange({ ...auditEntry, changedBy: user.id }, tx);
+    await logSystemAudit({
+      entityType: 'attendance', entityId: `${scheduleId}:${studentId}:${date}`,
+      action: selectedStudent.status ? 'update' : 'create',
+      summary: `${user.email} marked attendance for ${studentId}`,
+      details: { scheduleId, studentId, date, status }, changedBy: user.id, requestId
+    }, tx);
+    return {
+      attendance,
+      session,
+      auditEntry: {
+        attendanceId: attendance?.id,
+        scheduleId,
+        studentId,
+        date,
+        previousStatus: selectedStudent?.status || null,
+        newStatus: status
+      },
+      action: selectedStudent?.status ? 'update' : 'create'
+    };
+  });
 }
 
 async function getAttendanceAudit({ user, filters }) {
@@ -760,10 +783,8 @@ async function getAttendanceAudit({ user, filters }) {
   if (!hasAdminAccess(user)) {
     conditions.push(`(
       c.teacher_id = ?
-      OR COALESCE(s.teacher, '') = ?
-      OR COALESCE(s.teacher, '') = ?
     )`);
-    params.push(user.id, user.name, user.email);
+    params.push(user.id);
   }
 
   const whereClause = conditions.length > 0

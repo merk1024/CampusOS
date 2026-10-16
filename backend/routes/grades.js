@@ -5,7 +5,8 @@ const db = require('../config/database');
 const { logGradeChange } = require('../utils/auditTrail');
 const { logSystemAudit } = require('../utils/platformOps');
 const { hasAdminAccess } = require('../utils/access');
-const { canManageExam, teacherExamScope } = require('../utils/examAccess');
+const { teacherExamScope } = require('../utils/examAccess');
+const { createServiceError, getServiceErrorStatus } = require('../services/serviceError');
 
 // @route   POST /api/grades
 // @desc    Add or update grade
@@ -20,66 +21,78 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
       || (comments != null && (typeof comments !== 'string' || comments.length > 5000))) {
       return res.status(400).json({ error: 'Valid examId, studentId and an integer grade from 0 to 100 are required' });
     }
-    const exam = await db.get('SELECT id FROM exams WHERE id = ?', [examId]);
-    if (!exam) return res.status(404).json({ error: 'Exam not found' });
-    if (!await canManageExam(req.user, examId)) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-    const enrolled = await db.get(
-      'SELECT id FROM exam_students WHERE exam_id = ? AND student_id = ?', [examId, studentId]
-    );
-    if (!enrolled) return res.status(400).json({ error: 'Student is not assigned to this exam' });
-
-    // Check if grade exists
-    const existing = await db.query(
-      'SELECT id, grade, comments FROM grades WHERE exam_id = $1 AND student_id = $2',
-      [examId, studentId]
-    );
-
-    let result;
-    if (existing.rows.length > 0) {
-      // Update existing grade
-      result = await db.query(
-        `UPDATE grades 
-         SET grade = $1, comments = $2, graded_by = $3, graded_at = CURRENT_TIMESTAMP
-         WHERE exam_id = $4 AND student_id = $5
-         RETURNING *`,
-        [grade, comments, req.user.id, examId, studentId]
+    const result = await db.transaction(async (tx) => {
+      // Lock the parent even when no grade exists yet, serializing competing creates.
+      const lockedExam = await tx.get(
+        `SELECT id, course_id, created_by FROM exams WHERE id = ?${db.client === 'postgres' ? ' FOR UPDATE' : ''}`, [examId]
       );
-    } else {
-      // Insert new grade
-      result = await db.query(
-        `INSERT INTO grades (exam_id, student_id, grade, comments, graded_by)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING *`,
-        [examId, studentId, grade, comments, req.user.id]
+      if (!lockedExam) throw createServiceError(404, 'Exam not found');
+      const course = lockedExam.course_id == null ? null : await tx.get(
+        `SELECT id, teacher_id FROM courses WHERE id = ?${db.client === 'postgres' ? ' FOR UPDATE' : ''}`,
+        [lockedExam.course_id]
       );
-    }
+      const owned = lockedExam.course_id == null
+        ? Number(lockedExam.created_by) === Number(req.user.id)
+        : course && Number(course.teacher_id) === Number(req.user.id);
+      if (!hasAdminAccess(req.user) && !(req.user.role === 'teacher' && owned)) {
+        throw createServiceError(403, 'Access denied');
+      }
+      const enrolled = await tx.get(
+        `SELECT id FROM exam_students WHERE exam_id = ? AND student_id = ?${db.client === 'postgres' ? ' FOR UPDATE' : ''}`,
+        [examId, studentId]
+      );
+      if (!enrolled) throw createServiceError(400, 'Student is not assigned to this exam');
+      const existing = await tx.query(
+        'SELECT id, grade, comments FROM grades WHERE exam_id = $1 AND student_id = $2',
+        [examId, studentId]
+      );
 
-    await logGradeChange({
-      gradeId: result.rows[0]?.id,
-      examId,
-      studentId,
-      previousGrade: existing.rows[0]?.grade,
-      newGrade: result.rows[0]?.grade,
-      previousComments: existing.rows[0]?.comments,
-      newComments: result.rows[0]?.comments,
-      changedBy: req.user.id
-    });
+      let result;
+      if (existing.rows.length > 0) {
+        // Update existing grade
+        result = await tx.query(
+          `UPDATE grades
+           SET grade = $1, comments = $2, graded_by = $3, graded_at = CURRENT_TIMESTAMP
+           WHERE exam_id = $4 AND student_id = $5
+           RETURNING *`,
+          [grade, comments, req.user.id, examId, studentId]
+        );
+      } else {
+        // Insert new grade
+        result = await tx.query(
+          `INSERT INTO grades (exam_id, student_id, grade, comments, graded_by)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING *`,
+          [examId, studentId, grade, comments, req.user.id]
+        );
+      }
 
-    await logSystemAudit({
-      entityType: 'grade',
-      entityId: result.rows[0]?.id ?? `${examId}:${studentId}`,
-      action: existing.rows.length > 0 ? 'update' : 'create',
-      summary: `${req.user.email} ${existing.rows.length > 0 ? 'updated' : 'saved'} a grade for ${studentId}`,
-      details: {
+      await logGradeChange({
+        gradeId: result.rows[0]?.id,
         examId,
         studentId,
-        grade: result.rows[0]?.grade,
-        comments: result.rows[0]?.comments || null
-      },
-      changedBy: req.user.id,
-      requestId: req.requestId
+        previousGrade: existing.rows[0]?.grade,
+        newGrade: result.rows[0]?.grade,
+        previousComments: existing.rows[0]?.comments,
+        newComments: result.rows[0]?.comments,
+        changedBy: req.user.id
+      }, tx);
+
+      await logSystemAudit({
+        entityType: 'grade',
+        entityId: result.rows[0]?.id ?? `${examId}:${studentId}`,
+        action: existing.rows.length > 0 ? 'update' : 'create',
+        summary: `${req.user.email} ${existing.rows.length > 0 ? 'updated' : 'saved'} a grade for ${studentId}`,
+        details: {
+          examId,
+          studentId,
+          grade: result.rows[0]?.grade,
+          comments: result.rows[0]?.comments || null
+        },
+        changedBy: req.user.id,
+        requestId: req.requestId
+      }, tx);
+      return result;
     });
 
     res.json({
@@ -87,6 +100,8 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
       grade: result.rows[0]
     });
   } catch (error) {
+    const status = getServiceErrorStatus(error);
+    if (status) return res.status(status).json({ error: error.message });
     console.error('Save grade error:', error);
     res.status(500).json({ error: 'Server error' });
   }

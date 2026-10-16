@@ -6,6 +6,7 @@ const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const db = require('../config/database');
 const { auth } = require('../middleware/auth');
+const { validatePassword } = require('../utils/passwordPolicy');
 const {
   AUTH_COOKIE_NAME,
   buildAuthCookieOptions,
@@ -46,7 +47,7 @@ router.post(
   '/login',
   [
     body('login').trim().notEmpty(),
-    body('password').notEmpty(),
+    body('password').isString().notEmpty(),
     body('rememberMe').optional().isBoolean()
   ],
   async (req, res) => {
@@ -90,7 +91,7 @@ router.post(
       );
 
       const token = jwt.sign(
-        { id: freshUser.id, role: freshUser.role },
+        { id: freshUser.id, role: freshUser.role, sessionVersion: Number(user.session_version) },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRE || '7d' }
       );
@@ -139,24 +140,30 @@ router.post(
 );
 
 router.post('/logout', auth, async (req, res) => {
-  res.clearCookie(
-    AUTH_COOKIE_NAME,
-    buildAuthCookieOptions({ clear: true })
-  );
+  try {
+    await db.run('UPDATE users SET session_version = session_version + 1 WHERE id = ?', [req.user.id]);
+    res.clearCookie(
+      AUTH_COOKIE_NAME,
+      buildAuthCookieOptions({ clear: true })
+    );
 
-  await logSystemAudit({
-    entityType: 'auth',
-    entityId: req.user.id,
-    action: 'logout',
-    summary: `${req.user.email} signed out`,
-    details: {
-      role: req.user.role
-    },
-    changedBy: req.user.id,
-    requestId: req.requestId
-  });
+    await logSystemAudit({
+      entityType: 'auth',
+      entityId: req.user.id,
+      action: 'logout',
+      summary: `${req.user.email} signed out`,
+      details: {
+        role: req.user.role
+      },
+      changedBy: req.user.id,
+      requestId: req.requestId
+    });
 
-  res.json({ message: 'Logout successful' });
+    res.json({ message: 'Logout successful' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 router.get('/me', auth, async (req, res) => {
@@ -181,8 +188,8 @@ router.put(
   '/password',
   auth,
   [
-    body('currentPassword').notEmpty(),
-    body('newPassword').isLength({ min: 6 })
+    body('currentPassword').isString().notEmpty(),
+    body('newPassword').custom(validatePassword)
   ],
   async (req, res) => {
     try {
@@ -210,11 +217,15 @@ router.put(
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-      await db.run(
-        'UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [hashedPassword, req.user.id]
+      const result = await db.run(
+        'UPDATE users SET password = ?, session_version = session_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND password = ? AND session_version = ?',
+        [hashedPassword, req.user.id, user.password, req.user.session_version]
       );
+      if (result.changes !== 1) {
+        return res.status(401).json({ error: 'Session expired. Please sign in again.' });
+      }
 
+      res.clearCookie(AUTH_COOKIE_NAME, buildAuthCookieOptions({ clear: true }));
       await logSystemAudit({
         entityType: 'auth',
         entityId: req.user.id,

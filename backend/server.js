@@ -63,7 +63,9 @@ app.use(cors({
       return callback(null, true);
     }
 
-    return callback(new Error(`CORS blocked for origin: ${origin}`));
+    const error = new Error('Origin is not allowed');
+    error.statusCode = 403;
+    return callback(error);
   },
   credentials: true
 }));
@@ -77,6 +79,38 @@ app.use('/api/', limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Cookie-authenticated writes need an explicit trusted browser origin.
+app.use('/api', (req, res, next) => {
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)
+    && req.cookies?.campusos_session
+    && !/^Bearer\s+\S+$/i.test(req.headers.authorization || '')
+    && (!req.headers.origin || !isAllowedOrigin(req.headers.origin))) {
+    return res.status(403).json({ error: 'Trusted Origin is required for session changes' });
+  }
+  next();
+});
+
+app.use('/api/auth/login', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: process.env.NODE_ENV === 'test' ? 1000 : 10,
+  skipSuccessfulRequests: true,
+  message: { error: 'Too many login attempts. Try again later.' }
+}));
+
+app.use('/api', (req, res, next) => {
+  res.on('finish', () => {
+    if (res.statusCode === 403 && req.user) {
+      require('./utils/platformOps').logSystemAudit({
+        entityType: 'security', action: 'access-denied',
+        summary: 'An authenticated request was denied',
+        changedBy: req.user.id, requestId: req.requestId,
+        details: { method: req.method, path: req.path }
+      }).catch(error => console.error('Security audit failed:', error.message));
+    }
+  });
+  next();
+});
 
 morgan.token('request-id', (req) => req.requestId || '-');
 morgan.token('user-id', (req) => String(req.user?.id || 'guest'));

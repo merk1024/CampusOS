@@ -1,4 +1,4 @@
-const { hasAdminAccess, canManageAcademicRecords } = require('./access');
+const { hasAdminAccess } = require('./access');
 
 const AUDIENCE_SCOPE_SET = new Set([
   'all',
@@ -102,18 +102,19 @@ const getAnnouncementAudienceLabel = ({
 const canUserSeeAnnouncement = ({
   announcement,
   user,
-  enrolledCourseIds = new Set()
+  enrolledCourseIds = new Set(),
+  ownedCourseIds = new Set()
 }) => {
   if (!announcement || !user) {
     return false;
   }
 
-  if (hasAdminAccess(user) || canManageAcademicRecords(user)) {
+  if (hasAdminAccess(user)) {
     return true;
   }
 
   const audienceScope = normalizeAudienceScope(announcement.audience_scope);
-  if (announcement.created_by === user.id) {
+  if (announcement.created_by === user.id && audienceScope !== 'course') {
     return true;
   }
 
@@ -141,7 +142,7 @@ const canUserSeeAnnouncement = ({
 
   if (audienceScope === 'course') {
     const courseId = normalizeNumericId(announcement.course_id);
-    return courseId ? enrolledCourseIds.has(courseId) : false;
+    return courseId ? (user.role === 'teacher' ? ownedCourseIds : enrolledCourseIds).has(courseId) : false;
   }
 
   return false;

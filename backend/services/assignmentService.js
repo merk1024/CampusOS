@@ -24,11 +24,32 @@ const normalizeCourseId = (value) => {
 };
 
 const normalizeMaxGrade = (value) => {
+  if (value === undefined) return 100;
   const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 100;
+  if (!['number', 'string'].includes(typeof value) || !Number.isInteger(parsed) || parsed < 1 || parsed > 1000) {
+    throw createServiceError(400, 'Max grade must be an integer between 1 and 1000');
+  }
+  return parsed;
 };
 
-const loadCourseForAssignment = async (requester, courseId) => {
+const normalizeDueDate = (value) => {
+  const match = typeof value === 'string' && value.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:T([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d)(?:\.\d{1,3})?)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)?)?$/
+  );
+  if (!match) {
+    throw createServiceError(400, 'A valid ISO due date is required');
+  }
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  if (year < 1000 || month < 1 || month > 12 || day < 1 || day > daysInMonth || !Number.isFinite(Date.parse(value))) {
+    throw createServiceError(400, 'A valid ISO due date is required');
+  }
+  return value;
+};
+
+const loadCourseForAssignment = async (requester, courseId, tx) => {
   if (!courseId) {
     if (requester?.role === 'teacher') {
       throw createServiceError(400, 'Select a course before publishing an assignment');
@@ -37,10 +58,10 @@ const loadCourseForAssignment = async (requester, courseId) => {
     return null;
   }
 
-  const course = await db.get(
+  const course = await tx.get(
     `SELECT id, code, name, teacher_id
      FROM courses
-     WHERE id = ?`,
+     WHERE id = ?${tx.client === 'postgres' ? ' FOR UPDATE' : ''}`,
     [courseId]
   );
 
@@ -55,10 +76,32 @@ const loadCourseForAssignment = async (requester, courseId) => {
   return course;
 };
 
-async function listAssignments() {
+async function listAssignments(requester) {
+  if (!requester?.id) {
+    throw createServiceError(401, 'Authentication required');
+  }
+
+  let where = '';
+  let params = [];
+  if (!hasAdminAccess(requester)) {
+    if (requester.role === 'teacher') {
+      where = 'WHERE c.teacher_id = ? OR (a.course_id IS NULL AND a.created_by = ?)';
+      params = [requester.id, requester.id];
+    } else if (requester.role === 'student') {
+      where = `WHERE EXISTS (
+        SELECT 1 FROM course_enrollments ce
+        WHERE ce.course_id = a.course_id AND ce.student_id = ?
+      ) OR (a.course_id IS NULL AND (u.role = 'admin' OR u.is_superadmin = 1))`;
+      params = [requester.id];
+    } else {
+      throw createServiceError(403, 'Access denied');
+    }
+  }
   const result = await db.query(
     `${ASSIGNMENT_SELECT}
-     ORDER BY a.due_date DESC`
+     ${where}
+     ORDER BY a.due_date DESC`,
+    params
   );
 
   return result.rows;
@@ -71,17 +114,18 @@ async function createAssignment({ requester, data }) {
   }
 
   const courseId = normalizeCourseId(data?.courseId ?? data?.course_id);
-  const course = await loadCourseForAssignment(requester, courseId);
   const description = String(data?.description || '').trim();
-  const dueDate = data?.dueDate || data?.due_date || null;
-  const maxGrade = normalizeMaxGrade(data?.maxGrade ?? data?.max_grade);
+  const dueDate = normalizeDueDate(data?.dueDate ?? data?.due_date);
+  const maxGrade = normalizeMaxGrade(data?.maxGrade !== undefined ? data.maxGrade : data?.max_grade);
 
-  const result = await db.run(
+  return db.transaction(async (tx) => {
+  const course = await loadCourseForAssignment(requester, courseId, tx);
+  const result = await tx.run(
     'INSERT INTO assignments (title, description, due_date, max_grade, course_id, created_by) VALUES (?, ?, ?, ?, ?, ?)',
     [title, description || null, dueDate, maxGrade, course?.id || null, requester.id]
   );
 
-  const assignment = await db.get(
+  const assignment = await tx.get(
     `${ASSIGNMENT_SELECT}
      WHERE a.id = ?`,
     [result.id]
@@ -91,6 +135,7 @@ async function createAssignment({ requester, data }) {
     assignment,
     course
   };
+  });
 }
 
 module.exports = {

@@ -98,9 +98,10 @@ if (mode === 'development') {
   requireValue('SUPERADMIN_EMAIL', 'SUPERADMIN_EMAIL is required for bootstrap owner access.');
   requireValue('SUPERADMIN_NAME', 'SUPERADMIN_NAME is required for bootstrap owner access.');
   requireNonPlaceholder('SUPERADMIN_BOOTSTRAP_PASSWORD', 'SUPERADMIN_BOOTSTRAP_PASSWORD must be set before deploying.');
-  requireNonPlaceholder('SEED_ADMIN_PASSWORD', 'SEED_ADMIN_PASSWORD must be set before deploying.');
-  requireNonPlaceholder('SEED_TEACHER_PASSWORD', 'SEED_TEACHER_PASSWORD must be set before deploying.');
-  requireNonPlaceholder('SEED_STUDENT_PASSWORD', 'SEED_STUDENT_PASSWORD must be set before deploying.');
+  // Demo provisioning is optional; production startup creates only the owner.
+  for (const key of ['SEED_ADMIN_PASSWORD', 'SEED_TEACHER_PASSWORD', 'SEED_STUDENT_PASSWORD']) {
+    if (hasValue(key)) requireNonPlaceholder(key);
+  }
 
   if (!/^https:\/\//i.test(read('FRONTEND_URL'))) {
     warnings.push('FRONTEND_URL should usually use https:// outside local development.');

@@ -27,7 +27,7 @@ async function logGradeChange({
   previousComments,
   newComments,
   changedBy
-}) {
+}, executor = db) {
   const normalizedPreviousGrade = normalizeNullableNumber(previousGrade);
   const normalizedNewGrade = normalizeNullableNumber(newGrade);
   const normalizedPreviousComments = normalizeNullableText(previousComments);
@@ -44,7 +44,7 @@ async function logGradeChange({
     ? 'created'
     : 'updated';
 
-  return db.run(
+  return executor.run(
     `INSERT INTO grade_audit_log
       (grade_id, exam_id, student_id, action, previous_grade, new_grade, previous_comments, new_comments, changed_by)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -70,7 +70,7 @@ async function logAttendanceChange({
   previousStatus,
   newStatus,
   changedBy
-}) {
+}, executor = db) {
   const normalizedPreviousStatus = normalizeNullableText(previousStatus);
   const normalizedNewStatus = normalizeNullableText(newStatus);
 
@@ -80,7 +80,7 @@ async function logAttendanceChange({
 
   const action = normalizedPreviousStatus ? 'updated' : 'created';
 
-  return db.run(
+  return executor.run(
     `INSERT INTO attendance_audit_log
       (attendance_id, schedule_id, student_id, date, action, previous_status, new_status, changed_by)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import EmptyState from './EmptyState';
 import StatusBanner from './StatusBanner';
-import { canManageAcademicRecords } from '../roles';
+import { canManageAcademicRecords, hasAdminAccess } from '../roles';
 
 const EMPTY_FORM = {
   title: '',
@@ -180,6 +180,8 @@ const buildFilterCountMap = (items, getKey, keys) => {
 };
 
 function Messages({ user, onUnreadCountChange, locale = 'en-GB', language = 'English' }) {
+  const isAdmin = hasAdminAccess(user);
+  const emptyForm = { ...EMPTY_FORM, audienceScope: isAdmin ? 'all' : 'course' };
   const copy = MESSAGES_COPY[language] || MESSAGES_COPY.English;
   const typeMeta = useMemo(() => ({
     all: { label: copy.typeLabels.all, badge: 'ALL' },
@@ -195,11 +197,11 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB', language = 'Eng
     system: { label: copy.inboxLabels.system, badge: 'SYS' }
   }), [copy]);
   const audienceOptions = useMemo(() => (
-    AUDIENCE_OPTIONS.map((option) => ({
+    AUDIENCE_OPTIONS.filter((option) => isAdmin || option.value === 'course').map((option) => ({
       ...option,
       label: copy.audienceLabels[option.value] || option.label
     }))
-  ), [copy]);
+  ), [copy, isAdmin]);
   const [announcements, setAnnouncements] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -212,7 +214,7 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB', language = 'Eng
   const [inboxFilter, setInboxFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showComposer, setShowComposer] = useState(false);
-  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [formData, setFormData] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
   const canManage = canManageAcademicRecords(user);
@@ -253,7 +255,7 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB', language = 'Eng
       setAnnouncements(nextAnnouncements);
       setNotifications(nextNotifications);
       if (canManage) {
-        setCourses(courseResponse?.courses || []);
+        setCourses((courseResponse?.courses || []).filter((course) => isAdmin || Number(course.teacher_id) === Number(user.id)));
       }
       onUnreadCountChange?.(unreadCount);
       setError('');
@@ -263,7 +265,7 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB', language = 'Eng
       setLoading(false);
       setRefreshing(false);
     }
-  }, [canManage, copy.failedLoad, onUnreadCountChange]);
+  }, [canManage, copy.failedLoad, onUnreadCountChange, isAdmin, user.id]);
 
   useEffect(() => {
     loadStreams({ markInboxRead: true });
@@ -372,7 +374,7 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB', language = 'Eng
         : copy.audiencePreviewChoose;
 
   const resetComposer = () => {
-    setFormData(EMPTY_FORM);
+    setFormData(emptyForm);
     setShowComposer(false);
   };
 
@@ -714,7 +716,8 @@ function Messages({ user, onUnreadCountChange, locale = 'en-GB', language = 'Eng
                         <span>{formatDateTime(announcement.created_at, locale, copy.dateUnavailable)}</span>
                       </div>
                     </div>
-                    {canManage && (
+                    {canManage && (isAdmin || (Number(announcement.created_by) === Number(user.id)
+                      && (!announcement.course_id || courses.some((course) => Number(course.id) === Number(announcement.course_id))))) && (
                       <div className="message-actions">
                         <button
                           type="button"

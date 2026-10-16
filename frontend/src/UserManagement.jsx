@@ -4,7 +4,12 @@ import { api } from './api';
 import EmptyState from './components/EmptyState';
 import StatusBanner from './components/StatusBanner';
 import './UserManagement.css';
-import { getRoleKey, getRoleLabel, hasAdminAccess } from './roles';
+import { getRoleKey, getRoleLabel, hasAdminAccess, isSuperadmin } from './roles';
+
+const isValidPassword = (password) => (
+  Array.from(password).length >= 12
+  && new TextEncoder().encode(password).length <= 72
+);
 
 const EMPTY_USER = {
   email: '',
@@ -34,7 +39,7 @@ const USER_MANAGEMENT_COPY = {
     accessDenied: 'Access Denied',
     noPermission: 'You do not have permission to access this page.',
     title: 'User Management',
-    subtitle: 'Create student, teacher and admin accounts',
+    subtitle: 'Create student and teacher accounts. Only super admins can create admins.',
     createUser: 'Create New User',
     loadErrorTitle: 'Could not load the user directory',
     totalAccounts: 'Total accounts',
@@ -73,6 +78,8 @@ const USER_MANAGEMENT_COPY = {
     fullName: 'Full Name',
     email: 'Email',
     password: 'Password',
+    passwordPolicy: 'Use at least 12 characters and no more than 72 UTF-8 bytes. Non-ASCII characters may use multiple bytes.',
+    adminCreationRestricted: 'Only super admins can create admin accounts.',
     role: 'Role',
     studentId: 'Student ID',
     group: 'Group',
@@ -105,7 +112,7 @@ const USER_MANAGEMENT_COPY = {
     accessDenied: 'Кирүүгө тыюу салынган',
     noPermission: 'Бул бетке кирүүгө уруксатыңыз жок.',
     title: 'Колдонуучуларды башкаруу',
-    subtitle: 'Студент, окутуучу жана админ аккаунттарын түзүңүз',
+    subtitle: 'Студент жана окутуучу аккаунттарын түзүңүз. Админдерди башкы админдер гана түзө алат.',
     createUser: 'Жаңы колдонуучу түзүү',
     loadErrorTitle: 'Колдонуучулар каталогу жүктөлгөн жок',
     totalAccounts: 'Жалпы аккаунттар',
@@ -144,6 +151,8 @@ const USER_MANAGEMENT_COPY = {
     fullName: 'Толук аты',
     email: 'Email',
     password: 'Сырсөз',
+    passwordPolicy: 'Кеминде 12 белги жана эң көп 72 UTF-8 байт колдонуңуз. ASCII эмес белгилер бир нече байт ээлеши мүмкүн.',
+    adminCreationRestricted: 'Админ аккаунттарын башкы админдер гана түзө алат.',
     role: 'Роль',
     studentId: 'Студент ID',
     group: 'Топ',
@@ -176,6 +185,7 @@ const USER_MANAGEMENT_COPY = {
 
 function UserManagement({ user, language = 'English' }) {
   const copy = USER_MANAGEMENT_COPY[language] || USER_MANAGEMENT_COPY.English;
+  const canCreateAdmin = isSuperadmin(user);
   const [users, setUsers] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newUser, setNewUser] = useState(EMPTY_USER);
@@ -211,6 +221,14 @@ function UserManagement({ user, language = 'English' }) {
 
   const handleCreateUser = async (event) => {
     event.preventDefault();
+    if (!isValidPassword(newUser.password)) {
+      setError(copy.passwordPolicy);
+      return;
+    }
+    if (newUser.role === 'admin' && !canCreateAdmin) {
+      setError(copy.adminCreationRestricted);
+      return;
+    }
     setLoading(true);
     setError('');
 
@@ -275,7 +293,9 @@ function UserManagement({ user, language = 'English' }) {
   };
 
   const handleInsertBulkTemplate = () => {
-    setBulkCsvText(BULK_IMPORT_TEMPLATE);
+    setBulkCsvText(canCreateAdmin
+      ? BULK_IMPORT_TEMPLATE
+      : BULK_IMPORT_TEMPLATE.split('\n').slice(0, -1).join('\n'));
     setBulkPreview(null);
     setBulkPreviewText('');
     setBulkCredentials([]);
@@ -423,6 +443,8 @@ function UserManagement({ user, language = 'English' }) {
             `name`, `email`, `role`, optional `password`, plus student fields like `student_id`, `group_name`, and `subgroup_name`.
             If `password` is empty, CampusOS will generate a temporary one and show it once after apply.
           </span>
+          <span>{copy.passwordPolicy}</span>
+          <span>{copy.adminCreationRestricted}</span>
         </div>
 
         <label className="bulk-import-field">
@@ -623,14 +645,24 @@ function UserManagement({ user, language = 'English' }) {
                 </div>
                 <div className="form-group">
                   <label>{copy.password} *</label>
-                  <input type="password" name="password" value={newUser.password} onChange={handleInputChange} required />
+                  <input
+                    type="password"
+                    name="password"
+                    value={newUser.password}
+                    onChange={handleInputChange}
+                    minLength={12}
+                    autoComplete="new-password"
+                    aria-describedby="create-user-password-policy"
+                    required
+                  />
+                  <p id="create-user-password-policy" className="page-context-note">{copy.passwordPolicy}</p>
                 </div>
                 <div className="form-group">
                   <label>{copy.role} *</label>
                   <select name="role" value={newUser.role} onChange={handleInputChange} required>
-                    <option value="student">Student</option>
-                    <option value="teacher">Teacher</option>
-                    <option value="admin">Admin</option>
+                    <option value="student">{getRoleLabel({ role: 'student' }, language)}</option>
+                    <option value="teacher">{getRoleLabel({ role: 'teacher' }, language)}</option>
+                    {canCreateAdmin && <option value="admin">{getRoleLabel({ role: 'admin' }, language)}</option>}
                   </select>
                 </div>
                 <div className="form-group">
