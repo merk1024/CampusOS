@@ -94,15 +94,7 @@ const assertScheduleAccess = (schedule, user) => {
     return;
   }
 
-  const scheduleTeachers = [
-    schedule.teacher,
-    schedule.assigned_teacher_name,
-    schedule.assigned_teacher_email
-  ].filter(Boolean);
-
-  const matchesTeacher = Number(schedule.teacher_id) === Number(user.id)
-    || scheduleTeachers.includes(user.name)
-    || scheduleTeachers.includes(user.email);
+  const matchesTeacher = Number(schedule.teacher_id) === Number(user.id);
 
   if (user.role === 'teacher' && matchesTeacher) {
     return;
@@ -484,10 +476,8 @@ async function listManagementSessions({ user, date: requestedDate }) {
     sql += `
       WHERE
         c.teacher_id = ?
-        OR COALESCE(s.teacher, '') = ?
-        OR COALESCE(s.teacher, '') = ?
     `;
-    params.push(user.id, user.name, user.email);
+    params.push(user.id);
   }
 
   sql += `
@@ -570,11 +560,9 @@ async function getAttendanceAnalytics({ user, from: rawFrom, to: rawTo }) {
     sql += `
       AND (
         c.teacher_id = ?
-        OR COALESCE(s.teacher, '') = ?
-        OR COALESCE(s.teacher, '') = ?
       )
     `;
-    params.push(user.id, user.name, user.email);
+    params.push(user.id);
   }
 
   sql += `
@@ -607,6 +595,7 @@ async function saveAttendanceBatch({ user, scheduleId: rawScheduleId, date: requ
     throw createServiceError(400, 'Attendance records are required');
   }
 
+  if (db.client === 'postgres') await db.get('SELECT id FROM schedule WHERE id = ? FOR UPDATE', [scheduleId]);
   const session = await getScheduleRecord(scheduleId);
   assertScheduleAccess(session, user);
 
@@ -686,6 +675,7 @@ async function saveAttendanceRecord({ user, scheduleId: rawScheduleId, studentId
     throw createServiceError(400, 'Schedule, student, date, and valid status are required');
   }
 
+  if (db.client === 'postgres') await db.get('SELECT id FROM schedule WHERE id = ? FOR UPDATE', [scheduleId]);
   const session = await getScheduleRecord(scheduleId);
   assertScheduleAccess(session, user);
 
@@ -760,10 +750,8 @@ async function getAttendanceAudit({ user, filters }) {
   if (!hasAdminAccess(user)) {
     conditions.push(`(
       c.teacher_id = ?
-      OR COALESCE(s.teacher, '') = ?
-      OR COALESCE(s.teacher, '') = ?
     )`);
-    params.push(user.id, user.name, user.email);
+    params.push(user.id);
   }
 
   const whereClause = conditions.length > 0
@@ -813,8 +801,9 @@ async function getStudentAttendance({ requester, studentId }) {
      LEFT JOIN courses c ON c.id = s.course_id
      LEFT JOIN users u ON u.id = a.marked_by
      WHERE a.student_id = ?
+     ${requester.role === 'teacher' && !hasAdminAccess(requester) ? 'AND c.teacher_id = ?' : ''}
      ORDER BY a.date DESC, ${DAY_ORDER_SQL}, s.time_slot`,
-    [studentId]
+    requester.role === 'teacher' && !hasAdminAccess(requester) ? [studentId, requester.id] : [studentId]
   );
 
   return { attendance };

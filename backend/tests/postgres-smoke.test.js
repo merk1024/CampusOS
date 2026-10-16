@@ -21,6 +21,9 @@ test('PostgreSQL migrations, seed and authenticated API', {
   try {
     await seed();
     const firstCount = await db.get('SELECT COUNT(*)::int AS count FROM users');
+    // Simulate an existing pre-session-version database, preserving its users.
+    await db.run('ALTER TABLE users DROP COLUMN session_version');
+    await db.run('DELETE FROM schema_migrations WHERE version = ?', ['2026-10-16-007-session-version']);
     const { execFileSync } = require('node:child_process');
     execFileSync(process.execPath, [require('node:path').join(__dirname, '..', 'init-db.js')], {
       env: process.env,
@@ -28,6 +31,7 @@ test('PostgreSQL migrations, seed and authenticated API', {
     });
     const secondCount = await db.get('SELECT COUNT(*)::int AS count FROM users');
     assert.equal(firstCount.count, secondCount.count);
+    assert.equal((await db.get('SELECT MAX(session_version) AS version FROM users')).version, 0);
     assert.ok(firstCount.count > 0);
     server = await startServer(0);
     const base = 'http://127.0.0.1:' + server.address().port;
@@ -61,6 +65,9 @@ test('PostgreSQL migrations, seed and authenticated API', {
     };
     await require('./helpers/academicAccess')({
       request, login: loginUser, db, authHeaders: token => ({ Authorization: `Bearer ${token}` })
+    });
+    await require('./helpers/auditRemediation')({
+      request, login: loginUser, db, authHeaders: token => ({ Authorization: 'Bearer ' + token })
     });
   } finally {
     if (server) await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));

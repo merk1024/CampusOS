@@ -207,7 +207,8 @@ async function ensureUser(user, hashedPassword) {
       'study_status = ?',
       'grant_type = ?',
       'registration_date = ?',
-      'is_active = ?'
+      'is_active = ?',
+      'session_version = session_version + 1'
     ];
     const values = [
       user.student_id || null,

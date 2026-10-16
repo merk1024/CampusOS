@@ -143,7 +143,7 @@ test('GET /health returns request tracing metadata', async () => {
 });
 
 test('database migrations expose the current schema version and platform tables', async () => {
-  assert.equal(db.schemaVersion, '2026-04-03-006-announcement-audience');
+  assert.equal(db.schemaVersion, '2026-10-16-007-session-version');
 
   const migrationRow = await db.get(
     'SELECT version FROM schema_migrations WHERE version = ?',
@@ -1306,4 +1306,8 @@ test('targeted announcements and inbox read state work for student recipients', 
 
 test('academic permissions reject unauthorized registration and cross-teacher changes', async () => {
   await require('./helpers/academicAccess')({ request, login, db, authHeaders });
+});
+
+test('audit remediation enforces permissions, session revocation and atomic writes', async () => {
+  await require('./helpers/auditRemediation')({ request, login, db, authHeaders });
 });

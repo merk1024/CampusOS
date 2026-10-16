@@ -55,10 +55,21 @@ const loadCourseForAssignment = async (requester, courseId) => {
   return course;
 };
 
-async function listAssignments() {
+async function listAssignments(requester) {
+  let scope = 'WHERE 1 = 0';
+  let params = [];
+  if (hasAdminAccess(requester)) scope = '';
+  else if (requester?.role === 'teacher') {
+    scope = 'WHERE c.teacher_id = ?';
+    params = [requester.id];
+  } else if (requester?.role === 'student') {
+    scope = 'WHERE EXISTS (SELECT 1 FROM course_enrollments ce WHERE ce.course_id = a.course_id AND ce.student_id = ?)';
+    params = [requester.id];
+  }
   const result = await db.query(
     `${ASSIGNMENT_SELECT}
-     ORDER BY a.due_date DESC`
+     ${scope}
+     ORDER BY a.due_date DESC`, params
   );
 
   return result.rows;

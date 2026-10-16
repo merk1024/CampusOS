@@ -12,80 +12,84 @@ const { canManageExam, teacherExamScope } = require('../utils/examAccess');
 // @access  Private (Teacher/Admin)
 router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
   try {
-    const { examId, studentId, grade, comments } = req.body;
+    const response = await db.transaction(async () => {
+      const { examId, studentId, grade, comments } = req.body;
 
-    if (!Number.isInteger(Number(examId)) || Number(examId) <= 0
-      || typeof studentId !== 'string' || !studentId.trim()
-      || !Number.isInteger(grade) || grade < 0 || grade > 100
-      || (comments != null && (typeof comments !== 'string' || comments.length > 5000))) {
-      return res.status(400).json({ error: 'Valid examId, studentId and an integer grade from 0 to 100 are required' });
-    }
-    const exam = await db.get('SELECT id FROM exams WHERE id = ?', [examId]);
-    if (!exam) return res.status(404).json({ error: 'Exam not found' });
-    if (!await canManageExam(req.user, examId)) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-    const enrolled = await db.get(
-      'SELECT id FROM exam_students WHERE exam_id = ? AND student_id = ?', [examId, studentId]
-    );
-    if (!enrolled) return res.status(400).json({ error: 'Student is not assigned to this exam' });
-
-    // Check if grade exists
-    const existing = await db.query(
-      'SELECT id, grade, comments FROM grades WHERE exam_id = $1 AND student_id = $2',
-      [examId, studentId]
-    );
-
-    let result;
-    if (existing.rows.length > 0) {
-      // Update existing grade
-      result = await db.query(
-        `UPDATE grades 
-         SET grade = $1, comments = $2, graded_by = $3, graded_at = CURRENT_TIMESTAMP
-         WHERE exam_id = $4 AND student_id = $5
-         RETURNING *`,
-        [grade, comments, req.user.id, examId, studentId]
+      if (!Number.isInteger(Number(examId)) || Number(examId) <= 0
+        || typeof studentId !== 'string' || !studentId.trim()
+        || !Number.isInteger(grade) || grade < 0 || grade > 100
+        || (comments != null && (typeof comments !== 'string' || comments.length > 5000))) {
+        return { status: 400, body: { error: 'Valid examId, studentId and an integer grade from 0 to 100 are required' } };
+      }
+      const exam = await db.get('SELECT id FROM exams WHERE id = ?' + (db.client === 'postgres' ? ' FOR UPDATE' : ''), [examId]);
+      if (!exam) return { status: 404, body: { error: 'Exam not found' } };
+      if (!await canManageExam(req.user, examId)) {
+        return { status: 403, body: { error: 'Access denied' } };
+      }
+      const enrolled = await db.get(
+        'SELECT id FROM exam_students WHERE exam_id = ? AND student_id = ?', [examId, studentId]
       );
-    } else {
-      // Insert new grade
-      result = await db.query(
-        `INSERT INTO grades (exam_id, student_id, grade, comments, graded_by)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING *`,
-        [examId, studentId, grade, comments, req.user.id]
+      if (!enrolled) return { status: 400, body: { error: 'Student is not assigned to this exam' } };
+
+      // Check if grade exists
+      const existing = await db.query(
+        'SELECT id, grade, comments FROM grades WHERE exam_id = $1 AND student_id = $2',
+        [examId, studentId]
       );
-    }
 
-    await logGradeChange({
-      gradeId: result.rows[0]?.id,
-      examId,
-      studentId,
-      previousGrade: existing.rows[0]?.grade,
-      newGrade: result.rows[0]?.grade,
-      previousComments: existing.rows[0]?.comments,
-      newComments: result.rows[0]?.comments,
-      changedBy: req.user.id
-    });
+      let result;
+      if (existing.rows.length > 0) {
+        // Update existing grade
+        result = await db.query(
+          `UPDATE grades
+           SET grade = $1, comments = $2, graded_by = $3, graded_at = CURRENT_TIMESTAMP
+           WHERE exam_id = $4 AND student_id = $5
+           RETURNING *`,
+          [grade, comments, req.user.id, examId, studentId]
+        );
+      } else {
+        // Insert new grade
+        result = await db.query(
+          `INSERT INTO grades (exam_id, student_id, grade, comments, graded_by)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING *`,
+          [examId, studentId, grade, comments, req.user.id]
+        );
+      }
 
-    await logSystemAudit({
-      entityType: 'grade',
-      entityId: result.rows[0]?.id ?? `${examId}:${studentId}`,
-      action: existing.rows.length > 0 ? 'update' : 'create',
-      summary: `${req.user.email} ${existing.rows.length > 0 ? 'updated' : 'saved'} a grade for ${studentId}`,
-      details: {
+      await logGradeChange({
+        gradeId: result.rows[0]?.id,
         examId,
         studentId,
-        grade: result.rows[0]?.grade,
-        comments: result.rows[0]?.comments || null
-      },
-      changedBy: req.user.id,
-      requestId: req.requestId
-    });
+        previousGrade: existing.rows[0]?.grade,
+        newGrade: result.rows[0]?.grade,
+        previousComments: existing.rows[0]?.comments,
+        newComments: result.rows[0]?.comments,
+        changedBy: req.user.id
+      });
 
-    res.json({
-      message: 'Grade saved successfully',
-      grade: result.rows[0]
+      await logSystemAudit({
+        entityType: 'grade',
+        entityId: result.rows[0]?.id ?? `${examId}:${studentId}`,
+        action: existing.rows.length > 0 ? 'update' : 'create',
+        summary: `${req.user.email} ${existing.rows.length > 0 ? 'updated' : 'saved'} a grade for ${studentId}`,
+        details: {
+          examId,
+          studentId,
+          grade: result.rows[0]?.grade,
+          comments: result.rows[0]?.comments || null
+        },
+        changedBy: req.user.id,
+        requestId: req.requestId
+      });
+
+      return { status: 200, body: {
+        message: 'Grade saved successfully',
+        grade: result.rows[0]
+      } };
+
     });
+    res.status(response.status).json(response.body);
   } catch (error) {
     console.error('Save grade error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -195,7 +199,7 @@ router.get('/stats/:studentId', auth, async (req, res) => {
     }
 
     const result = await db.query(
-      `SELECT 
+      `SELECT
         COUNT(*) as total_exams,
         AVG(grade) as average_grade,
         MAX(grade) as highest_grade,

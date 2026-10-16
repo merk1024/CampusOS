@@ -78,10 +78,44 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+  verify-postgres:
+    name: PostgreSQL Integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: campusos_test
+          POSTGRES_USER: campusos
+          POSTGRES_PASSWORD: campusos_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U campusos -d campusos_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.git_ref }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+        working-directory: backend
+      - run: node --test tests/postgres-smoke.test.js
+        working-directory: backend
+        env:
+          TEST_DATABASE_URL: postgresql://campusos:campusos_ci_only@localhost:5432/campusos_test
+
   deploy-render:
     name: Trigger Render Deploy
     needs:
       - verify-backend
+      - verify-postgres
       - verify-frontend
     runs-on: ubuntu-latest
     environment: ${{ inputs.target_environment }}

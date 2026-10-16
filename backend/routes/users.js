@@ -93,6 +93,32 @@ const normalizeUserPayload = (payload = {}) => {
   };
 };
 
+const SELF_PROFILE_FIELDS = ['name', 'phone', 'avatar', 'date_of_birth', 'address', 'emergency_contact', 'father_name'];
+const ADMIN_PROFILE_FIELDS = [...SELF_PROFILE_FIELDS, 'group_name', 'subgroup_name', 'faculty', 'major', 'year_of_study', 'program_class', 'advisor', 'study_status', 'balance_info', 'grant_type', 'registration_date'];
+
+const updateProfileFields = async (req, res, userId, allowAcademic) => {
+  const existing = await db.get(`SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`, [userId]);
+  if (!existing) { res.status(404).json({ error: 'User not found' }); return null; }
+  const serializedExisting = JSON.parse(JSON.stringify(existing));
+  const allowed = allowAcademic ? ADMIN_PROFILE_FIELDS : SELF_PROFILE_FIELDS;
+  for (const [key, value] of Object.entries(req.body)) {
+    // Older clients submit the complete profile. Unchanged read-only fields are safe.
+    if (!allowed.includes(key) && (value ?? null) !== (serializedExisting[key] ?? null)) {
+      res.status(403).json({ error: 'Field is read-only: ' + key }); return null;
+    }
+  }
+  const fields = allowed.filter(key => Object.hasOwn(req.body, key));
+  const normalized = normalizeUserPayload({ ...existing, ...req.body, role: existing.role });
+  if (fields.includes('name') && !normalized.name) {
+    res.status(400).json({ error: 'Name is required' }); return null;
+  }
+  if (fields.length) await db.run(
+    'UPDATE users SET ' + fields.map(key => key + ' = ?').join(', ') + ', updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [...fields.map(key => normalized[key]), userId]
+  );
+  return db.get(`SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`, [userId]);
+};
+
 router.get('/profile/me', auth, async (req, res) => {
   try {
     const user = await db.get(
@@ -113,79 +139,8 @@ router.get('/profile/me', auth, async (req, res) => {
 
 router.put('/profile/me', auth, async (req, res) => {
   try {
-    const {
-      name,
-      group_name,
-      subgroup_name,
-      phone,
-      avatar,
-      date_of_birth,
-      faculty,
-      major,
-      year_of_study,
-      address,
-      emergency_contact,
-      father_name,
-      program_class,
-      advisor,
-      study_status,
-      balance_info,
-      grant_type,
-      registration_date
-    } = normalizeUserPayload({
-      ...req.body,
-      role: req.user.role
-    });
-
-    await db.run(
-      `UPDATE users
-       SET name = ?,
-           group_name = ?,
-           subgroup_name = ?,
-           phone = ?,
-           avatar = ?,
-           date_of_birth = ?,
-           faculty = ?,
-           major = ?,
-           year_of_study = ?,
-           address = ?,
-           emergency_contact = ?,
-           father_name = ?,
-           program_class = ?,
-           advisor = ?,
-           study_status = ?,
-           balance_info = ?,
-           grant_type = ?,
-           registration_date = ?,
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [
-        name,
-        group_name,
-        subgroup_name,
-        phone,
-        avatar,
-        date_of_birth,
-        faculty,
-        major,
-        year_of_study,
-        address,
-        emergency_contact,
-        father_name,
-        program_class,
-        advisor,
-        study_status,
-        balance_info,
-        grant_type,
-        registration_date,
-        req.user.id
-      ]
-    );
-
-    const user = await db.get(
-      `SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`,
-      [req.user.id]
-    );
+    const user = await updateProfileFields(req, res, req.user.id, false);
+    if (!user) return;
 
     await logSystemAudit({
       entityType: 'user-profile',
@@ -393,7 +348,7 @@ router.patch('/:id/status', auth, isAdmin, async (req, res) => {
     }
 
     await db.run(
-      'UPDATE users SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE users SET is_active = ?, session_version = session_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [toActiveDatabaseValue(req.body.is_active), userId]
     );
 
@@ -453,88 +408,8 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const existingUser = await db.get(
-      'SELECT role FROM users WHERE id = ?',
-      [req.params.id]
-    );
-
-    if (!existingUser) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const {
-      name,
-      group_name,
-      subgroup_name,
-      phone,
-      avatar,
-      date_of_birth,
-      faculty,
-      major,
-      year_of_study,
-      address,
-      emergency_contact,
-      father_name,
-      program_class,
-      advisor,
-      study_status,
-      balance_info,
-      grant_type,
-      registration_date
-    } = normalizeUserPayload({
-      ...req.body,
-      role: existingUser.role
-    });
-
-    await db.run(
-      `UPDATE users
-       SET name = ?,
-           group_name = ?,
-           subgroup_name = ?,
-           phone = ?,
-           avatar = ?,
-           date_of_birth = ?,
-           faculty = ?,
-           major = ?,
-           year_of_study = ?,
-           address = ?,
-           emergency_contact = ?,
-           father_name = ?,
-           program_class = ?,
-           advisor = ?,
-           study_status = ?,
-           balance_info = ?,
-           grant_type = ?,
-           registration_date = ?,
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [
-        name,
-        group_name,
-        subgroup_name,
-        phone,
-        avatar,
-        date_of_birth,
-        faculty,
-        major,
-        year_of_study,
-        address,
-        emergency_contact,
-        father_name,
-        program_class,
-        advisor,
-        study_status,
-        balance_info,
-        grant_type,
-        registration_date,
-        req.params.id
-      ]
-    );
-
-    const user = await db.get(
-      `SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`,
-      [req.params.id]
-    );
+    const user = await updateProfileFields(req, res, req.params.id, hasAdminAccess(req.user));
+    if (!user) return;
 
     await logSystemAudit({
       entityType: 'user',
@@ -542,7 +417,7 @@ router.put('/:id', auth, async (req, res) => {
       action: 'update',
       summary: `${req.user.email} updated ${user.email}`,
       details: {
-        role: existingUser.role
+        role: user.role
       },
       changedBy: req.user.id,
       requestId: req.requestId

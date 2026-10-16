@@ -142,6 +142,8 @@ function buildInitials(name, email) {
   return source.slice(0, 2).toUpperCase();
 }
 
+const SELF_PROFILE_FIELDS = ['name', 'phone', 'avatar', 'date_of_birth', 'address', 'emergency_contact', 'father_name'];
+
 function Profile({ onUserChange, language = 'English', locale = 'en-GB' }) {
   const copy = PROFILE_COPY[language] || PROFILE_COPY.English;
   const [profile, setProfile] = useState(null);
@@ -177,7 +179,7 @@ function Profile({ onUserChange, language = 'English', locale = 'en-GB' }) {
       setSaving(true);
       setError('');
       setNotice('');
-      const response = await api.updateProfile(formData);
+      const response = await api.updateProfile(Object.fromEntries(SELF_PROFILE_FIELDS.map(field => [field, formData[field] ?? null])));
       setProfile(response.user);
       setFormData(response.user);
       onUserChange?.(response.user);
@@ -258,7 +260,7 @@ function Profile({ onUserChange, language = 'English', locale = 'en-GB' }) {
   ]), [copy.accessDescription, copy.accessTitle, copy.academicDescription, copy.academicTitle, copy.address, copy.advisor, copy.balance, copy.birthDate, copy.email, copy.emergencyContact, copy.fatherName, copy.fullName, copy.grantType, copy.group, copy.lastLoginDate, copy.lastLoginIp, copy.notAvailable, copy.personalDescription, copy.personalTitle, copy.phone, copy.programClass, copy.registrationDate, copy.status, copy.studentId, copy.subgroup, getField, locale, profile]);
 
   const renderField = (row) => {
-    if (!(editing && row.field)) {
+    if (!(editing && SELF_PROFILE_FIELDS.includes(row.field))) {
       return <span>{row.value}</span>;
     }
 

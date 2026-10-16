@@ -18,7 +18,7 @@ const respondWithServiceError = (res, error, label) => {
 
 router.get('/', auth, async (req, res) => {
   try {
-    const assignments = await listAssignments();
+    const assignments = await listAssignments(req.user);
     res.json({ assignments });
   } catch (error) {
     respondWithServiceError(res, error, 'Get assignments error:');

@@ -90,7 +90,7 @@ router.post(
       );
 
       const token = jwt.sign(
-        { id: freshUser.id, role: freshUser.role },
+        { id: user.id, role: user.role, sessionVersion: user.session_version },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRE || '7d' }
       );
@@ -194,7 +194,7 @@ router.put(
       const { currentPassword, newPassword } = req.body;
 
       const user = await db.get(
-        'SELECT password FROM users WHERE id = ?',
+        'SELECT password, session_version FROM users WHERE id = ?',
         [req.user.id]
       );
 
@@ -210,21 +210,31 @@ router.put(
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-      await db.run(
-        'UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [hashedPassword, req.user.id]
-      );
+      const changed = await db.transaction(async () => {
+        const result = await db.run(
+          'UPDATE users SET password = ?, session_version = session_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND password = ? AND session_version = ?',
+          [hashedPassword, req.user.id, user.password, req.user.session_version]
+        );
+        if (!result.changes) return false;
+        await logSystemAudit({
+          entityType: 'auth',
+          entityId: req.user.id,
+          action: 'password-change',
+          summary: `${req.user.email} updated the account password`,
+          changedBy: req.user.id,
+          requestId: req.requestId
+        });
 
-      await logSystemAudit({
-        entityType: 'auth',
-        entityId: req.user.id,
-        action: 'password-change',
-        summary: `${req.user.email} updated the account password`,
-        changedBy: req.user.id,
-        requestId: req.requestId
+        return true;
       });
-
-      res.json({ message: 'Password updated successfully' });
+      if (!changed) return res.status(409).json({ error: 'Credentials changed. Please sign in again.' });
+      const token = jwt.sign(
+        { id: req.user.id, role: req.user.role, sessionVersion: req.user.session_version + 1 },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRE || '7d' }
+      );
+      res.cookie(AUTH_COOKIE_NAME, token, buildAuthCookieOptions());
+      res.json({ message: 'Password updated successfully', ...(shouldExposeTokenResponse() ? { token } : {}) });
     } catch (error) {
       console.error('Change password error:', error);
       res.status(500).json({ error: 'Server error' });
