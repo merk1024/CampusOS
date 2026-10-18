@@ -13,12 +13,16 @@ test('PostgreSQL migrations, seed and authenticated API', {
   process.env.SEED_ADMIN_PASSWORD = 'PostgresTestAdmin123!';
   process.env.SEED_TEACHER_PASSWORD = 'PostgresTestTeacher123!';
   process.env.SEED_STUDENT_PASSWORD = 'PostgresTestStudent123!';
+  process.env.MFA_ENCRYPTION_KEY = require('node:crypto').randomBytes(32).toString('base64');
+  process.env.MFA_REQUIRE_ADMIN_ENROLLMENT = 'false';
   const db = require('../config/database');
   const seed = require('../seeds/seed');
   const { startServer } = require('../server');
   const { SUPERADMIN_EMAIL } = require('../utils/access');
   let server;
   try {
+    const existing = await db.get("SELECT COUNT(*)::int AS count FROM information_schema.tables WHERE table_schema = 'public'");
+    assert.equal(existing.count, 0, 'PostgreSQL security tests require a new empty disposable database');
     await seed();
     assert.ok(await db.get('SELECT version FROM schema_migrations WHERE version = ?', [db.schemaVersion]));
     assert.ok(await db.get('SELECT version FROM schema_migrations WHERE version = ?',
@@ -48,6 +52,29 @@ test('PostgreSQL migrations, seed and authenticated API', {
     });
     assert.equal(login.status, 200);
     const cookie = login.headers.get('set-cookie').split(';')[0];
+    const alertActor = await db.get('SELECT id FROM users WHERE email = ?', ['teacher@alatoo.edu.kg']);
+    for (let i = 0; i < 5; i++) {
+      await db.run('INSERT INTO system_audit_log (entity_type, action, summary, changed_by) VALUES (?, ?, ?, ?)',
+        ['security', 'login-failed', 'Postgres alert fixture', alertActor.id]);
+    }
+    for (const source of ['events', 'grades', 'attendance']) {
+      const response = await fetch(base + '/api/ops/security-audit?source=' + source + '&from=2026-01-01&to=2099-12-31&limit=1', {
+        headers: { Cookie: cookie }
+      });
+      assert.equal(response.status, 200);
+      const audit = await response.json();
+      const warning = audit.alerts.find(alert => alert.actorId === alertActor.id && alert.rule === 'failed-logins');
+      assert.ok(warning);
+      assert.equal(warning.count, 5);
+      assert.ok(Number.isFinite(Date.parse(warning.lastSeen)));
+      assert.equal(audit.source, source);
+      assert.ok(audit.entries.length <= 1);
+      for (const entry of audit.entries) {
+        assert.ok(Number.isFinite(Date.parse(entry.occurredAt)));
+        assert.ok(!Object.hasOwn(entry, 'details'));
+      }
+    }
+    await db.run("DELETE FROM system_audit_log WHERE summary = 'Postgres alert fixture'");
     for (const route of ['/api/auth/me', '/api/courses', '/api/schedule', '/api/exams']) {
       const response = await fetch(base + route, { headers: { Cookie: cookie } });
       assert.equal(response.status, 200, route + ': ' + await response.text());
@@ -75,6 +102,8 @@ test('PostgreSQL migrations, seed and authenticated API', {
     await require('./helpers/auditRemediation')({
       request, login: loginUser, db, authHeaders: token => ({ Authorization: `Bearer ${token}` })
     });
+    await require('./helpers/mfaSecurity')({ request, db });
+    await require('./helpers/auditIntegrity')(db);
   } finally {
     if (server) await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     await db.close();

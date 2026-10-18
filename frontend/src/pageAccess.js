@@ -17,6 +17,7 @@ const SHARED_PAGES = new Set([
 ]);
 
 const ADMIN_ONLY_PAGES = new Set([
+  'security',
   'userManagement',
   'integrations'
 ]);

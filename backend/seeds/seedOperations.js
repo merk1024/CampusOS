@@ -519,7 +519,7 @@ async function ensureGradeAuditEntry(entry) {
   );
 
   if (existing) {
-    await db.run(
+    await require('../services/auditIntegrityService').updateLegacyAudit('grade_audit_log',
       `UPDATE grade_audit_log
        SET grade_id = ?,
            previous_grade = ?,
@@ -542,7 +542,7 @@ async function ensureGradeAuditEntry(entry) {
     return;
   }
 
-  await db.run(
+  await require('../services/auditIntegrityService').appendAuditRecord('grade_audit_log',
     `INSERT INTO grade_audit_log (
       grade_id, exam_id, student_id, action, previous_grade, new_grade,
       previous_comments, new_comments, changed_by, changed_at
@@ -625,7 +625,7 @@ async function ensureAttendanceAuditEntry(entry) {
   );
 
   if (existing) {
-    await db.run(
+    await require('../services/auditIntegrityService').updateLegacyAudit('attendance_audit_log',
       `UPDATE attendance_audit_log
        SET attendance_id = ?,
            previous_status = ?,
@@ -644,7 +644,7 @@ async function ensureAttendanceAuditEntry(entry) {
     return;
   }
 
-  await db.run(
+  await require('../services/auditIntegrityService').appendAuditRecord('attendance_audit_log',
     `INSERT INTO attendance_audit_log (
       attendance_id, schedule_id, student_id, date, action, previous_status, new_status, changed_by, changed_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,

@@ -13,6 +13,7 @@ const Messages = lazy(() => import('../components/Messages'));
 const Profile = lazy(() => import('../components/Profile'));
 const Schedule = lazy(() => import('../components/Schedule'));
 const Settings = lazy(() => import('../components/Settings'));
+const SecurityCenter = lazy(() => import('../components/SecurityCenter'));
 
 export function renderActivePage({
   resolvedActivePage,
@@ -30,6 +31,8 @@ export function renderActivePage({
   lastWorkspacePage
 }) {
   switch (resolvedActivePage) {
+    case 'security':
+      return <SecurityCenter user={user} language={language} locale={locale} />;
     case 'dashboard':
       return <Dashboard user={user} onNavigate={onNavigate} locale={locale} language={language} />;
     case 'courses':

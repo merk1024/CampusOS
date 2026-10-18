@@ -7,6 +7,7 @@ const { auth, isAdmin } = require('../middleware/auth');
 const db = require('../config/database');
 const { applyBulkUserImport, previewBulkUserImport } = require('../utils/bulkUserImport');
 const { hasAdminAccess, hasSuperadminAccess } = require('../utils/access');
+const { can } = require('../security/accessPolicy');
 const { enqueueJob, logSystemAudit } = require('../utils/platformOps');
 
 const PROFILE_FIELDS = `
@@ -118,7 +119,7 @@ const updateProfileFields = async (id, payload = {}) => {
 };
 
 const checkBulkSecurity = (preview, user) => {
-  if (!hasSuperadminAccess(user) && preview.rows.some(row => row.role === 'admin')) {
+  if (!can(user, 'admin.create') && preview.rows.some(row => row.role === 'admin')) {
     return 'Only a super admin can create admin accounts';
   }
   for (const row of preview.rows) {
@@ -227,7 +228,7 @@ router.post('/', auth, isAdmin, async (req, res) => {
     if (!['student', 'teacher', 'admin'].includes(role)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
-    if (role === 'admin' && !hasSuperadminAccess(req.user)) {
+    if (role === 'admin' && !can(req.user, 'admin.create')) {
       return res.status(403).json({ error: 'Only a super admin can create admin accounts' });
     }
     try { validatePassword(password); } catch (error) {

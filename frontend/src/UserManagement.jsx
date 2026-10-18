@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { api } from './api';
 import EmptyState from './components/EmptyState';
 import StatusBanner from './components/StatusBanner';
+import MfaResetDialog from './components/MfaResetDialog';
 import './UserManagement.css';
 import { getRoleKey, getRoleLabel, hasAdminAccess, isSuperadmin } from './roles';
 
@@ -201,6 +202,7 @@ function UserManagement({ user, language = 'English' }) {
   const [bulkError, setBulkError] = useState('');
   const [bulkNotice, setBulkNotice] = useState('');
   const [statusLoadingId, setStatusLoadingId] = useState(null);
+  const [mfaResetTarget, setMfaResetTarget] = useState(null);
 
   const loadUsers = async () => {
     try {
@@ -795,6 +797,7 @@ function UserManagement({ user, language = 'English' }) {
                     <td>{item.faculty || '-'}</td>
                     <td>
                       <div className="user-actions">
+                        {canCreateAdmin && item.role === 'admin' && !isSuperadmin(item) && <button type="button" className="btn-secondary btn-sm" onClick={() => setMfaResetTarget(item)}>{language === 'Kyrgyz' ? 'MFA калыбына келтирүү' : 'Reset MFA'}</button>}
                         <button
                           type="button"
                           className={`btn-secondary btn-sm ${item.is_active ? 'danger-soft' : 'success-soft'}`}
@@ -823,6 +826,7 @@ function UserManagement({ user, language = 'English' }) {
           </div>
         )}
       </div>
+      {mfaResetTarget && <MfaResetDialog target={mfaResetTarget} language={language} onClose={() => setMfaResetTarget(null)} />}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { api } from '../api';
 import { getShellCopy } from '../appPreferences';
 import campusosHero from '../assets/campusos-hero.svg';
+import MfaSettings from './MfaSettings';
 
 function LoginPage({ onLogin, notice = '', language = 'English' }) {
   const copy = getShellCopy(language).login;
@@ -11,6 +12,13 @@ function LoginPage({ onLogin, notice = '', language = 'English' }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [challenge, setChallenge] = useState(null);
+  const [enrollment, setEnrollment] = useState(null);
+  const [mfaCode, setMfaCode] = useState('');
+  const [recovery, setRecovery] = useState(false);
+  const mfaCopy = language === 'Kyrgyz'
+    ? { code: 'MFA коду', recovery: 'Калыбына келтирүү кодун колдонуу', verify: 'MFA текшерүү', cancel: 'Кайра кирүү' }
+    : { code: 'MFA code', recovery: 'Use a recovery code', verify: 'Verify MFA', cancel: 'Back to sign in' };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -18,7 +26,12 @@ function LoginPage({ onLogin, notice = '', language = 'English' }) {
     setError('');
 
     try {
-      const response = await api.login(login, password, rememberMe);
+      const response = challenge
+        ? await api.mfa('verify', { challenge, ...(recovery ? { recoveryCode: mfaCode } : { code: mfaCode }) })
+        : await api.login(login, password, rememberMe);
+      setPassword(''); setMfaCode('');
+      if (response.enrollmentRequired) { setEnrollment(response.challenge); return; }
+      if (response.mfaRequired) { setChallenge(response.challenge); return; }
       const userData = {
         id: response.user.id,
         email: response.user.email,
@@ -70,12 +83,21 @@ function LoginPage({ onLogin, notice = '', language = 'English' }) {
         </div>
 
         <div className="login-right">
+          {enrollment ? <>
+            <MfaSettings language={language} challenge={enrollment} onComplete={() => { setEnrollment(null); setChallenge(null); }} />
+            <button type="button" className="btn-secondary" onClick={() => { setEnrollment(null); setChallenge(null); setError(''); }}>{mfaCopy.cancel}</button>
+          </> :
           <form className="login-form" onSubmit={handleSubmit}>
             <h2>{copy.welcome}</h2>
             <p className="login-subtitle">{copy.subtitle}</p>
 
             {(error || notice) && <div className="error-message">{error || notice}</div>}
 
+            {challenge ? <>
+              <label className="form-field">{mfaCopy.code}<input value={mfaCode} onChange={e => setMfaCode(e.target.value)} autoComplete="one-time-code" maxLength={recovery ? 32 : 6} required /></label>
+              <label className="checkbox"><input type="checkbox" checked={recovery} onChange={e => { setRecovery(e.target.checked); setMfaCode(''); }} />{mfaCopy.recovery}</label>
+              <button type="button" className="btn-secondary" disabled={loading} onClick={() => { setChallenge(null); setMfaCode(''); setError(''); }}>{mfaCopy.cancel}</button>
+            </> : <>
             <div className="form-field">
               <label htmlFor="campusos-login">{copy.loginLabel}</label>
               <input
@@ -111,11 +133,11 @@ function LoginPage({ onLogin, notice = '', language = 'English' }) {
                 <span>{copy.rememberMe}</span>
               </label>
             </div>
-
+            </>}
             <button type="submit" className="btn-login" disabled={loading}>
-              {loading ? copy.signingIn : copy.signIn}
+              {loading ? copy.signingIn : challenge ? mfaCopy.verify : copy.signIn}
             </button>
-          </form>
+          </form>}
         </div>
       </div>
     </div>

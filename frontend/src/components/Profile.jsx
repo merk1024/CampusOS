@@ -4,7 +4,8 @@ import { api, AUTH_SESSION_EXPIRED_EVENT, clearAuthSession } from '../api';
 import EmptyState from './EmptyState';
 import StatusBanner from './StatusBanner';
 import AvatarBadge from './AvatarBadge';
-import { getRoleLabel } from '../roles';
+import { getRoleLabel, hasAdminAccess } from '../roles';
+import MfaSettings from './MfaSettings';
 
 const PERSONAL_PROFILE_FIELDS = [
   'name', 'phone', 'avatar', 'date_of_birth', 'address', 'emergency_contact', 'father_name'
@@ -483,6 +484,7 @@ function Profile({ onUserChange, language = 'English', locale = 'en-GB' }) {
             </button>
           </div>
         )}
+        {hasAdminAccess(profile) && <MfaSettings language={language} />}
         <form className="portal-section-card" onSubmit={handleChangePassword}>
           <div className="portal-section-header">
             <h3>{copy.passwordTitle}</h3>

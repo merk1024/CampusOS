@@ -1,5 +1,7 @@
 {
   "scripts": {
+    "demo:local": "node scripts/demo/local-demo.js",
+    "demo:phone": "node scripts/demo/local-demo.js --lan",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "db:init:local": "npm --prefix backend run db:init",
@@ -10,11 +12,13 @@
     "env:check:production": "npm --prefix backend run env:check -- --mode=production",
     "verify:web": "npm --prefix backend test && npm --prefix frontend run lint && npm --prefix frontend run build",
     "test:backend": "npm --prefix backend test",
+    "test:e2e": "npm --prefix frontend run test:e2e",
+    "test:postgres": "node backend/scripts/test-postgres-security.js",
     "jobs:work": "npm --prefix backend run jobs:work",
     "audit:backend": "npm --prefix backend audit --omit=dev",
     "audit:frontend": "npm --prefix frontend audit --production",
     "scan:secrets": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/security/scan-secrets.ps1",
-    "scan:zap": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/security/run-zap-baseline.ps1",
+    "scan:zap": "node scripts/security/run-zap.js",
     "export:security-docx": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/reporting/export-security-report-docx.ps1",
     "backup:campusos": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/backup-campusos.ps1",
     "restore:campusos": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ops/restore-campusos.ps1",

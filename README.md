@@ -6,6 +6,11 @@ It combines courses, schedule, exams, grades, assignments, attendance, announcem
 
 ## Current capabilities
 
+For a disposable laptop/phone demo without Render or PostgreSQL, run
+`npm run demo:local` or `npm run demo:phone` after installing backend/frontend
+dependencies. See [local phone demo instructions](docs/LOCAL_PHONE_DEMO.md).
+LAN mode is explicit, uses only test data and resets on every start.
+
 - login by email or student ID
 - roles: `student`, `teacher`, `admin`, `superadmin`
 - course catalog, enrollment, and teacher assignment

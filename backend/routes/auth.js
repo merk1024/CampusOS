@@ -1,6 +1,5 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 
 const router = express.Router();
@@ -9,10 +8,11 @@ const { auth } = require('../middleware/auth');
 const { validatePassword } = require('../utils/passwordPolicy');
 const {
   AUTH_COOKIE_NAME,
-  buildAuthCookieOptions,
-  shouldExposeTokenResponse
+  buildAuthCookieOptions
 } = require('../utils/authCookies');
 const { logSystemAudit } = require('../utils/platformOps');
+const { issueSession } = require('../utils/authSession');
+router.use('/mfa', require('./mfa'));
 
 const AUTH_USER_FIELDS = `
   id,
@@ -65,73 +65,25 @@ router.post(
       );
 
       if (!user) {
+        await logSystemAudit({ entityType: 'auth', action: 'login-failed', summary: 'Unknown account login rejected', requestId: req.requestId });
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
       if (!user.is_active) {
+        await logSystemAudit({ entityType: 'auth', action: 'login-blocked', summary: 'Inactive account login rejected', changedBy: user.id, requestId: req.requestId });
         return res.status(403).json({ error: 'Account is disabled' });
       }
 
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
+        await logSystemAudit({ entityType: 'auth', action: 'login-failed', summary: 'Account login rejected', changedBy: user.id, requestId: req.requestId });
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      const now = new Date().toISOString();
-      const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || null;
-
-      await db.run(
-        'UPDATE users SET last_login_at = ?, last_login_ip = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [now, clientIp, user.id]
-      );
-
-      const freshUser = await db.get(
-        `SELECT ${AUTH_USER_FIELDS} FROM users WHERE id = ?`,
-        [user.id]
-      );
-
-      const token = jwt.sign(
-        { id: freshUser.id, role: freshUser.role, sessionVersion: Number(user.session_version) },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRE || '7d' }
-      );
-
-      res.cookie(
-        AUTH_COOKIE_NAME,
-        token,
-        buildAuthCookieOptions({ rememberMe: Boolean(rememberMe) })
-      );
-
-      await logSystemAudit({
-        entityType: 'auth',
-        entityId: freshUser.id,
-        action: 'login',
-        summary: `${freshUser.email} signed in`,
-        details: {
-          rememberMe: Boolean(rememberMe),
-          role: freshUser.role,
-          loginIp: clientIp
-        },
-        changedBy: freshUser.id,
-        requestId: req.requestId
-      });
-
-      const payload = {
-        message: 'Login successful',
-        user: {
-          ...freshUser,
-          isSuperadmin: Number(freshUser.is_superadmin || 0) === 1,
-          studentId: freshUser.student_id,
-          groupName: freshUser.group_name,
-          subgroupName: freshUser.subgroup_name
-        }
-      };
-
-      if (shouldExposeTokenResponse()) {
-        payload.token = token;
-      }
-
-      res.json(payload);
+      const challenge = await require('../services/mfaService').createLoginChallenge(user, Boolean(rememberMe));
+      if (challenge?.error) return res.status(challenge.status).json({ error: challenge.error });
+      if (challenge) return res.set('Cache-Control', 'no-store').json(challenge);
+      await issueSession(req, res, user, Boolean(rememberMe));
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ error: 'Server error' });

@@ -3,6 +3,7 @@ const router = express.Router();
 const { auth, isTeacherOrAdmin } = require('../middleware/auth');
 const db = require('../config/database');
 const { hasAdminAccess } = require('../utils/access');
+const { can } = require('../security/accessPolicy');
 const { createServiceError, getServiceErrorStatus } = require('../services/serviceError');
 const {
   normalizeAudienceInput,
@@ -133,7 +134,9 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
       if (!course) {
         throw createServiceError(400, 'Selected course was not found');
       }
-      if (!hasAdminAccess(req.user) && Number(course.teacher_id) !== Number(req.user.id)) {
+      if (!can(req.user, 'announcement.publish', {
+        audience_scope: audience.audienceScope, course_id: course.id, teacher_id: course.teacher_id
+      })) {
         throw createServiceError(403, 'Access denied');
       }
     }
@@ -229,17 +232,11 @@ router.delete('/:id', auth, isTeacherOrAdmin, async (req, res) => {
       throw createServiceError(404, 'Announcement not found');
     }
 
-    if (!hasAdminAccess(req.user)) {
-      if (Number(announcement.created_by) !== Number(req.user.id)) {
-        throw createServiceError(403, 'Access denied');
-      }
-      if (announcement.course_id) {
-        const course = await tx.get('SELECT teacher_id FROM courses WHERE id = ?'
-          + (tx.client === 'postgres' ? ' FOR UPDATE' : ''), [announcement.course_id]);
-        if (!course || Number(course.teacher_id) !== Number(req.user.id)) {
-          throw createServiceError(403, 'Access denied');
-        }
-      }
+    const course = announcement.course_id == null ? null : await tx.get(
+      'SELECT teacher_id FROM courses WHERE id = ?'
+        + (tx.client === 'postgres' ? ' FOR UPDATE' : ''), [announcement.course_id]);
+    if (!can(req.user, 'announcement.delete', { ...announcement, teacher_id: course?.teacher_id })) {
+      throw createServiceError(403, 'Access denied');
     }
 
     await tx.query('DELETE FROM announcements WHERE id = $1', [req.params.id]);

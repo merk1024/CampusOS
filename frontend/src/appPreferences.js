@@ -42,6 +42,7 @@ const normalizeLanguage = (language) => {
 };
 
 const PAGE_LABELS = {
+  security: { English: 'Security Center', Russian: 'Центр безопасности', Kyrgyz: 'Коопсуздук борбору' },
   dashboard: {
     English: 'Dashboard',
     Russian: 'Панель',
@@ -85,7 +86,8 @@ const SHELL_COPY = {
       messages: 'Messages',
       profile: 'Profile',
       userManagement: 'User Management',
-      integrations: 'Integrations'
+      integrations: 'Integrations',
+      security: 'Security Center'
     },
     header: {
       openNavigation: 'Open navigation',
@@ -209,7 +211,8 @@ const SHELL_COPY = {
       messages: 'Сообщения',
       profile: 'Профиль',
       userManagement: 'Пользователи',
-      integrations: 'Интеграции'
+      integrations: 'Интеграции',
+      security: 'Центр безопасности'
     },
     header: {
       openNavigation: 'Открыть навигацию',
@@ -333,7 +336,8 @@ const SHELL_COPY = {
       messages: 'Билдирүүлөр',
       profile: 'Профиль',
       userManagement: 'Колдонуучулар',
-      integrations: 'Интеграциялар'
+      integrations: 'Интеграциялар',
+      security: 'Коопсуздук борбору'
     },
     header: {
       openNavigation: 'Навигацияны ачуу',
