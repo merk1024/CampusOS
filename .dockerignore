@@ -1,0 +1,17 @@
+*
+!backend/
+!backend/**
+!scripts/
+!scripts/security/
+!scripts/security/**
+**/node_modules
+**/.env
+**/.env.*
+**/*.db
+**/*.db-*
+**/*.sqlite*
+**/*.pem
+**/*.key
+**/uploads
+**/output
+**/security-reports

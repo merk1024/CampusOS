@@ -6,6 +6,7 @@ const { AsyncLocalStorage } = require('node:async_hooks');
 
 const transactionExecutor = (adapter, storage, context) => ({
   client: adapter.client,
+  inTransaction: true,
   ...Object.fromEntries(['run', 'get', 'all', 'query'].map(method => [method, (...args) => {
     if (!context.active) return Promise.reject(new Error('Transaction is no longer active'));
     return storage.run(context, () => adapter[method](...args));
@@ -423,6 +424,20 @@ const getMigrationDefinitions = () => ([
     async apply(context) {
       await context.ensureColumns('users', [['session_version', 'INTEGER NOT NULL DEFAULT 0']]);
     }
+  },
+  {
+    version: '2026-10-18-008-administrator-mfa',
+    description: 'Encrypted MFA factors, single-use recovery codes and scoped challenges',
+    async apply(context) {
+      await context.runStatements(require('../security/mfaSchema'));
+    }
+  },
+  {
+    version: '2026-10-18-009-audit-integrity',
+    description: 'Preserve audit history and add serialized integrity chain',
+    async apply(context) {
+      await require('../security/auditIntegritySchema').migrateAuditIntegrity(context);
+    }
   }
 ]);
 
@@ -558,6 +573,7 @@ const createSqliteAdapter = () => {
       return context ? execute(...args) : exclusive(() => execute(...args));
     };
   }
+  adapter.isInTransaction = () => Boolean(transactionContext.getStore()?.active);
   adapter.transaction = (work) => {
     if (transactionContext.getStore()) throw new Error('Nested transactions are not supported');
     return exclusive(async () => {
@@ -679,12 +695,13 @@ const createPostgresAdapter = () => {
     }
   };
 
-  adapter.transaction = async (work) => {
+  adapter.isInTransaction = () => Boolean(transactionContext.getStore()?.active);
+  adapter.transaction = async (work, options = {}) => {
     if (transactionContext.getStore()) throw new Error('Nested transactions are not supported');
     const client = await pool.connect();
     const context = { connection: client, active: true };
     try {
-      await client.query('BEGIN');
+      await client.query(options.repeatableRead ? 'BEGIN ISOLATION LEVEL REPEATABLE READ' : 'BEGIN');
       const tx = transactionExecutor(adapter, transactionContext, context);
       const result = await transactionContext.run(context, () => work(tx));
       await client.query('COMMIT');

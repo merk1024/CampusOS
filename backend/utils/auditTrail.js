@@ -44,7 +44,7 @@ async function logGradeChange({
     ? 'created'
     : 'updated';
 
-  return executor.run(
+  return require('../services/auditIntegrityService').appendAuditRecord('grade_audit_log',
     `INSERT INTO grade_audit_log
       (grade_id, exam_id, student_id, action, previous_grade, new_grade, previous_comments, new_comments, changed_by)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -58,7 +58,7 @@ async function logGradeChange({
       normalizedPreviousComments,
       normalizedNewComments,
       changedBy || null
-    ]
+    ], executor
   );
 }
 
@@ -80,7 +80,7 @@ async function logAttendanceChange({
 
   const action = normalizedPreviousStatus ? 'updated' : 'created';
 
-  return executor.run(
+  return require('../services/auditIntegrityService').appendAuditRecord('attendance_audit_log',
     `INSERT INTO attendance_audit_log
       (attendance_id, schedule_id, student_id, date, action, previous_status, new_status, changed_by)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -93,7 +93,7 @@ async function logAttendanceChange({
       normalizedPreviousStatus,
       normalizedNewStatus,
       changedBy || null
-    ]
+    ], executor
   );
 }
 

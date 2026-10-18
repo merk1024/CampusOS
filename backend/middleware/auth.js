@@ -48,6 +48,15 @@ const auth = async (req, res, next) => {
     }
 
     req.user = user;
+    if (hasAdminAccess(user)) {
+      const factor = await db.get('SELECT enabled FROM mfa_factors WHERE user_id = ?', [user.id]);
+      if ((Number(factor?.enabled) || require('../security/mfaConfig').requireAdminEnrollment()) && decoded.mfaVerified !== true) {
+        return res.status(401).json({ error: 'Session expired. Please sign in again.' });
+      }
+      if (require('../security/mfaConfig').requireAdminEnrollment() && !Number(factor?.enabled)) {
+        return res.status(401).json({ error: 'Session expired. Please sign in again.' });
+      }
+    }
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);

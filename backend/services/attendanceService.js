@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const { hasAdminAccess } = require('../utils/access');
+const { can } = require('../security/accessPolicy');
 const { createServiceError } = require('./serviceError');
 const { logAttendanceChange } = require('../utils/auditTrail');
 const { logSystemAudit } = require('../utils/platformOps');
@@ -92,13 +93,7 @@ const assertScheduleAccess = (schedule, user) => {
     throw createServiceError(404, 'Schedule not found');
   }
 
-  if (hasAdminAccess(user)) {
-    return;
-  }
-
-  // Display names are not identities; unlinked legacy schedules are admin-only.
-  if (user.role === 'teacher' && schedule.course_id
-    && Number(schedule.teacher_id) === Number(user.id)) {
+  if (can(user, 'attendance.manage', schedule)) {
     return;
   }
 

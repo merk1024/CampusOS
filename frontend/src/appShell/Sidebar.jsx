@@ -14,6 +14,7 @@ function Sidebar({ activePage, setActivePage, isOpen, onClose, user, labels }) {
   ];
 
   if (hasAdminAccess(user)) {
+    menuItems.push({ id: 'security', label: labels.security || 'Security Center', icon: 'SEC' });
     menuItems.push({ id: 'userManagement', label: labels.userManagement, icon: 'USR' });
     menuItems.push({ id: 'integrations', label: labels.integrations, icon: 'INT' });
   }

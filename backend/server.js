@@ -255,12 +255,13 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-async function startServer(port = PORT) {
+async function startServer(port = PORT, host) {
   try {
     await db.migrate();
+    await require('./security/mfaConfig').validateMfaStartup(db);
 
     return await new Promise((resolve, reject) => {
-      const server = app.listen(port, () => {
+      const server = app.listen({ port, ...(host === undefined ? {} : { host }) }, () => {
         const resolvedPort = server.address()?.port || port;
         console.log(`CampusOS API running on port ${resolvedPort}`);
         resolve(server);

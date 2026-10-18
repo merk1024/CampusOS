@@ -45,6 +45,13 @@ const isPlaceholder = (value) => (
 
 const errors = [];
 const warnings = [];
+try {
+  const { requireAdminEnrollment } = require('../security/mfaConfig');
+  const { validateMfaKey } = require('../security/mfaCrypto');
+  if (requireAdminEnrollment() || process.env.MFA_ENCRYPTION_KEY) validateMfaKey();
+} catch (error) {
+  errors.push(error.message);
+}
 
 const requireValue = (key, message) => {
   if (!hasValue(key)) {

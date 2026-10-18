@@ -1,6 +1,7 @@
 const express = require('express');
 
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const db = require('../config/database');
 const { auth, isAdmin } = require('../middleware/auth');
 const { runQueuedJobs } = require('../utils/platformOps');
@@ -15,6 +16,15 @@ const {
   markNotificationRead
 } = require('../services/opsAnalyticsService');
 const { getServiceErrorStatus } = require('../services/serviceError');
+const { getSecurityAudit } = require('../services/securityAuditService');
+const { verifyConfiguredAuditChain } = require('../services/auditIntegrityService');
+
+router.post('/audit-integrity/verify', auth, isAdmin, rateLimit({ windowMs: 60000, limit: process.env.NODE_ENV === 'test' ? 1000 : 6 }), async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const { checkpoint, ...result } = await verifyConfiguredAuditChain();
+  void checkpoint;
+  res.json(result);
+});
 
 const respondWithServiceError = (res, error, label) => {
   const status = getServiceErrorStatus(error);
@@ -25,6 +35,14 @@ const respondWithServiceError = (res, error, label) => {
   console.error(label, error);
   return res.status(500).json({ error: 'Server error' });
 };
+
+router.get('/security-audit', auth, isAdmin, async (req, res) => {
+  try {
+    res.json(await getSecurityAudit(req.query));
+  } catch (error) {
+    respondWithServiceError(res, error, 'Security audit error:');
+  }
+});
 
 router.get('/audit', auth, isAdmin, async (req, res) => {
   try {

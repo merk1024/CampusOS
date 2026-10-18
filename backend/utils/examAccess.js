@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const { hasAdminAccess } = require('./access');
+const { can } = require('../security/accessPolicy');
 
 // Linked exams belong to the current course teacher. Legacy unlinked exams
 // belong to their creator; matching display names never grants access.
@@ -17,9 +18,7 @@ async function canManageExam(user, examId, executor = db) {
     const course = exam.course_id === null ? null : await executor.get(
       'SELECT id, teacher_id FROM courses WHERE id = ?' + lock, [exam.course_id]
     );
-    return hasAdminAccess(user) || (user.role === 'teacher' && (exam.course_id === null
-      ? Number(exam.created_by) === Number(user.id)
-      : Boolean(course) && Number(course.teacher_id) === Number(user.id)));
+    return can(user, 'exam.manage', { ...exam, teacher_id: course?.teacher_id });
   }
   if (hasAdminAccess(user)) return true;
   if (user.role !== 'teacher') return false;
@@ -47,7 +46,7 @@ async function validateExamCourse(user, body, students, existingCourseId = null,
   }
   const lock = executor !== db && executor.client === 'postgres' ? ' FOR UPDATE' : '';
   const course = await executor.get('SELECT id, teacher_id FROM courses WHERE id = ?' + lock, [courseId]);
-  if (!course || (!admin && Number(course.teacher_id) !== Number(user.id))) {
+  if (!course || !can(user, 'course.manage', { course_id: course.id, teacher_id: course.teacher_id })) {
     return { status: 403, error: 'Course access denied' };
   }
   if (!admin) {

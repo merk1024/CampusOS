@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const { hasAdminAccess } = require('../utils/access');
+const { can } = require('../security/accessPolicy');
 const { createServiceError } = require('./serviceError');
 
 const ASSIGNMENT_SELECT = `
@@ -69,7 +70,7 @@ const loadCourseForAssignment = async (requester, courseId, tx) => {
     throw createServiceError(404, 'Course not found');
   }
 
-  if (!hasAdminAccess(requester) && course.teacher_id !== requester.id) {
+  if (!can(requester, 'course.manage', { course_id: course.id, teacher_id: course.teacher_id })) {
     throw createServiceError(403, 'Access denied');
   }
 

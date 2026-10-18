@@ -113,6 +113,93 @@ test.after(async () => {
   }
 });
 
+test('security audit is admin-only, validates filters and redacts technical details', async () => {
+  const admin = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+  for (const account of ['teacher@alatoo.edu.kg', '240141052']) {
+    const session = await login(account, account.includes('@') ? process.env.SEED_TEACHER_PASSWORD : process.env.SEED_STUDENT_PASSWORD);
+    assert.equal((await request('/api/ops/security-audit', { headers: authHeaders(session.token) })).response.status, 403);
+  }
+  await db.run('INSERT INTO system_audit_log (entity_type, action, summary, details, changed_by, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    ['security', 'test-filter', 'Security audit fixture', '{"token":"do-not-return"}', admin.user.id, '2026-10-18 12:00:00']);
+  const filtered = await request('/api/ops/security-audit?action=test-filter&q=admin%40alatoo.edu.kg&from=2026-10-18&to=2026-10-18', { headers: authHeaders(admin.token) });
+  assert.equal(filtered.response.status, 200);
+  assert.equal(filtered.body.entries.length, 1);
+  assert.equal(filtered.body.entries[0].summary, 'Security audit fixture');
+  assert.equal(filtered.body.entries[0].occurredAt, '2026-10-18T12:00:00Z');
+  assert.ok(!JSON.stringify(filtered.body).includes('do-not-return'));
+  const rejected = await request('/api/auth/login', {
+    method: 'POST', body: JSON.stringify({ login: 'admin@alatoo.edu.kg', password: 'NeverLogThisPassword!' })
+  });
+  assert.equal(rejected.response.status, 401);
+  const failures = await request('/api/ops/security-audit?action=login-failed&q=admin%40alatoo.edu.kg', { headers: authHeaders(admin.token) });
+  assert.equal(failures.response.status, 200);
+  assert.ok(failures.body.entries.length > 0);
+  assert.ok(!JSON.stringify(failures.body).includes('NeverLogThisPassword!'));
+  const page = await request('/api/ops/security-audit?limit=1', { headers: authHeaders(admin.token) });
+  assert.equal(page.body.entries.length, 1);
+  assert.equal(page.body.hasMore, true);
+  for (const query of ['source=unknown', 'from=2026-02-30', 'offset=-1', 'limit=101']) {
+    assert.equal((await request('/api/ops/security-audit?' + query, { headers: authHeaders(admin.token) })).response.status, 400);
+  }
+  for (const source of ['grades', 'attendance']) {
+    const result = await request('/api/ops/security-audit?source=' + source, { headers: authHeaders(admin.token) });
+    assert.equal(result.response.status, 200);
+    assert.ok(result.body.entries.length > 0);
+    assert.ok(Object.hasOwn(result.body.entries[0], 'previousValue'));
+  }
+});
+
+test('security alerts detect recent bursts without mixing users or exposing secrets', async () => {
+  const admin = await login('admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD);
+  const teacher = await db.get('SELECT id FROM users WHERE email = ?', ['teacher@alatoo.edu.kg']);
+  const student = await db.get('SELECT id FROM users WHERE student_id = ?', ['240141052']);
+  const recent = new Date(Date.now() - 60000).toISOString().replace('T', ' ').replace('Z', '');
+  const old = new Date(Date.now() - 20 * 60000).toISOString().replace('T', ' ').replace('Z', '');
+  const future = new Date(Date.now() + 20 * 60000).toISOString().replace('T', ' ').replace('Z', '');
+  const insert = async (actor, action, count, time) => {
+    for (let i = 0; i < count; i++) await db.run(
+      'INSERT INTO system_audit_log (entity_type, action, summary, details, changed_by, created_at, request_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      ['security', action, 'Test burst', '{"password":"never-expose"}', actor, time, 'burst-request']);
+  };
+  await insert(teacher.id, 'login-failed', 5, recent);
+  await insert(student.id, 'login-failed', 4, recent);
+  await insert(student.id, 'login-failed', 10, old);
+  await insert(student.id, 'login-failed', 10, future);
+  await insert(teacher.id, 'access-denied', 10, recent);
+  await insert(teacher.id, 'mfa-failed', 5, recent);
+  await insert(null, 'login-failed', 5, recent);
+  const response = await request('/api/ops/security-audit?action=nonexistent', { headers: authHeaders(admin.token) });
+  assert.equal(response.response.status, 200);
+  assert.equal(response.body.entries.length, 0);
+  assert.ok(Array.isArray(response.body.alerts));
+  const alerts = response.body.alerts;
+  assert.equal(alerts.filter(a => a.actorId === teacher.id).length, 3);
+  assert.equal(alerts.find(a => a.actorId === teacher.id && a.rule === 'failed-mfa').count, 5);
+  assert.ok(!alerts.some(a => a.actorId === student.id));
+  const failed = alerts.find(a => a.actorId === teacher.id && a.rule === 'failed-logins');
+  assert.equal(failed.count, 5);
+  assert.equal(failed.threshold, 5);
+  assert.equal(failed.windowMinutes, 10);
+  assert.equal(failed.requestId, 'burst-request');
+  assert.ok(alerts.some(a => a.scope === 'anonymous-aggregate' && a.actorId === null));
+  assert.ok(!JSON.stringify(alerts).includes('never-expose'));
+  assert.equal((await db.get('SELECT is_active FROM users WHERE id = ?', [teacher.id])).is_active, 1);
+  await db.run("DELETE FROM system_audit_log WHERE summary = 'Test burst'");
+});
+
+test('audit integrity verification is administrator-only and has distinct initialization status', async () => {
+  for (const [account, password] of [['admin@alatoo.edu.kg', process.env.SEED_ADMIN_PASSWORD], ['teacher@alatoo.edu.kg', process.env.SEED_TEACHER_PASSWORD], ['240141052', process.env.SEED_STUDENT_PASSWORD]]) {
+    const session = await login(account, password);
+    const result = await request('/api/ops/audit-integrity/verify', { method: 'POST', headers: authHeaders(session.token), body: '{}' });
+    assert.equal(result.response.status, account.startsWith('admin') ? 200 : 403);
+    if (result.response.status === 200) {
+      assert.equal(result.body.status, 'not-initialized');
+      assert.equal(result.body.checkpoint, undefined);
+      assert.equal(result.response.headers.get('cache-control'), 'no-store');
+    }
+  }
+});
+
 test('GET / returns CampusOS service metadata', async () => {
   const { response, body } = await request('/');
 

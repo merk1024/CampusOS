@@ -50,7 +50,7 @@ async function logSystemAudit({
     return null;
   }
 
-  return executor.run(
+  return require('../services/auditIntegrityService').appendAuditRecord('system_audit_log',
     `INSERT INTO system_audit_log
       (entity_type, entity_id, action, summary, details, changed_by, request_id)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -62,7 +62,7 @@ async function logSystemAudit({
       safeJson(details),
       changedBy || null,
       requestId || null
-    ]
+    ], executor
   );
 }
 

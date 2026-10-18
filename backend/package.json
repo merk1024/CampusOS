@@ -7,6 +7,8 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node --test tests/*.test.js",
+    "audit:integrity": "node scripts/audit-integrity.js",
+    "audit:demo": "node scripts/demo-audit-tampering.js",
     "db:init": "node init-db.js",
     "db:check": "node check-db.js",
     "seed": "node seeds/seed.js",
@@ -34,6 +36,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "otplib": "^13.5.0",
     "pg": "^8.11.3",
     "sqlite3": "^6.0.1"
   },

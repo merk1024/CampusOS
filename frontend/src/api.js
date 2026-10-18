@@ -47,7 +47,10 @@ export const clearAuthSession = () => {
   localStorage.removeItem('lms_user');
 };
 
+let displayingMfaRecoveryCodes = false;
+let deferredSessionExpiration = null;
 const notifySessionExpired = (message = SESSION_EXPIRED_MESSAGE) => {
+  if (displayingMfaRecoveryCodes) { deferredSessionExpiration = message; return; }
   clearAuthSession();
 
   if (typeof window !== 'undefined') {
@@ -55,6 +58,12 @@ const notifySessionExpired = (message = SESSION_EXPIRED_MESSAGE) => {
       detail: { message }
     }));
   }
+};
+
+export const completeMfaUpdate = () => {
+  displayingMfaRecoveryCodes = false;
+  deferredSessionExpiration = null;
+  notifySessionExpired('MFA updated. Please sign in again.');
 };
 
 const parseJsonSafely = async (response) => {
@@ -190,6 +199,26 @@ const getHeaders = () => {
 };
 
 export const api = {
+  async verifyAuditIntegrity(signal) {
+    return request('/ops/audit-integrity/verify', { method: 'POST', headers: getHeaders(), body: '{}', signal });
+  },
+  async mfa(operation, body) {
+    const revealsCodes = ['confirm', 'regenerate'].includes(operation);
+    if (revealsCodes) displayingMfaRecoveryCodes = true;
+    let result;
+    try {
+      result = await request('/auth/mfa/' + operation, { method: body ? 'POST' : 'GET', headers: getHeaders(),
+        skipAuthHandling: true, ...(body ? { body: JSON.stringify(body) } : {}) });
+      return result;
+    } finally {
+      if (revealsCodes && !result?.recoveryCodes) {
+        displayingMfaRecoveryCodes = false;
+        const message = deferredSessionExpiration;
+        deferredSessionExpiration = null;
+        if (message) notifySessionExpired(message);
+      }
+    }
+  },
   async login(login, password, rememberMe = false) {
     return request('/auth/login', {
       skipAuthHandling: true,
@@ -611,5 +640,8 @@ export const api = {
       body: JSON.stringify(payload),
       skipAuthHandling: true
     });
+  },
+  async getSecurityAudit(filters, signal) {
+    return request(`/ops/security-audit?${new URLSearchParams(filters)}`, { headers: getHeaders(), signal });
   }
 };

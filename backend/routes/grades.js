@@ -5,6 +5,7 @@ const db = require('../config/database');
 const { logGradeChange } = require('../utils/auditTrail');
 const { logSystemAudit } = require('../utils/platformOps');
 const { hasAdminAccess } = require('../utils/access');
+const { can } = require('../security/accessPolicy');
 const { teacherExamScope } = require('../utils/examAccess');
 const { createServiceError, getServiceErrorStatus } = require('../services/serviceError');
 
@@ -31,10 +32,7 @@ router.post('/', auth, isTeacherOrAdmin, async (req, res) => {
         `SELECT id, teacher_id FROM courses WHERE id = ?${db.client === 'postgres' ? ' FOR UPDATE' : ''}`,
         [lockedExam.course_id]
       );
-      const owned = lockedExam.course_id == null
-        ? Number(lockedExam.created_by) === Number(req.user.id)
-        : course && Number(course.teacher_id) === Number(req.user.id);
-      if (!hasAdminAccess(req.user) && !(req.user.role === 'teacher' && owned)) {
+      if (!can(req.user, 'exam.manage', { ...lockedExam, teacher_id: course?.teacher_id })) {
         throw createServiceError(403, 'Access denied');
       }
       const enrolled = await tx.get(
