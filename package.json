@@ -1,5 +1,7 @@
 {
   "scripts": {
+    "demo:local": "node scripts/demo/local-demo.js",
+    "demo:phone": "node scripts/demo/local-demo.js --lan",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "db:init:local": "npm --prefix backend run db:init",
