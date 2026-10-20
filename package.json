@@ -24,6 +24,7 @@
     "db:init": "npm --prefix backend run db:init",
     "db:check": "npm --prefix backend run db:check",
     "db:backup": "node backend/scripts/backup-local-postgres.js",
-    "db:verify-backup": "node backend/scripts/backup-local-postgres.js --verify"
+    "db:verify-backup": "node backend/scripts/backup-local-postgres.js --verify",
+    "test:e2e": "npm --prefix frontend run test:e2e"
   }
 }

@@ -75,6 +75,15 @@ test('PostgreSQL migrations, seed and authenticated API', {
     await require('./helpers/auditRemediation')({
       request, login: loginUser, db, authHeaders: token => ({ Authorization: `Bearer ${token}` })
     });
+    const failedLogin = await request('/api/auth/login', {
+      method: 'POST', body: JSON.stringify({ login: 'missing-account-secret', password: 'failed-password-secret' })
+    });
+    assert.equal(failedLogin.response.status, 401);
+    const failedAudit = await db.get("SELECT * FROM system_audit_log WHERE action = 'login-failed' ORDER BY id DESC LIMIT 1");
+    assert.equal(failedAudit.changed_by, null);
+    assert.equal(JSON.parse(failedAudit.details).reason, 'invalid_credentials');
+    assert.ok(!JSON.stringify(failedAudit).includes('failed-password-secret'));
+    assert.ok(!JSON.stringify(failedAudit).includes('missing-account-secret'));
   } finally {
     if (server) await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     await db.close();

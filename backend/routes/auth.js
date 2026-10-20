@@ -38,6 +38,17 @@ const AUTH_USER_FIELDS = `
   last_login_ip
 `;
 
+const recordFailedLogin = (req, reason, targetUserId = null) => logSystemAudit({
+  entityType: 'auth',
+  entityId: targetUserId,
+  action: 'login-failed',
+  summary: 'Sign-in attempt rejected',
+  // No submitted identifiers, credentials, or validation values belong in the log.
+  details: { reason, loginIp: req.ip || null },
+  changedBy: null,
+  requestId: req.requestId
+});
+
 // Accounts are provisioned through the audited admin-only /api/users flow.
 router.post('/register', (req, res) => {
   res.status(403).json({ error: 'Self-registration is disabled. Contact your administrator.' });
@@ -54,6 +65,7 @@ router.post(
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        await recordFailedLogin(req, 'invalid_request');
         return res.status(400).json({ errors: errors.array() });
       }
 
@@ -65,20 +77,23 @@ router.post(
       );
 
       if (!user) {
+        await recordFailedLogin(req, 'invalid_credentials');
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
       if (!user.is_active) {
+        await recordFailedLogin(req, 'account_disabled', user.id);
         return res.status(403).json({ error: 'Account is disabled' });
       }
 
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
+        await recordFailedLogin(req, 'invalid_credentials', user.id);
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
       const now = new Date().toISOString();
-      const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || null;
+      const clientIp = req.ip || null;
 
       await db.run(
         'UPDATE users SET last_login_at = ?, last_login_ip = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',

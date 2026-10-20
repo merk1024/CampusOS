@@ -103,3 +103,36 @@ jobs:
         working-directory: backend
         env:
           TEST_DATABASE_URL: postgresql://campusos:campusos_ci_only@localhost:5432/campusos_test
+
+  browser-role-tests:
+    name: Browser Role Boundaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        blueprint: [render.yaml, render.staging.yaml]
+    env:
+      E2E_BLUEPRINT: ${{ matrix.blueprint }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - run: npm ci --prefix backend
+      - run: npm ci --prefix frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npm run test:e2e
+
+  zap-runner-tests:
+    name: ZAP Runner Contract
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: node --test backend/tests/zap-runner.test.js
